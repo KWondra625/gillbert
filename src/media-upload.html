@@ -1,0 +1,43 @@
+﻿<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gillbert Upload</title>
+  <link rel="stylesheet" href="./assets/media-upload.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📁 Upload Media</h1>
+      <p>Add photos and videos to your catch</p>
+    </div>
+
+    <div class="form-section">
+      <label for="catchId">Select Catch</label>
+      <select id="catchId">
+        <!-- Options will be filled in via JavaScript -->
+      </select>
+
+      <div id="catchSummary" class="catch-summary"></div>
+
+      <label for="files">Photos / Videos</label>
+      <input id="files" type="file" multiple accept="image/*,video/*" />
+
+      <button id="uploadBtn" class="primary-button">Upload Files</button>
+      <div id="status" class="status"></div>
+
+      <div id="loadingIndicator" class="loading-indicator">
+        <div class="fishing-animation">
+          🎣<span class="bobber">●</span>
+        </div>
+        <p>Uploading your catch media...</p>
+      </div>
+    </div>
+
+    <div id="log" class="log"></div>
+  </div>
+
+  <script src="./assets/media-upload.js"></script>
+</body>
+</html>
