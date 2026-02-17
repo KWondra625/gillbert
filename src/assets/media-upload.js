@@ -1,7 +1,7 @@
 const hostname = window.location.hostname;
 // Use test webhooks when on preview/dev URLs, production webhooks on main site
-const ENV = (hostname === "gillbert.kwtechhub.net") ? "prod" : "dev";
-const N8N_BASE_URL = "https://api.kwtechhub.net";
+const ENV = (hostname === "gillbert.builtbykw.net") ? "prod" : "dev";
+const N8N_BASE_URL = "https://api.builtbykw.net";
 const WEBHOOK_PATH = ENV === "prod" ? "/webhook/" : "/webhook-test/";
 const API_KEY = 'sj30z42c9e0nIzchc5u';
 

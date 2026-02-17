@@ -1,0 +1,11 @@
+First, open PowerShell and navigate to a folder where you have permissions.
+cd C:\Users\kurtw\source\repos\KWondra625\Gillbert\scripts
+
+Second, open Powershell and run this command to find the container's name.  (likely data-postgres)
+docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Ports}}"
+
+Third, configure and run the below command to create the file:
+docker exec -t -e PGPASSWORD="<password>" <container_name> pg_dump -U <db_user> <db_name> > backup.sql
+
+Example:
+docker exec -t -e PGPASSWORD="password" data-postgres pg_dump -U postgres_db_user ParkingLot > pg_dump_backup01.sql
