@@ -1,0 +1,382 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
+  min-height: 100vh;
+  padding-top: max(16px, env(safe-area-inset-top));
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+.container {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 48px;
+  color: white;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 48px;
+  font-weight: 700;
+}
+
+.header p {
+  margin: 8px 0 0 0;
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+.controls {
+  margin-bottom: 32px;
+}
+
+.search-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.search-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #333;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  outline: none;
+  transition: box-shadow 0.2s;
+}
+
+.search-input:focus {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+
+.search-input::placeholder {
+  color: #aaa;
+}
+
+.search-button {
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid white;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+  white-space: nowrap;
+}
+
+.search-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.search-button:active {
+  transform: scale(0.95);
+}
+
+.status {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 500;
+  color: white;
+  min-height: 24px;
+  margin-bottom: 16px;
+}
+
+.loading-indicator {
+  display: none;
+  text-align: center;
+  padding: 40px 20px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.loading-indicator.visible {
+  display: block;
+}
+
+.fishing-animation {
+  font-size: 48px;
+  margin-bottom: 12px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bobber {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 24px;
+  animation: bobbing 2s ease-in-out infinite;
+}
+
+@keyframes bobbing {
+  0%, 100% {
+    transform: translateY(0px);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(-12px);
+    opacity: 1;
+  }
+}
+
+.loading-indicator p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #4FACFE;
+}
+
+/* Catches Grid */
+.catches-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+  margin-bottom: 48px;
+}
+
+.catch-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+
+.catch-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.catch-card-header {
+  background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
+  padding: 16px;
+  color: white;
+}
+
+.catch-id {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.catch-card-body {
+  padding: 20px;
+  flex-grow: 1;
+}
+
+.catch-field {
+  display: flex;
+  margin-bottom: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.catch-field:last-of-type {
+  margin-bottom: 0;
+}
+
+.field-label {
+  font-weight: 600;
+  color: #4FACFE;
+  min-width: 100px;
+  flex-shrink: 0;
+}
+
+.field-value {
+  color: #333;
+  word-break: break-word;
+}
+
+.catch-summary {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f0f8ff;
+  border-left: 4px solid #4FACFE;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #333;
+}
+
+.catch-summary p {
+  margin: 0;
+}
+
+.catch-card-footer {
+  padding: 12px 20px;
+  border-top: 1px solid #f0f0f0;
+  background: #fafafa;
+  text-align: center;
+}
+
+.card-button {
+  display: inline-block;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(79, 172, 254, 0.2);
+}
+
+.card-button:active {
+  transform: scale(0.95);
+}
+
+/* Empty State */
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 20px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 18px;
+  color: #999;
+}
+
+/* Pagination */
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 48px;
+  flex-wrap: wrap;
+}
+
+.pagination-button {
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid white;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.pagination-button:active {
+  transform: scale(0.95);
+}
+
+.pagination-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-info {
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  min-width: 120px;
+  text-align: center;
+}
+
+/* Back Button */
+.back-button {
+  display: block;
+  width: 100%;
+  padding: 16px 12px;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 10px;
+  background: white;
+  color: #4FACFE;
+  text-decoration: none;
+  text-align: center;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transition: box-shadow 0.2s, transform 0.2s;
+  box-sizing: border-box;
+}
+
+.back-button:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .header h1 {
+    font-size: 36px;
+  }
+
+  .catches-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .pagination-container {
+    gap: 12px;
+  }
+
+  .pagination-button {
+    padding: 10px 16px;
+    font-size: 12px;
+  }
+
+  .page-info {
+    font-size: 12px;
+  }
+
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 12px;
+  }
+
+  .header {
+    margin-bottom: 32px;
+  }
+
+  .header h1 {
+    font-size: 28px;
+  }
+
+  .header p {
+    font-size: 14px;
+  }
+
+  .catch-card-body {
+    padding: 16px;
+  }
+
+  .field-label {
+    min-width: 80px;
+    font-size: 13px;
+  }
+
+  .field-value {
+    font-size: 13px;
+  }
+}

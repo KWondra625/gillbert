@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gillbert - Catch Listing</title>
+  <link rel="stylesheet" href="./assets/catches-listing.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎣 All Catches</h1>
+      <p>Browse your catch records</p>
+    </div>
+
+    <div class="controls">
+      <div class="search-bar">
+        <input
+          type="text"
+          id="searchInput"
+          class="search-input"
+          placeholder="Search catches..."
+          title="Search by Catch ID, Angler, Fish Species, or Body of Water"
+        />
+        <button id="searchBtn" class="search-button">🔍 Search</button>
+      </div>
+      <div id="status" class="status"></div>
+      <div id="loadingIndicator" class="loading-indicator">
+        <div class="fishing-animation">
+          🎣<span class="bobber">●</span>
+        </div>
+        <p>Loading your catches...</p>
+      </div>
+    </div>
+
+    <div id="catchesContainer" class="catches-grid">
+      <!-- Cards will be inserted here -->
+    </div>
+
+    <div id="paginationContainer" class="pagination-container">
+      <button id="prevBtn" class="pagination-button">← Previous</button>
+      <span id="pageInfo" class="page-info"></span>
+      <button id="nextBtn" class="pagination-button">Next →</button>
+    </div>
+
+    <a href="./index.html" class="back-button">← Back to Home</a>
+  </div>
+
+  <script src="./assets/config.js"></script>
+  <script src="./assets/catches-listing.js"></script>
+</body>
+</html>

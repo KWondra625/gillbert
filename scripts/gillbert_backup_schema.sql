@@ -7,10 +7,11 @@ CREATE TABLE IF NOT EXISTS airtable_backup.anglers (
     name varchar(255) NOT NULL,
     status varchar(255) NOT NULL, 
     aliases varchar(255)[],
-    airtable_record_id varchar(255) NOT NULL,
+    airtable_record_id varchar(255) NOT NULL UNIQUE,
     airtable_created_datetime TIMESTAMP,
     airtable_last_updated_datetime TIMESTAMP, 
-    backup_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    postgres_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    postgres_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS airtable_backup.bodies_of_water (
@@ -19,22 +20,24 @@ CREATE TABLE IF NOT EXISTS airtable_backup.bodies_of_water (
     status varchar(255) NOT NULL,
     latitudeAndLongitude varchar(255) NOT NULL,
     notes TEXT,
-    airtable_record_id varchar(255) NOT NULL,
+    airtable_record_id varchar(255) NOT NULL UNIQUE,
     airtable_created_datetime TIMESTAMP,
     airtable_last_updated_datetime TIMESTAMP, 
-    backup_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    postgres_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    postgres_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS airtable_backup.fish_species (
-     id SERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     name varchar(255) NOT NULL,
     status varchar(255) NOT NULL, 
     aliases varchar(255)[],
     notes TEXT,
-    airtable_record_id varchar(255) NOT NULL,
+    airtable_record_id varchar(255) NOT NULL UNIQUE,
     airtable_created_datetime TIMESTAMP,
     airtable_last_updated_datetime TIMESTAMP, 
-    backup_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    postgres_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    postgres_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS airtable_backup.conversations (
@@ -58,10 +61,11 @@ CREATE TABLE IF NOT EXISTS airtable_backup.conversations (
     conversation_status varchar(255),
     started_at TIMESTAMP,
     ended_at TIMESTAMP,
-    airtable_record_id varchar(255) NOT NULL,
+    airtable_record_id varchar(255) NOT NULL UNIQUE,
     airtable_created_datetime TIMESTAMP,
     airtable_last_updated_datetime TIMESTAMP, 
-    backup_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    postgres_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    postgres_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS airtable_backup.catches (
@@ -85,10 +89,11 @@ CREATE TABLE IF NOT EXISTS airtable_backup.catches (
     angler_name_raw varchar(255),
     fish_species_name_raw varchar(255),
     body_of_water_name_raw varchar(255),
-    airtable_id varchar(255) NOT NULL,
+    airtable_id varchar(255) NOT NULL UNIQUE,
     airtable_created_datetime TIMESTAMP,
     airtable_last_updated_datetime TIMESTAMP, 
-    backup_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    postgres_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    postgres_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS airtable_backup.catches_testing (
@@ -112,10 +117,11 @@ CREATE TABLE IF NOT EXISTS airtable_backup.catches_testing (
     angler_name_raw varchar(255),
     fish_species_name_raw varchar(255),
     body_of_water_name_raw varchar(255),
-    airtable_id varchar(255) NOT NULL,
+    airtable_id varchar(255) NOT NULL UNIQUE,
     airtable_created_datetime TIMESTAMP,
     airtable_last_updated_datetime TIMESTAMP, 
-    backup_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    postgres_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    postgres_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS airtable_backup.catches_backup_20251123 (
@@ -139,10 +145,11 @@ CREATE TABLE IF NOT EXISTS airtable_backup.catches_backup_20251123 (
     angler_name_raw varchar(255),
     fish_species_name_raw varchar(255),
     body_of_water_name_raw varchar(255),
-    airtable_id varchar(255) NOT NULL,
+    airtable_id varchar(255) NOT NULL UNIQUE,
     airtable_created_datetime TIMESTAMP,
     airtable_last_updated_datetime TIMESTAMP, 
-    backup_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    postgres_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    postgres_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS airtable_backup.catches_backup_afterExcelLoad_20251123 (
@@ -166,10 +173,11 @@ CREATE TABLE IF NOT EXISTS airtable_backup.catches_backup_afterExcelLoad_2025112
     angler_name_raw varchar(255),
     fish_species_name_raw varchar(255),
     body_of_water_name_raw varchar(255),
-    airtable_id varchar(255) NOT NULL,
+    airtable_id varchar(255) NOT NULL UNIQUE,
     airtable_created_datetime TIMESTAMP,
     airtable_last_updated_datetime TIMESTAMP, 
-    backup_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    postgres_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    postgres_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS airtable_backup.catch_media (
@@ -188,8 +196,9 @@ CREATE TABLE IF NOT EXISTS airtable_backup.catch_media (
     catch_id_raw varchar(255),
     record_number int,
     record_number_v2 int,
-    airtable_id varchar(255) NOT NULL,
+    airtable_id varchar(255) NOT NULL UNIQUE,
     airtable_created_datetime TIMESTAMP,
     airtable_last_updated_datetime TIMESTAMP, 
-    backup_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    postgres_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    postgres_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

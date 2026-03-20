@@ -3,41 +3,63 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Gillbert Upload</title>
+  <title>Upload Media · Gillbert</title>
   <link rel="stylesheet" href="./assets/media-upload.css" />
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <h1>📁 Upload Media</h1>
-      <p>Add photos and videos to your catch</p>
+
+    <!-- Error: no catchNumber in URL -->
+    <div id="noCatchState" class="no-catch-state hidden">
+      <div class="no-catch-icon">⚠️</div>
+      <h2 class="no-catch-title">No Catch Selected</h2>
+      <p class="no-catch-msg">To upload media, start by finding the catch you'd like to add photos or videos to, then tap Upload Media from there.</p>
+      <a href="./catches-listing.html" class="primary-button">📋 Browse All Catches</a>
+      <a href="./index.html" class="back-button">← Back to Home</a>
     </div>
 
-    <div class="form-section">
-      <label for="catchId">Select Catch</label>
-      <select id="catchId">
-        <!-- Options will be filled in via JavaScript -->
-      </select>
-
-      <div id="catchSummary" class="catch-summary"></div>
-
-      <label for="files">Photos / Videos</label>
-      <input id="files" type="file" multiple accept="image/*,video/*" />
-
-      <button id="uploadBtn" class="primary-button">Upload Files</button>
-      <div id="status" class="status"></div>
-
-      <div id="loadingIndicator" class="loading-indicator">
-        <div class="fishing-animation">
-          🎣<span class="bobber">●</span>
-        </div>
-        <p>Uploading your catch media...</p>
+    <!-- Upload form state -->
+    <div id="uploadState">
+      <div class="header">
+        <h1>📁 Upload Media</h1>
+        <p>Add photos and videos to your catch</p>
       </div>
+
+      <div id="catchCard" class="catch-card">
+        <p class="catch-card-loading">Loading catch details…</p>
+      </div>
+
+      <div class="form-section">
+        <label for="files">Photos / Videos</label>
+        <input id="files" type="file" multiple accept="image/*,video/*" />
+        <button id="uploadBtn" class="primary-button">⬆️ Upload Files</button>
+        <div id="status" class="status"></div>
+        <div id="loadingIndicator" class="loading-indicator">
+          <div class="fishing-animation">
+            🎣<span class="bobber">●</span>
+          </div>
+          <p id="loadingMsg">Casting your media into the cloud…</p>
+        </div>
+      </div>
+
+      <a id="backToCatch" href="#" class="back-button">← Back to Catch</a>
     </div>
 
+    <!-- Success state (shown after upload completes) -->
+    <div id="successState" class="success-state hidden">
+      <div class="success-icon">🎣</div>
+      <h2 class="success-title">Nice catch!</h2>
+      <p class="success-msg">Your media has been dropped in Gillbert's digital live well and linked to the catch.</p>
+      <p class="success-redirect">Heading back to your catch in <span id="countdown">20</span>s…</p>
+      <a id="successBackBtn" href="#" class="primary-button success-back-btn">← Back to Catch Now</a>
+    </div>
+
+    <!-- Activity log — persists across states -->
     <div id="log" class="log"></div>
+
   </div>
 
+  <script src="./assets/config.js"></script>
   <script src="./assets/media-upload.js"></script>
 </body>
 </html>

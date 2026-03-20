@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gillbert - Catch Details</title>
+  <link rel="stylesheet" href="./assets/catch-details.css" />
+</head>
+<body>
+  <div class="container">
+    <div id="status" class="status"></div>
+
+    <div id="loadingIndicator" class="loading-indicator">
+      <div class="fishing-animation">
+        🎣<span class="bobber">●</span>
+      </div>
+      <p>Loading catch details...</p>
+    </div>
+
+    <div id="detailsContainer"></div>
+
+    <!-- Record Info Modal -->
+    <div id="recordInfoModal" class="ri-modal" role="dialog" aria-modal="true" aria-label="Record Info">
+      <div class="ri-modal-sheet">
+        <div class="ri-modal-header">
+          <span class="ri-modal-title">🗂️ Record Info</span>
+          <button class="ri-modal-close" id="recordInfoClose" aria-label="Close">&times;</button>
+        </div>
+        <div class="ri-modal-body" id="recordInfoBody"></div>
+      </div>
+    </div>
+
+    <!-- Lightbox overlay -->
+    <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Full size image">
+      <button id="lightboxClose" class="lightbox-close" aria-label="Close">&times;</button>
+      <img id="lightboxImg" class="lightbox-img" src="" alt="Full size catch photo" />
+    </div>
+
+    <a href="./catches-listing.html" class="back-button">← Back to Listing</a>
+  </div>
+
+  <script src="./assets/config.js"></script>
+  <script src="./assets/catch-details.js"></script>
+</body>
+</html>
