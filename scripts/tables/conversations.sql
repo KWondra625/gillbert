@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS conversations (
+    id SERIAL PRIMARY KEY,
+    n8n_conversation_id varchar(255) NOT NULL,
+    channel varchar(255) NOT NULL,
+    session_id varchar(255) NOT NULL,
+    mode varchar(255),
+    caught_when_utc TIMESTAMPTZ,
+    timezone varchar(255),
+    date_of_catch_raw varchar(255),
+    time_of_catch_raw varchar(255),
+    caught_by_raw varchar(255),
+    fish_species_raw varchar(255),
+    body_of_water_raw varchar(255),
+    length_in_raw varchar(255),
+    water_depth_ft_raw varchar(255),
+    notes_raw TEXT,
+    conversation_status varchar(255),
+    started_at TIMESTAMP,
+    ended_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
