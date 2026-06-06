@@ -14,3 +14,19 @@ CREATE TABLE IF NOT EXISTS catches (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE OR REPLACE FUNCTION generate_catch_number()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.catch_number := 'Catch ' || TO_CHAR(
+    COALESCE(NEW.caught_when, NOW()), 
+    'YY'
+  ) || '-' || LPAD(NEW.id::TEXT, 3, '0');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_catch_number
+BEFORE INSERT ON catches
+FOR EACH ROW
+EXECUTE FUNCTION generate_catch_number();
