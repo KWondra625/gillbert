@@ -173,11 +173,37 @@ body {
   color: white;
 }
 
+.catch-header-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .catch-id {
   margin: 0;
   font-size: 24px;
   font-weight: 700;
   word-break: break-word;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.catch-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.field-value.field-value--fresh {
+  color: #E8650A;
+  font-weight: 600;
+}
+
+.badge-new {
+  font-size: 18px;
+  line-height: 1;
 }
 
 .catch-card-body {

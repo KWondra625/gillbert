@@ -187,7 +187,7 @@ async function submit() {
     fishSpeciesId:  parseInt(el.fishSpeciesId.value, 10),
     bodyOfWaterId:  parseInt(el.bodyOfWaterId.value, 10),
     caughtWhen:     buildCaughtWhen(),
-    recordSource:   'manual',
+    recordSource:   'Web Form',
     conversationId: null,
   };
 

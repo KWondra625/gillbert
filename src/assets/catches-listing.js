@@ -1,4 +1,4 @@
-const ITEMS_PER_PAGE = 25;
+const ITEMS_PER_PAGE = 24;
 
 const el = {
   catchesContainer: document.getElementById('catchesContainer'),
@@ -107,26 +107,53 @@ function renderPage() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+function getRelativeTime(dateStr) {
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+  if (diffHours < 48) {
+    const time = new Date(dateStr).toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    return `Yesterday at ${time}`;
+  }
+  const days = Math.floor(diffHours / 24);
+  return `${days} days ago`;
+}
+
 function renderCatchCard(catchData) {
   const {
     catchNumber = "Unknown",
     anglerName = "Unknown",
     fishSpeciesName = "Unknown",
-    length = "N/A",
+    length = null,
     caughtWhen = null,
+    createdAt = null,
   } = catchData;
 
+  const now = Date.now();
+  const isRecentCatch = caughtWhen && (now - new Date(caughtWhen).getTime()) < 72 * 60 * 60 * 1000;
+  const isRecentlyAdded = createdAt && (now - new Date(createdAt).getTime()) < 24 * 60 * 60 * 1000;
+
   const caughtWhenDisplay = caughtWhen
-    ? new Date(caughtWhen).toLocaleString('en-US', {
-        month: 'long', day: 'numeric', year: 'numeric',
-        hour: 'numeric', minute: '2-digit', hour12: true,
-      })
+    ? isRecentCatch
+      ? getRelativeTime(caughtWhen)
+      : new Date(caughtWhen).toLocaleString('en-US', {
+          month: 'long', day: 'numeric', year: 'numeric',
+          hour: 'numeric', minute: '2-digit', hour12: true,
+        })
     : 'Unknown';
 
   return `
     <div class="catch-card">
       <div class="catch-card-header">
-        <h2 class="catch-id">${escapeHtml(catchNumber)}</h2>
+        <div class="catch-header-row">
+          <h2 class="catch-id">${escapeHtml(catchNumber)}</h2>
+          <div class="catch-badges">
+            ${isRecentlyAdded ? '<span class="badge-new" title="Added within the last 24 hours">🆕</span>' : ''}
+          </div>
+        </div>
       </div>
       <div class="catch-card-body">
         <div class="catch-field">
@@ -137,13 +164,14 @@ function renderCatchCard(catchData) {
           <span class="field-label">🐟 Species:</span>
           <span class="field-value">${escapeHtml(fishSpeciesName)}</span>
         </div>
+        ${length != null && length !== '' ? `
         <div class="catch-field">
           <span class="field-label">📏 Length:</span>
           <span class="field-value">${escapeHtml(String(length))}"</span>
-        </div>
+        </div>` : ''}
         <div class="catch-field">
           <span class="field-label">📅 When:</span>
-          <span class="field-value">${escapeHtml(caughtWhenDisplay)}</span>
+          <span class="field-value${isRecentCatch ? ' field-value--fresh' : ''}">${escapeHtml(caughtWhenDisplay)}</span>
         </div>
       </div>
       <div class="catch-card-footer">
