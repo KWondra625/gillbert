@@ -13,17 +13,37 @@
       <p>🎣 Your AI companion who loves fishing! 🐟</p>
     </div>
 
-    <a href="https://api.builtbykw.net/webhook/e33fc401-83ee-4405-ba49-8a85b2127372/chat" class="cta-card">
-      <div class="cta-card-title">💬 Talk to Gillbert</div>
-      <p class="cta-card-desc">Have a conversation with your AI fishing companion to log a new catch. Just describe what you caught — Gillbert handles the rest.</p>
-      <span class="cta-card-action">Start chatting →</span>
-    </a>
+    <div class="section-divider"><span class="section-label">🎣 Log a Catch</span></div>
+    <div class="cta-grid">
+      <a href="https://api.builtbykw.net/webhook/e33fc401-83ee-4405-ba49-8a85b2127372/chat" class="cta-card">
+        <div class="cta-card-title">💬 Chat with Gillbert</div>
+        <p class="cta-card-desc">Describe your catch in conversation — Gillbert pulls out the details and logs it for you.</p>
+        <span class="cta-card-action">Start chatting →</span>
+      </a>
+      <a href="./log-catch.html" class="cta-card">
+        <div class="cta-card-title">✏️ Log Manually</div>
+        <p class="cta-card-desc">Fill out a quick form to record a catch — great for historical entries or when away from your phone.</p>
+        <span class="cta-card-action">Open form →</span>
+      </a>
+    </div>
 
-    <a href="./catches-listing.html" class="cta-card">
-      <div class="cta-card-title">🐟 Browse Catches</div>
-      <p class="cta-card-desc">Explore your full catch log with search and filtering. Tap any catch to view all the details and media from that day on the water.</p>
-      <span class="cta-card-action">View all catches →</span>
-    </a>
+    <div class="section-divider"><span class="section-label">📊 Review History</span></div>
+    <div class="cta-grid">
+      <a href="./catches-listing.html" class="cta-card">
+        <div class="cta-card-title">🐟 Browse Catches</div>
+        <p class="cta-card-desc">Search and filter your full catch log. Tap any record to see details and photos from that day.</p>
+        <span class="cta-card-action">View catches →</span>
+      </a>
+      <div class="cta-card cta-card--coming-soon" id="askGillbertCard">
+        <div class="cta-card-title">💬 Ask Gillbert</div>
+        <p class="cta-card-desc">Ask questions about your catch history and get AI-powered insights on your fishing trends.</p>
+        <span class="coming-soon-badge">Coming Soon</span>
+      </div>
+    </div>
+
+    <div id="comingSoonToast" class="coming-soon-toast hidden">
+      🚧 This feature is coming soon — stay tuned!
+    </div>
   </div>
 
   <script src="./assets/app.js"></script>

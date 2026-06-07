@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Log a Catch · Gillbert</title>
+  <link rel="stylesheet" href="./assets/log-catch.css" />
+</head>
+<body>
+  <div class="container">
+
+    <!-- ── Loading state ────────────────────────────────────────────── -->
+    <div id="loadingState">
+      <div class="header">
+        <h1>✏️ Log a Catch</h1>
+        <p>Loading options…</p>
+      </div>
+      <div class="loading-indicator">
+        <div class="fishing-animation">🎣<span class="bobber">●</span></div>
+        <p>Loading catch options…</p>
+      </div>
+    </div>
+
+    <!-- ── Lookup error state ────────────────────────────────────────── -->
+    <div id="lookupErrorState" class="hidden">
+      <div class="header">
+        <h1>✏️ Log a Catch</h1>
+      </div>
+      <div class="error-card">
+        <p class="error-icon">⚠️</p>
+        <p id="lookupErrorMsg">Unable to load options. Please check your connection and try again.</p>
+        <button id="retryBtn" class="primary-button">🔄 Try Again</button>
+      </div>
+      <a href="./index.html" class="back-button">← Back to Home</a>
+    </div>
+
+    <!-- ── Form state ────────────────────────────────────────────────── -->
+    <div id="formState" class="hidden">
+      <div class="header">
+        <h1>✏️ Log a Catch</h1>
+        <p>Record a catch manually</p>
+      </div>
+
+      <!-- Success banner — shown after Save and Add Another -->
+      <div id="successBanner" class="success-banner hidden">
+        🎣 Catch saved! <a id="successBannerLink" href="#">View it →</a>
+      </div>
+
+      <!-- Mode toggle -->
+      <div class="mode-toggle" role="group" aria-label="Catch timing">
+        <label class="mode-option">
+          <input type="radio" name="catchMode" value="historical" checked />
+          <span class="mode-label">📅 Historical Catch</span>
+        </label>
+        <label class="mode-option">
+          <input type="radio" name="catchMode" value="now" />
+          <span class="mode-label">🕐 Just Caught It</span>
+        </label>
+      </div>
+
+      <form id="catchForm" novalidate>
+
+        <!-- Angler -->
+        <div class="field-group">
+          <label for="anglerId">👤 Angler <span class="required-mark">*</span></label>
+          <select id="anglerId">
+            <option value="">Select an angler…</option>
+          </select>
+          <p class="field-error hidden" id="anglerIdError">Please select an angler.</p>
+        </div>
+
+        <!-- Fish Species -->
+        <div class="field-group">
+          <label for="fishSpeciesId">🐟 Fish Species <span class="required-mark">*</span></label>
+          <select id="fishSpeciesId">
+            <option value="">Select a species…</option>
+          </select>
+          <p class="field-error hidden" id="fishSpeciesIdError">Please select a fish species.</p>
+        </div>
+
+        <!-- Body of Water -->
+        <div class="field-group">
+          <label for="bodyOfWaterId">🌊 Body of Water <span class="required-mark">*</span></label>
+          <select id="bodyOfWaterId">
+            <option value="">Select a body of water…</option>
+          </select>
+          <p class="field-error hidden" id="bodyOfWaterIdError">Please select a body of water.</p>
+        </div>
+
+        <!-- Date of Catch -->
+        <div class="field-group">
+          <label for="catchDate">📅 Date of Catch <span class="required-mark">*</span></label>
+          <input type="date" id="catchDate" />
+          <p class="field-error hidden" id="catchDateError">Please select a date.</p>
+        </div>
+
+        <!-- Time of Catch -->
+        <div class="field-group">
+          <label for="catchTime">🕐 Time of Catch <span class="optional-mark">(optional)</span></label>
+          <input type="time" id="catchTime" />
+        </div>
+
+        <!-- Length -->
+        <div class="field-group">
+          <label for="lengthInInches">📏 Length <span class="optional-mark">(optional)</span></label>
+          <div class="input-unit-wrap">
+            <input type="number" id="lengthInInches" min="0" step="0.1" placeholder="e.g. 14.5" />
+            <span class="unit-label">in</span>
+          </div>
+          <p class="field-error hidden" id="lengthInInchesError">Length must be greater than 0.</p>
+        </div>
+
+        <!-- Water Depth -->
+        <div class="field-group">
+          <label for="waterDepthInFeet">💧 Water Depth <span class="optional-mark">(optional)</span></label>
+          <div class="input-unit-wrap">
+            <input type="number" id="waterDepthInFeet" min="0" step="0.1" placeholder="e.g. 8.0" />
+            <span class="unit-label">ft</span>
+          </div>
+          <p class="field-error hidden" id="waterDepthInFeetError">Water depth must be greater than 0.</p>
+        </div>
+
+        <!-- Notes -->
+        <div class="field-group">
+          <label for="notes">📝 Notes <span class="optional-mark">(optional)</span></label>
+          <textarea id="notes" rows="3" placeholder="Any details worth remembering…"></textarea>
+        </div>
+
+        <!-- Form-level error -->
+        <div id="formError" class="form-error hidden"></div>
+
+        <!-- Actions -->
+        <div class="actions">
+          <button type="button" id="saveViewBtn" class="primary-button">🎣 Save and View Catch</button>
+          <button type="button" id="saveAnotherBtn" class="secondary-button">➕ Save and Add Another</button>
+          <a href="./catches-listing.html" class="back-button">📋 View All Catches</a>
+          <a href="./index.html" class="back-button">← Back to Home</a>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- ── Submitting state ──────────────────────────────────────────── -->
+    <div id="submittingState" class="hidden">
+      <div class="header">
+        <h1>✏️ Log a Catch</h1>
+        <p>Saving your catch…</p>
+      </div>
+      <div class="loading-indicator">
+        <div class="fishing-animation">🎣<span class="bobber">●</span></div>
+        <p>Dropping your catch in Gillbert's digital live well…</p>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="./assets/config.js"></script>
+  <script src="./assets/log-catch.js"></script>
+</body>
+</html>

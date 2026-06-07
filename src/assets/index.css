@@ -17,13 +17,13 @@ body {
 
 .container {
   width: 100%;
-  max-width: 500px;
+  max-width: 600px;
   margin: auto;
 }
 
 .header {
   text-align: center;
-  margin-bottom: 48px;
+  margin-bottom: 36px;
   color: white;
 }
 
@@ -39,11 +39,49 @@ body {
   opacity: 0.9;
 }
 
+/* Section dividers */
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.section-divider::before,
+.section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.section-label {
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+/* CTA grid */
+.cta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+@media (max-width: 440px) {
+  .cta-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .cta-card {
   display: block;
-  width: 100%;
-  padding: 24px;
-  margin-bottom: 16px;
+  padding: 20px;
   border-radius: 16px;
   background: white;
   color: #1a1a2e;
@@ -58,21 +96,60 @@ body {
 }
 
 .cta-card-title {
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 700;
   color: #1a1a2e;
   margin-bottom: 8px;
 }
 
 .cta-card-desc {
-  font-size: 14px;
+  font-size: 13px;
   color: #666;
   line-height: 1.5;
   margin: 0 0 12px 0;
 }
 
 .cta-card-action {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #4FACFE;
+}
+
+/* Coming soon card */
+.cta-card--coming-soon {
+  opacity: 0.65;
+  cursor: pointer;
+}
+
+.coming-soon-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  background: #f0f0f0;
+  color: #888;
+  border-radius: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Toast notification */
+.coming-soon-toast {
+  position: fixed;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(26, 26, 46, 0.92);
+  color: white;
+  padding: 12px 22px;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  white-space: nowrap;
+  z-index: 100;
+}
+
+.coming-soon-toast.hidden {
+  display: none;
 }
