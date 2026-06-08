@@ -105,8 +105,8 @@ function buildCaughtWhen() {
   const date = el.catchDate.value; // YYYY-MM-DD
   if (!date) return null;
 
-  // Default to noon when no time is given — avoids the JS date-only UTC midnight gotcha
-  const time = el.catchTime.value || '12:00';
+  // Default to midnight when no time is given (full datetime string avoids UTC parsing gotcha)
+  const time = el.catchTime.value || '00:00';
 
   // No trailing "Z" → JS parses as local time → .toISOString() converts to UTC
   return new Date(`${date}T${time}:00`).toISOString();
