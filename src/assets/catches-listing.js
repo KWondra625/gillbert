@@ -285,6 +285,7 @@ function applyFilters() {
     return true;
   });
   currentPage = 1;
+  sessionStorage.setItem('gillbert_filters', JSON.stringify(activeFilters));
   updateFilterUI();
   renderPage();
 }
@@ -356,6 +357,7 @@ document.addEventListener('click', closeDropdowns);
 
 el.filterClearAll.addEventListener('click', () => {
   activeFilters = { angler: '', species: '', water: '' };
+  sessionStorage.removeItem('gillbert_filters');
   applyFilters();
 });
 
@@ -363,6 +365,10 @@ window.addEventListener("DOMContentLoaded", () => {
   const savedSearch = sessionStorage.getItem('gillbert_search');
   if (savedSearch) {
     el.searchInput.value = savedSearch;
+  }
+  const savedFilters = sessionStorage.getItem('gillbert_filters');
+  if (savedFilters) {
+    try { activeFilters = { ...activeFilters, ...JSON.parse(savedFilters) }; } catch (e) {}
   }
   loadLookups();
   loadCatches();
