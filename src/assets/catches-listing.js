@@ -1,4 +1,5 @@
 const ITEMS_PER_PAGE = 24;
+const LOOKUP_URL = API_BASE + 'get-lookup-data';
 
 const el = {
   catchesContainer: document.getElementById('catchesContainer'),
@@ -10,10 +11,25 @@ const el = {
   paginationContainer: document.getElementById('paginationContainer'),
   searchInput: document.getElementById('searchInput'),
   searchBtn: document.getElementById('searchBtn'),
+  filterAnglerChip: document.getElementById('filterAnglerChip'),
+  filterAnglerValue: document.getElementById('filterAnglerValue'),
+  filterAnglerDropdown: document.getElementById('filterAnglerDropdown'),
+  filterSpeciesChip: document.getElementById('filterSpeciesChip'),
+  filterSpeciesValue: document.getElementById('filterSpeciesValue'),
+  filterSpeciesDropdown: document.getElementById('filterSpeciesDropdown'),
+  filterWaterChip: document.getElementById('filterWaterChip'),
+  filterWaterValue: document.getElementById('filterWaterValue'),
+  filterWaterDropdown: document.getElementById('filterWaterDropdown'),
+  filterSummary: document.getElementById('filterSummary'),
+  filterSummaryText: document.getElementById('filterSummaryText'),
+  filterClearAll: document.getElementById('filterClearAll'),
 };
 
 let allCatches = [];
+let filteredCatches = [];
 let currentPage = 1;
+let lookups = { anglers: [], species: [], bodiesOfWater: [] };
+let activeFilters = { angler: '', species: '', water: '' };
 
 function setStatus(msg) {
   el.status.textContent = msg;
@@ -69,7 +85,7 @@ async function loadCatches() {
     setStatus("");
     currentPage = 1;
     sessionStorage.setItem('gillbert_search', el.searchInput.value.trim());
-    renderPage();
+    applyFilters();
     hideLoading();
   } catch (err) {
     console.error(err);
@@ -81,14 +97,14 @@ async function loadCatches() {
 }
 
 function renderPage() {
-  const totalPages = Math.ceil(allCatches.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredCatches.length / ITEMS_PER_PAGE);
 
   if (currentPage < 1) currentPage = 1;
   if (currentPage > totalPages) currentPage = totalPages;
 
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
-  const pageCatches = allCatches.slice(startIndex, endIndex);
+  const pageCatches = filteredCatches.slice(startIndex, endIndex);
 
   // Render cards
   el.catchesContainer.innerHTML = pageCatches
@@ -130,6 +146,7 @@ function renderCatchCard(catchData) {
     length = null,
     caughtWhen = null,
     createdAt = null,
+    bodyOfWaterName = null,
   } = catchData;
 
   const now = Date.now();
@@ -164,6 +181,11 @@ function renderCatchCard(catchData) {
           <span class="field-label">🐟 Species:</span>
           <span class="field-value">${escapeHtml(fishSpeciesName)}</span>
         </div>
+        ${bodyOfWaterName ? `
+        <div class="catch-field">
+          <span class="field-label">💧 Water:</span>
+          <span class="field-value">${escapeHtml(bodyOfWaterName)}</span>
+        </div>` : ''}
         ${length != null && length !== '' ? `
         <div class="catch-field">
           <span class="field-label">📏 Length:</span>
@@ -212,10 +234,136 @@ el.searchInput.addEventListener("input", () => {
   }
 });
 
+// ── Lookups & Filters ──────────────────────────────────────────────────────────────────────────────
+async function loadLookups() {
+  try {
+    const res = await fetch(LOOKUP_URL, { headers: { 'X-API-Key': API_KEY } });
+    if (!res.ok) return;
+    const raw = await res.json();
+    const data = Array.isArray(raw) ? raw[0] : raw;
+    lookups.anglers = data.anglers || [];
+    lookups.species = data.fishSpecies || [];
+    lookups.bodiesOfWater = data.bodiesOfWater || [];
+    buildDropdowns();
+  } catch (e) {
+    console.error('Lookup fetch failed', e);
+  }
+}
+
+function buildDropdowns() {
+  buildDropdown('angler', el.filterAnglerDropdown, lookups.anglers, 'All Anglers');
+  buildDropdown('species', el.filterSpeciesDropdown, lookups.species, 'All Species');
+  buildDropdown('water', el.filterWaterDropdown, lookups.bodiesOfWater, 'All Waters');
+}
+
+function buildDropdown(filterKey, dropdownEl, items, allLabel) {
+  const options = [
+    { label: allLabel, value: '' },
+    ...items.map(i => ({ label: i.name || String(i), value: i.name || String(i) }))
+  ];
+  dropdownEl.innerHTML = options.map(opt => `
+    <div class="filter-option ${activeFilters[filterKey] === opt.value ? 'selected' : ''}"
+         data-filter="${filterKey}" data-value="${escapeHtml(opt.value)}">
+      <span class="filter-option-check">${activeFilters[filterKey] === opt.value ? '✓' : ''}</span>
+      <span>${escapeHtml(opt.label)}</span>
+    </div>
+  `).join('');
+  dropdownEl.querySelectorAll('.filter-option').forEach(optEl => {
+    optEl.addEventListener('click', () => {
+      activeFilters[filterKey] = optEl.dataset.value;
+      closeDropdowns();
+      applyFilters();
+    });
+  });
+}
+
+function applyFilters() {
+  filteredCatches = allCatches.filter(c => {
+    if (activeFilters.angler && c.anglerName !== activeFilters.angler) return false;
+    if (activeFilters.species && c.fishSpeciesName !== activeFilters.species) return false;
+    if (activeFilters.water && c.bodyOfWaterName !== activeFilters.water) return false;
+    return true;
+  });
+  currentPage = 1;
+  updateFilterUI();
+  renderPage();
+}
+
+function updateFilterUI() {
+  updateChip('angler', el.filterAnglerChip, el.filterAnglerValue);
+  updateChip('species', el.filterSpeciesChip, el.filterSpeciesValue);
+  updateChip('water', el.filterWaterChip, el.filterWaterValue);
+  buildDropdowns();
+  const hasFilter = activeFilters.angler || activeFilters.species || activeFilters.water;
+  if (hasFilter && allCatches.length) {
+    el.filterSummary.classList.add('visible');
+    el.filterSummaryText.textContent = `🎣 Showing ${filteredCatches.length} of ${allCatches.length} catches`;
+  } else {
+    el.filterSummary.classList.remove('visible');
+  }
+}
+
+function updateChip(filterKey, chipEl, valueEl) {
+  const val = activeFilters[filterKey];
+  if (val) {
+    chipEl.classList.add('active');
+    valueEl.textContent = ': ' + val;
+  } else {
+    chipEl.classList.remove('active');
+    valueEl.textContent = '';
+  }
+}
+
+function closeDropdowns() {
+  document.querySelectorAll('.filter-chip-wrapper').forEach(w => w.classList.remove('open'));
+  document.querySelectorAll('.filter-chip-dropdown').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('open'));
+}
+
+['filterAnglerChip', 'filterSpeciesChip', 'filterWaterChip'].forEach(chipId => {
+  const chip = document.getElementById(chipId);
+  const dropdownId = chipId.replace('Chip', 'Dropdown');
+  const dropdown = document.getElementById(dropdownId);
+  const wrapper = chip.closest('.filter-chip-wrapper');
+  chip.addEventListener('click', e => {
+    e.stopPropagation();
+    const isOpen = wrapper.classList.contains('open');
+    closeDropdowns();
+    if (!isOpen) {
+      wrapper.classList.add('open');
+      chip.classList.add('open');
+      dropdown.classList.add('open');
+      // Position using fixed coords so it always floats above everything
+      const rect = chip.getBoundingClientRect();
+      dropdown.style.top = (rect.bottom + 6) + 'px';
+      // Align left edge with chip, but clamp to viewport
+      let left = rect.left;
+      dropdown.style.left = '0px'; // render first to get width
+      dropdown.style.visibility = 'hidden';
+      requestAnimationFrame(() => {
+        const dw = dropdown.offsetWidth;
+        if (left + dw > window.innerWidth - 8) {
+          left = window.innerWidth - dw - 8;
+        }
+        dropdown.style.left = Math.max(8, left) + 'px';
+        dropdown.style.visibility = 'visible';
+      });
+    }
+  });
+});
+
+document.addEventListener('click', closeDropdowns);
+
+el.filterClearAll.addEventListener('click', () => {
+  activeFilters = { angler: '', species: '', water: '' };
+  applyFilters();
+});
+
 window.addEventListener("DOMContentLoaded", () => {
   const savedSearch = sessionStorage.getItem('gillbert_search');
   if (savedSearch) {
     el.searchInput.value = savedSearch;
   }
+  loadLookups();
   loadCatches();
 });
