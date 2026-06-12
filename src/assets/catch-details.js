@@ -38,7 +38,7 @@ const FIELD_LABELS = {
 };
 
 // Fields excluded from all loops (handled explicitly)
-const EXCLUDE_FIELDS = new Set(['catchNumber', 'fullSummary', 'headline', ...FIELD_ORDER, ...AUDIT_FIELDS]);
+const EXCLUDE_FIELDS = new Set(['catchNumber', 'fullSummary', 'headline', 'catchMediaCount', ...FIELD_ORDER, ...AUDIT_FIELDS]);
 
 const el = {
   status:           document.getElementById('status'),
@@ -47,6 +47,7 @@ const el = {
   lightbox:         document.getElementById('lightbox'),
   lightboxImg:      document.getElementById('lightboxImg'),
   lightboxClose:    document.getElementById('lightboxClose'),
+  backButton:       document.getElementById('backButton'),
 };
 
 function setStatus(msg, isError = false) {
@@ -110,6 +111,14 @@ function camelToLabel(key) {
 function getCatchNumberFromUrl() {
   const params = new URLSearchParams(window.location.search);
   return params.get('catchNumber');
+}
+
+function setupBackButton() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('from') === 'fish-of-fame') {
+    el.backButton.href = './fish-of-fame.html';
+    el.backButton.textContent = '← Back to Fish of Fame';
+  }
 }
 
 async function loadCatchDetails(catchNumber) {
@@ -217,6 +226,8 @@ function renderDetails(catchData) {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
+  setupBackButton();
+
   const catchNumber = getCatchNumberFromUrl();
 
   if (!catchNumber) {

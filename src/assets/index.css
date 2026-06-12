@@ -43,11 +43,10 @@ body {
 .section-divider {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   margin-bottom: 16px;
 }
 
-.section-divider::before,
 .section-divider::after {
   content: '';
   flex: 1;
@@ -57,12 +56,16 @@ body {
 
 .section-label {
   color: white;
-  font-size: 11px;
+  font-size: 20px;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  opacity: 0.9;
+  letter-spacing: 0.02em;
   white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .section-label {
+    font-size: 17px;
+  }
 }
 
 /* CTA grid */
@@ -77,6 +80,10 @@ body {
   .cta-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.cta-card--wide {
+  grid-column: 1 / -1;
 }
 
 .cta-card {
