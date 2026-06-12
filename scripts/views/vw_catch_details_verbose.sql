@@ -41,7 +41,9 @@ CREATE OR REPLACE VIEW vw_catch_details_verbose AS
         || '.' AS full_summary,
 
         c.created_at AS created_at,
-        c.updated_at AS updated_at
+        c.updated_at AS updated_at,
+
+        (SELECT COUNT(*) FROM catch_media cm WHERE cm.catch_id = c.id) AS catch_media_count
 
     FROM catches c 
         INNER JOIN anglers a ON c.angler_id = a.id

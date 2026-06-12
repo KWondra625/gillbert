@@ -21,6 +21,8 @@ CREATE OR REPLACE VIEW vw_catch_details_summary AS
         vcdv.full_summary AS full_summary,
 
         vcdv.created_at AS created_at,
-        vcdv.updated_at AS updated_at
+        vcdv.updated_at AS updated_at,
+        
+        vcdv.catch_media_count AS catch_media_count
 
     FROM vw_catch_details_verbose vcdv

@@ -147,6 +147,7 @@ function renderCatchCard(catchData) {
     caughtWhen = null,
     createdAt = null,
     bodyOfWaterName = null,
+    catchMediaCount = 0,
   } = catchData;
 
   const now = Date.now();
@@ -169,6 +170,7 @@ function renderCatchCard(catchData) {
           <h2 class="catch-id">${escapeHtml(catchNumber)}</h2>
           <div class="catch-badges">
             ${isRecentlyAdded ? '<span class="badge-new" title="Added within the last 24 hours">🆕</span>' : ''}
+            ${catchMediaCount > 0 ? `<span class="badge-media" title="${catchMediaCount} attachment${catchMediaCount === 1 ? '' : 's'}">📷 ${catchMediaCount}</span>` : ''}
           </div>
         </div>
       </div>

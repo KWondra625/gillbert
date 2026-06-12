@@ -209,6 +209,19 @@ body {
   line-height: 1;
 }
 
+.badge-media {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 9px;
+  background: white;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #4FACFE;
+  line-height: 1.4;
+}
+
 .catch-card-body {
   padding: 20px;
   flex-grow: 1;
