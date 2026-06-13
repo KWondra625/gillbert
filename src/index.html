@@ -8,7 +8,7 @@
 </head>
 <body>
   <div class="container">
-    <div class="header">
+    <div class="header" id="adminTapTarget">
       <h1>Gillbert</h1>
       <p>🎣 Your AI companion who loves fishing! 🐟</p>
     </div>
@@ -49,8 +49,26 @@
     <div id="comingSoonToast" class="coming-soon-toast hidden">
       🚧 This feature is coming soon — stay tuned!
     </div>
+
+    <!-- Admin Unlock Modal -->
+    <div id="adminPinModal" class="ri-modal" role="dialog" aria-modal="true" aria-label="Admin Access">
+      <div class="ri-modal-sheet">
+        <div class="ri-modal-header">
+          <span class="ri-modal-title">🔒 Admin Access</span>
+          <button class="ri-modal-close" id="adminPinClose" aria-label="Close">&times;</button>
+        </div>
+        <div class="ri-modal-body">
+          <div class="admin-pin-form">
+            <input type="password" inputmode="numeric" pattern="[0-9]*" id="adminPinInput" class="admin-pin-input" placeholder="PIN" maxlength="4" autocomplete="off" />
+            <button id="adminPinSubmit" class="admin-pin-submit">Unlock</button>
+          </div>
+          <p id="adminPinError" class="admin-pin-error hidden">Incorrect PIN — try again.</p>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="./assets/app.js"></script>
+  <script src="./assets/admin.js"></script>
 </body>
 </html>

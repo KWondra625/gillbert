@@ -160,3 +160,114 @@ body {
 .coming-soon-toast.hidden {
   display: none;
 }
+
+/* ─── Admin Unlock Modal ──────────────────────── */
+.ri-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 900;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.ri-modal.open {
+  display: flex;
+}
+
+.ri-modal-sheet {
+  width: 100%;
+  max-width: 700px;
+  background: white;
+  border-radius: 16px 16px 0 0;
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.22s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.ri-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ri-modal-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #555;
+}
+
+.ri-modal-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  line-height: 1;
+  color: #aaa;
+  cursor: pointer;
+  padding: 0;
+}
+
+.ri-modal-close:hover {
+  color: #555;
+}
+
+.ri-modal-body {
+  padding: 12px 20px 20px;
+}
+
+.admin-pin-form {
+  display: flex;
+  gap: 10px;
+}
+
+.admin-pin-input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  font-size: 18px;
+  letter-spacing: 6px;
+  text-align: center;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  font-family: inherit;
+  color: #1a1a2e;
+}
+
+.admin-pin-input:focus {
+  outline: none;
+  border-color: #4FACFE;
+}
+
+.admin-pin-submit {
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  background: #4FACFE;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.admin-pin-submit:active {
+  opacity: 0.8;
+}
+
+.admin-pin-error {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: #e74c3c;
+  text-align: center;
+}
+
+.admin-pin-error.hidden {
+  display: none;
+}
