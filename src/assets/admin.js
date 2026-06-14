@@ -32,6 +32,15 @@ function initAdminTapTrigger() {
 
   let tapCount = 0;
   let tapTimer = null;
+  let toastTimer = null;
+
+  function showUnlockToast() {
+    const toast = document.getElementById('adminUnlockToast');
+    if (!toast) return;
+    toast.classList.remove('hidden');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.add('hidden'), 3000);
+  }
 
   function openModal() {
     error.classList.add('hidden');
@@ -48,6 +57,7 @@ function initAdminTapTrigger() {
     if (input.value === ADMIN_PIN) {
       unlockAdmin();
       closeModal();
+      showUnlockToast();
     } else {
       error.classList.remove('hidden');
       input.value = '';

@@ -141,7 +141,7 @@ body {
 }
 
 /* Toast notification */
-.coming-soon-toast {
+.toast {
   position: fixed;
   bottom: max(24px, env(safe-area-inset-bottom));
   left: 50%;
@@ -157,7 +157,7 @@ body {
   z-index: 100;
 }
 
-.coming-soon-toast.hidden {
+.toast.hidden {
   display: none;
 }
 

@@ -152,12 +152,15 @@ body {
   margin: 0;
 }
 
-/* ─── Card Footer (Record Info trigger) ─────────── */
+/* ─── Card Footer (Edit + Record Info triggers) ─── */
 .detail-card-footer {
   padding: 10px 24px;
   border-top: 1px solid #f0f0f0;
   background: #fafafa;
-  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 .record-info-trigger {
@@ -174,6 +177,30 @@ body {
 
 .record-info-trigger:hover {
   color: #4FACFE;
+}
+
+.edit-catch-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+  margin-right: auto;
+}
+
+.edit-catch-trigger:active {
+  transform: scale(0.96);
+}
+
+.edit-catch-trigger.hidden {
+  display: none;
 }
 
 /* ─── Record Info Modal ──────────────────────── */

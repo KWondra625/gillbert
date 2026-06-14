@@ -38,7 +38,7 @@ const FIELD_LABELS = {
 };
 
 // Fields excluded from all loops (handled explicitly)
-const EXCLUDE_FIELDS = new Set(['catchNumber', 'fullSummary', 'headline', 'catchMediaCount', ...FIELD_ORDER, ...AUDIT_FIELDS]);
+const EXCLUDE_FIELDS = new Set(['catchNumber', 'fullSummary', 'headline', 'catchMediaCount', 'anglerId', 'bodyOfWaterId', 'fishSpeciesId', ...FIELD_ORDER, ...AUDIT_FIELDS]);
 
 const el = {
   status:           document.getElementById('status'),
@@ -216,6 +216,7 @@ function renderDetails(catchData) {
         <div class="media-content"><p class="detail-media-loading">Loading media...</p></div>
       </div>
       <div class="detail-card-footer">
+        <a href="./edit-catch.html?catchNumber=${encodeURIComponent(catchNumber)}" id="editCatchLink" class="edit-catch-trigger hidden">🔒 ✏️ Edit</a>
         <button class="record-info-trigger" id="recordInfoTrigger">ⓘ Record Info</button>
       </div>
     </div>`;
@@ -223,6 +224,9 @@ function renderDetails(catchData) {
   document.getElementById('recordInfoTrigger').addEventListener('click', () => {
     recordInfoModal.classList.add('open');
   });
+
+  const editCatchLink = document.getElementById('editCatchLink');
+  if (isAdminUnlocked()) editCatchLink.classList.remove('hidden');
 }
 
 window.addEventListener("DOMContentLoaded", () => {
