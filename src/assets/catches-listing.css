@@ -222,6 +222,19 @@ body {
   line-height: 1.4;
 }
 
+.badge-pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 9px;
+  background: #fff8e6;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #d98c00;
+  line-height: 1.4;
+}
+
 .catch-card-body {
   padding: 20px;
   flex-grow: 1;
@@ -236,6 +249,11 @@ body {
 
 .catch-field:last-of-type {
   margin-bottom: 0;
+}
+
+.catch-pending-row {
+  margin-top: 12px;
+  text-align: center;
 }
 
 .field-label {

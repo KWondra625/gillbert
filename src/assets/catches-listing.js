@@ -148,6 +148,7 @@ function renderCatchCard(catchData) {
     createdAt = null,
     bodyOfWaterName = null,
     catchMediaCount = 0,
+    verifiedAt = null,
   } = catchData;
 
   const now = Date.now();
@@ -197,6 +198,7 @@ function renderCatchCard(catchData) {
           <span class="field-label">📅 When:</span>
           <span class="field-value${isRecentCatch ? ' field-value--fresh' : ''}">${escapeHtml(caughtWhenDisplay)}</span>
         </div>
+        ${!verifiedAt ? '<div class="catch-pending-row"><span class="badge-pending" title="Not yet reviewed">⏳ Pending Review</span></div>' : ''}
       </div>
       <div class="catch-card-footer">
         <a href="./catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}" class="card-button">

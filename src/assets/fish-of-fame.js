@@ -52,6 +52,12 @@ function mediaBadge(count) {
     : '';
 }
 
+function pendingBadge(verifiedAt) {
+  return verifiedAt
+    ? ''
+    : `<span class="rank-pending-badge" title="Not yet reviewed">⏳ Pending Review</span>`;
+}
+
 function buildSpeciesBreakdown(speciesCounts, cap = 3) {
   const sorted = Array.from(speciesCounts.entries())
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
@@ -150,7 +156,7 @@ function renderTopCatches(list) {
       <a class="rank-row${rankClass(i)}" href="./catch-details.html?catchNumber=${encodeURIComponent(c.catchNumber)}&from=fish-of-fame">
         <div class="rank-badge">${rankBadge(i)}</div>
         <div class="rank-content">
-          <div class="rank-main">${escapeHtml(String(c.length))}" ${escapeHtml(c.fishSpeciesName || 'Unknown')}${mediaBadge(c.catchMediaCount)}</div>
+          <div class="rank-main">${escapeHtml(String(c.length))}" ${escapeHtml(c.fishSpeciesName || 'Unknown')}${mediaBadge(c.catchMediaCount)}${pendingBadge(c.verifiedAt)}</div>
           <div class="rank-meta">${escapeHtml(meta)}</div>
         </div>
         <span class="rank-link">View →</span>
@@ -171,7 +177,7 @@ function renderFishSpeciesRecords(list) {
       <a class="rank-row" href="./catch-details.html?catchNumber=${encodeURIComponent(c.catchNumber)}&from=fish-of-fame">
         <div class="rank-badge">🐟</div>
         <div class="rank-content">
-          <div class="rank-main">${escapeHtml(fishSpecies)}${mediaBadge(c.catchMediaCount)}</div>
+          <div class="rank-main">${escapeHtml(fishSpecies)}${mediaBadge(c.catchMediaCount)}${pendingBadge(c.verifiedAt)}</div>
           <div class="rank-meta">${escapeHtml(meta)}</div>
         </div>
         <span class="rank-link">View →</span>
@@ -192,7 +198,7 @@ function renderTopAnglers(list) {
       <a class="rank-row${rankClass(i)}" href="./catches-listing.html" data-angler="${escapeHtml(a.name)}">
         <div class="rank-badge">${rankBadge(i)}</div>
         <div class="rank-content">
-          <div class="rank-main">${escapeHtml(a.name)}${mediaBadge(a.biggestCatch?.catchMediaCount)}</div>
+          <div class="rank-main">${escapeHtml(a.name)}${mediaBadge(a.biggestCatch?.catchMediaCount)}${pendingBadge(a.biggestCatch?.verifiedAt)}</div>
           <div class="rank-meta">${escapeHtml(meta)}</div>
         </div>
         <span class="rank-link">View →</span>

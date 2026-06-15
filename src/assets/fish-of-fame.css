@@ -207,6 +207,21 @@ body {
   white-space: nowrap;
 }
 
+.rank-pending-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background: #fff8e6;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #d98c00;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
 /* Medal styling for top 3 — each tier progressively more pronounced (#1 > #2 > #3 > rest) */
 .rank-row.rank-1 .rank-badge,
 .rank-row.rank-2 .rank-badge,

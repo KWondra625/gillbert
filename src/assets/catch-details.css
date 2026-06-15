@@ -97,6 +97,21 @@ body {
   word-break: break-word;
 }
 
+.pending-review-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: #fff8e6;
+  color: #d98c00;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
+  line-height: 1.4;
+}
+
 .detail-card-body {
   padding: 16px 24px;
 }
@@ -179,6 +194,13 @@ body {
   color: #4FACFE;
 }
 
+.detail-card-footer-admin {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: auto;
+}
+
 .edit-catch-trigger {
   display: inline-flex;
   align-items: center;
@@ -192,7 +214,6 @@ body {
   text-decoration: none;
   box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
   transition: transform 0.2s, box-shadow 0.2s;
-  margin-right: auto;
 }
 
 .edit-catch-trigger:active {
@@ -201,6 +222,43 @@ body {
 
 .edit-catch-trigger.hidden {
   display: none;
+}
+
+.verify-toggle-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+}
+
+.verify-toggle-trigger:active {
+  transform: scale(0.96);
+}
+
+.verify-toggle-trigger:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.verify-toggle-trigger.hidden {
+  display: none;
+}
+
+.verify-toggle-trigger--pending {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  color: #0d5c3f;
+  box-shadow: 0 2px 8px rgba(67, 233, 123, 0.3);
+}
+
+.verify-toggle-trigger--verified {
+  background: #f0f0f0;
+  color: #888;
 }
 
 /* ─── Record Info Modal ──────────────────────── */
@@ -489,6 +547,13 @@ body {
   color: #4FACFE;
   border-bottom: 1px solid #e8f4ff;
   background: #f0f8ff;
+}
+
+.detail-card-section-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 /* ─── Media Section (inside card) ───────────────── */

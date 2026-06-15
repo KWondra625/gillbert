@@ -1,4 +1,5 @@
 const CATCH_MEDIA_GET_URL = API_BASE + "get-catch-media";
+const CATCH_VERIFY_URL = API_BASE + "catch/verify";
 
 // Primary fields shown in this exact order
 const FIELD_ORDER = [
@@ -12,10 +13,10 @@ const FIELD_ORDER = [
 ];
 
 // Audit fields shown in a separate muted section
-const AUDIT_FIELDS = ['id', 'recordSource', 'createdAt', 'updatedAt'];
+const AUDIT_FIELDS = ['id', 'recordSource', 'createdAt', 'verifiedAt', 'updatedAt' ];
 
 // Fields whose values are date/times and should be formatted for readability
-const DATETIME_FIELDS = new Set(['caughtWhen', 'createdAt', 'updatedAt']);
+const DATETIME_FIELDS = new Set(['caughtWhen', 'createdAt', 'verifiedAt', 'updatedAt']);
 
 // Known field label/icon mapping — unknown fields are auto-formatted from camelCase
 const FIELD_LABELS = {
@@ -33,8 +34,10 @@ const FIELD_LABELS = {
   waterTemp:       { label: "Water Temp",      icon: "🌡️" },
   notes:           { label: "Notes",           icon: "📝" },
   createdAt:       { label: "Created",         icon: "🕓" },
+  verifiedAt:      { label: "Verified",        icon: "✅" },
   updatedAt:       { label: "Last Updated",    icon: "🔄" },
   recordSource:    { label: "Record Source",   icon: "🗂️" },
+  
 };
 
 // Fields excluded from all loops (handled explicitly)
@@ -165,6 +168,7 @@ async function loadCatchDetails(catchNumber) {
 
 function renderDetails(catchData) {
   const catchNumber = catchData.catchNumber || "Unknown";
+  const isVerified = !!catchData.verifiedAt;
 
   document.title = `${catchNumber} · Gillbert`;
 
@@ -176,6 +180,9 @@ function renderDetails(catchData) {
       <div class="detail-summary-label">🎣 Headline</div>
       <p>${escapeHtml(catchData.headline)}</p>
     </div>` : '';
+
+  // Pending review badge — shown to everyone until this catch has been verified
+  const pendingBadgeHtml = isVerified ? '' : `<span class="pending-review-badge">⏳ Pending Review</span>`;
 
   // 1. Primary ordered fields
   const primaryRows = FIELD_ORDER
@@ -205,7 +212,10 @@ function renderDetails(catchData) {
       <div class="detail-card-header">
         <h2>${escapeHtml(catchNumber)} 🎣</h2>
       </div>
-      <div class="detail-card-section-label">Catch Details</div>
+      <div class="detail-card-section-label">
+        <span>Catch Details</span>
+        ${pendingBadgeHtml}
+      </div>
       <div class="detail-card-body">
         ${headlineHtml}
         ${primaryRows}
@@ -216,7 +226,10 @@ function renderDetails(catchData) {
         <div class="media-content"><p class="detail-media-loading">Loading media...</p></div>
       </div>
       <div class="detail-card-footer">
-        <a href="./edit-catch.html?catchNumber=${encodeURIComponent(catchNumber)}" id="editCatchLink" class="edit-catch-trigger hidden">🔒 ✏️ Edit</a>
+        <div class="detail-card-footer-admin">
+          <a href="./edit-catch.html?catchNumber=${encodeURIComponent(catchNumber)}" id="editCatchLink" class="edit-catch-trigger hidden">🔓 ✏️ Edit</a>
+          <button id="verifyToggle" class="verify-toggle-trigger hidden ${isVerified ? 'verify-toggle-trigger--verified' : 'verify-toggle-trigger--pending'}">${isVerified ? '🔓 ↩️ Unverify' : '🔓 ✅ Verify'}</button>
+        </div>
         <button class="record-info-trigger" id="recordInfoTrigger">ⓘ Record Info</button>
       </div>
     </div>`;
@@ -227,6 +240,43 @@ function renderDetails(catchData) {
 
   const editCatchLink = document.getElementById('editCatchLink');
   if (isAdminUnlocked()) editCatchLink.classList.remove('hidden');
+
+  const verifyToggle = document.getElementById('verifyToggle');
+  if (isAdminUnlocked()) {
+    verifyToggle.classList.remove('hidden');
+    verifyToggle.addEventListener('click', () => handleVerifyToggle(catchData, verifyToggle));
+  }
+}
+
+async function handleVerifyToggle(catchData, button) {
+  const newVerified = !catchData.verifiedAt;
+  const originalLabel = button.textContent;
+  button.disabled = true;
+  button.textContent = newVerified ? '🔓 Verifying…' : '🔓 Unverifying…';
+
+  try {
+    const res = await fetch(CATCH_VERIFY_URL, {
+      method: 'POST',
+      headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ catchId: catchData.id, verified: newVerified }),
+    });
+
+    let data;
+    try { data = await res.json(); } catch { data = {}; }
+
+    if (!res.ok || data.success === false) {
+      throw new Error(data.message || 'Unable to update verification status.');
+    }
+
+    catchData.verifiedAt = newVerified ? new Date().toISOString() : null;
+    renderDetails(catchData);
+    loadCatchMedia(catchData.catchNumber);
+  } catch (err) {
+    console.error('Verify toggle failed:', err);
+    button.disabled = false;
+    button.textContent = originalLabel;
+    setStatus('Unable to update verification status ❌', true);
+  }
 }
 
 window.addEventListener("DOMContentLoaded", () => {

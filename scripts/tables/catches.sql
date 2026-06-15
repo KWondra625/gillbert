@@ -11,8 +11,9 @@ CREATE TABLE IF NOT EXISTS catches (
     water_depth_in_feet FLOAT,
     notes TEXT,
     conversation_id INT REFERENCES conversations(id),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    verified_at TIMESTAMPTZ, 
+    created_at TIMESTAMPZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE OR REPLACE FUNCTION generate_catch_number()

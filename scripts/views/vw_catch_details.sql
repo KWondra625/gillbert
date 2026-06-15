@@ -1,4 +1,4 @@
-CREATE OR REPLACE VIEW vw_catch_details_verbose AS
+CREATE OR REPLACE VIEW vw_catch_details AS
     SELECT 
         c.id AS id,
         c.catch_number AS catch_number,
@@ -39,6 +39,14 @@ CREATE OR REPLACE VIEW vw_catch_details_verbose AS
         || CASE WHEN c.water_depth_in_feet IS NOT NULL THEN ' in ' || c.water_depth_in_feet::TEXT || ''' of water' ELSE '' END
         || CASE WHEN c.caught_when IS NOT NULL THEN ' on ' || TO_CHAR(c.caught_when AT TIME ZONE 'America/Chicago', 'Mon DD, YYYY') || ' at ' || TO_CHAR(c.caught_when AT TIME ZONE 'America/Chicago', 'HH24:MI') ELSE '' END
         || '.' AS full_summary,
+
+        -- Catch Verification
+        c.verified_at AS verified_at,
+        CASE
+            WHEN c.verified_at IS NULL THEN null
+            WHEN c.verified_at < c.updated_at THEN true
+            ELSE false
+        END AS isUpdatedAfterVerification,
 
         c.created_at AS created_at,
         c.updated_at AS updated_at,
