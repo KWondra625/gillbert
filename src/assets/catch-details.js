@@ -156,6 +156,7 @@ async function loadCatchDetails(catchNumber) {
       return;
     }
 
+    await (window.adminIdentityCheck || Promise.resolve());
     setStatus("");
     renderDetails(catchData);
     hideLoading();
