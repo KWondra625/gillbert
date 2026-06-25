@@ -34,12 +34,20 @@ function escapeHtml(s) {
   }[m]));
 }
 
+function linkCatchNumbers(htmlText) {
+  return htmlText.replace(/(Saved as:\s*)(Catch\s+[A-Za-z0-9-]+)/gi, (_, prefix, catchNumber) => {
+    const href = `./catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`;
+    return `${prefix}<a class="chat-catch-link" href="${href}">${catchNumber}</a>`;
+  });
+}
+
 // Converts the subset of markdown Gillbert uses: **bold**, *italic*, newlines
 function renderMarkdown(text) {
-  return escapeHtml(text)
+  return linkCatchNumbers(
+    escapeHtml(text)
     .replace(/\*\*(.+?)\*\*/gs, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/gs,     '<em>$1</em>')
-    .replace(/\n/g,             '<br>');
+  ).replace(/\n/g, '<br>');
 }
 
 function scrollToBottom() {
@@ -62,7 +70,7 @@ function appendMessage(role, text) {
     : escapeHtml(text).replace(/\n/g, '<br>');
 
   div.innerHTML = `
-    <div class="message-avatar">${role === 'gillbert' ? '🎣' : '👤'}</div>
+    <div class="message-avatar">${role === 'gillbert' ? '🤖' : '👤'}</div>
     <div class="message-bubble">${bubbleContent}</div>
   `;
 
@@ -76,7 +84,7 @@ function appendThinking() {
   const div = document.createElement('div');
   div.className = 'message message--gillbert message--thinking';
   div.innerHTML = `
-    <div class="message-avatar">🎣</div>
+    <div class="message-avatar">🤖</div>
     <div class="message-bubble">
       <div class="thinking-dots"><span></span><span></span><span></span></div>
     </div>
@@ -90,7 +98,7 @@ function appendError(msg) {
   const div = document.createElement('div');
   div.className = 'message message--gillbert message--error';
   div.innerHTML = `
-    <div class="message-avatar">🎣</div>
+    <div class="message-avatar">🤖</div>
     <div class="message-bubble">${escapeHtml(msg)}</div>
   `;
   el.messages.appendChild(div);

@@ -151,6 +151,18 @@ body {
   font-style: italic;
 }
 
+.chat-catch-link {
+  color: #1f7ff0;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.chat-catch-link:hover,
+.chat-catch-link:focus-visible {
+  color: #1469cf;
+}
+
 /* ── Thinking indicator ──────────────────────────────────────────── */
 
 .message--thinking .message-bubble {
@@ -228,9 +240,8 @@ body {
   height: 44px;
   border: none;
   border-radius: 50%;
-  background: white;
-  color: #4FACFE;
-  font-size: 18px;
+  background: linear-gradient(135deg, #2f93ff 0%, #1f7ff0 100%);
+  color: #ffffff;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -238,6 +249,17 @@ body {
   flex-shrink: 0;
   transition: transform 0.15s, box-shadow 0.15s;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+}
+
+.chat-send-icon {
+  width: 18px;
+  height: 18px;
+  transform: translateX(1px);
+}
+
+.chat-send-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.2);
 }
 
 .chat-send-btn:active {
