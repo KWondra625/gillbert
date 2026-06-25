@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Ask Gillbert</title>
-  <link rel="stylesheet" href="./assets/chat.css" />
+  <link rel="stylesheet" href="./assets/ask-gillbert.css" />
   <style>
     .message-bubble p { margin: 0 0 8px; }
     .message-bubble p:last-child { margin-bottom: 0; }
@@ -44,7 +44,11 @@
         maxlength="2000"
         aria-label="Ask Gillbert"
       ></textarea>
-      <button id="chatSendBtn" class="chat-send-btn" aria-label="Send message">↑</button>
+      <button id="chatSendBtn" class="chat-send-btn" aria-label="Send message">
+        <svg class="chat-send-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M3.4 20.6 21.8 12 3.4 3.4l2.1 7.1 8.4 1.5-8.4 1.5z" fill="currentColor"/>
+        </svg>
+      </button>
     </div>
 
   </div>
