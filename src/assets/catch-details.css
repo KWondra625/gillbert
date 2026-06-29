@@ -625,6 +625,236 @@ body {
   transform: scale(0.98);
 }
 
+/* ─── Admin Media Delete Button ──────────────────── */
+.media-delete-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(220, 38, 38, 0.82);
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  transition: background 0.2s, transform 0.15s;
+  backdrop-filter: blur(2px);
+  padding: 0;
+  line-height: 1;
+}
+
+.media-content--edit-mode .media-delete-btn {
+  display: flex;
+}
+
+.media-delete-btn:hover {
+  background: rgba(185, 28, 28, 0.95);
+  transform: scale(1.12);
+}
+
+.media-delete-btn:active {
+  transform: scale(0.94);
+}
+
+/* ─── Media Edit Mode ────────────────────────────── */
+.media-content--edit-mode {
+  background: #fff5f5;
+  border-radius: 8px;
+  outline: 2px solid #fecaca;
+  outline-offset: -2px;
+  transition: background 0.25s;
+}
+
+/* ─── Manage Media Button ────────────────────────── */
+.manage-media-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #fff0f0;
+  color: #b91c1c;
+  box-shadow: 0 1px 4px rgba(185, 28, 28, 0.15);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.manage-media-trigger:active {
+  transform: scale(0.96);
+}
+
+.manage-media-trigger.hidden {
+  display: none;
+}
+
+.manage-media-trigger--active {
+  background: #f0f0f0;
+  color: #555;
+  box-shadow: none;
+}
+
+/* ─── Delete Confirmation Modal ──────────────────── */
+.dm-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 900;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.dm-modal.open {
+  display: flex;
+}
+
+.dm-modal-sheet {
+  width: 100%;
+  max-width: 700px;
+  background: white;
+  border-radius: 16px 16px 0 0;
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.22s ease-out;
+}
+
+.dm-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.dm-modal-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #dc2626;
+}
+
+.dm-modal-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  line-height: 1;
+  color: #aaa;
+  cursor: pointer;
+  padding: 0;
+}
+
+.dm-modal-close:hover {
+  color: #555;
+}
+
+.dm-modal-body {
+  padding: 16px 20px 12px;
+}
+
+.dm-preview {
+  width: 100%;
+  max-height: 220px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #111;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dm-preview img,
+.dm-preview video {
+  max-width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  display: block;
+}
+
+.dm-preview-placeholder {
+  color: #aaa;
+  font-size: 14px;
+  padding: 32px;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.dm-info {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.dm-info strong {
+  color: #333;
+  word-break: break-all;
+}
+
+.dm-warning {
+  font-size: 12px;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.dm-modal-footer {
+  display: flex;
+  gap: 10px;
+  padding: 12px 20px 4px;
+}
+
+.dm-btn {
+  flex: 1;
+  padding: 13px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+}
+
+.dm-btn:active {
+  transform: scale(0.97);
+}
+
+.dm-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+  transform: none;
+}
+
+.dm-btn--cancel {
+  background: #f0f0f0;
+  color: #555;
+}
+
+.dm-btn--cancel:hover:not(:disabled) {
+  background: #e4e4e4;
+}
+
+.dm-btn--delete {
+  background: #dc2626;
+  color: white;
+}
+
+.dm-btn--delete:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
 /* ─── Back Button ────────────────────────────────── */
 .back-button {
   display: block;

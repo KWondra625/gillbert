@@ -30,6 +30,25 @@
       </div>
     </div>
 
+    <!-- Delete Media Confirmation Modal -->
+    <div id="deleteMediaModal" class="dm-modal" role="dialog" aria-modal="true" aria-label="Delete Media">
+      <div class="dm-modal-sheet">
+        <div class="dm-modal-header">
+          <span class="dm-modal-title">🗑️ Delete Media</span>
+          <button class="dm-modal-close" id="deleteMediaClose" aria-label="Close">&times;</button>
+        </div>
+        <div class="dm-modal-body">
+          <div id="deleteMediaPreview" class="dm-preview"></div>
+          <div id="deleteMediaInfo" class="dm-info"></div>
+          <p class="dm-warning">⚠️ This permanently removes the file from storage and cannot be undone.</p>
+        </div>
+        <div class="dm-modal-footer">
+          <button id="deleteMediaCancel" class="dm-btn dm-btn--cancel">Cancel</button>
+          <button id="deleteMediaConfirm" class="dm-btn dm-btn--delete">Delete</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Lightbox overlay -->
     <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Full size image">
       <button id="lightboxClose" class="lightbox-close" aria-label="Close">&times;</button>
