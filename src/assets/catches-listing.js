@@ -71,13 +71,21 @@ async function loadCatches() {
 
     const data = await res.json();
 
-    // Accept either [{...}] OR { catches: [...] }
-    allCatches = Array.isArray(data) ? data : (data.catches || []);
+    // Accept either [{...}] OR { catches: [...] }; filter out null-placeholder rows the API returns on no-results
+    allCatches = (Array.isArray(data) ? data : (data.catches || []))
+      .filter(c => c && c.catchNumber);
 
     if (!allCatches.length) {
-      el.catchesContainer.innerHTML = `<div class="empty-state"><p>No catches found.</p></div>`;
+      const hasTerm = !!el.searchInput.value.trim();
+      el.catchesContainer.innerHTML = hasTerm
+        ? `<div class="no-results-banner">
+            <div class="no-results-icon">🔍</div>
+            <p class="no-results-text">No catches match your search.</p>
+            <p class="no-results-hint">Try a different search term or clear it to see all catches.</p>
+          </div>`
+        : `<div class="empty-state"><p>No catches found.</p></div>`;
       el.paginationContainer.style.display = 'none';
-      setStatus("No catches available.");
+      setStatus("");
       hideLoading();
       return;
     }
@@ -105,6 +113,18 @@ function renderPage() {
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const pageCatches = filteredCatches.slice(startIndex, endIndex);
+
+  // No results — show banner and bail out
+  if (!filteredCatches.length) {
+    el.catchesContainer.innerHTML = `
+      <div class="no-results-banner">
+        <div class="no-results-icon">🔍</div>
+        <p class="no-results-text">No catches match your search.</p>
+        <p class="no-results-hint">Try adjusting your filters or clearing them to see all catches.</p>
+      </div>`;
+    el.paginationContainer.style.display = 'none';
+    return;
+  }
 
   // Render cards
   el.catchesContainer.innerHTML = pageCatches

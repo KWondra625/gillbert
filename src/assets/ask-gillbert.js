@@ -36,6 +36,13 @@ function escapeHtml(s) {
   }[m]));
 }
 
+function linkifyCatchNumbers(html) {
+  return html.replace(/\bCatch\s+\d{2,}-\d+\b/gi, match => {
+    const href = `./catch-details.html?catchNumber=${encodeURIComponent(match)}`;
+    return `<a class="chat-catch-link" href="${href}">${match}</a>`;
+  });
+}
+
 function scrollToBottom() {
   el.messages.scrollTop = el.messages.scrollHeight;
 }
@@ -52,11 +59,11 @@ function appendMessage(role, text) {
   div.className = `message message--${role}`;
 
   const bubbleContent = role === 'gillbert'
-    ? marked.parse(text)
+    ? linkifyCatchNumbers(marked.parse(text))
     : escapeHtml(text).replace(/\n/g, '<br>');
 
   div.innerHTML = `
-    <div class="message-avatar">${role === 'gillbert' ? '🎣' : '👤'}</div>
+    <div class="message-avatar">${role === 'gillbert' ? '🤖' : '👤'}</div>
     <div class="message-bubble">${bubbleContent}</div>
   `;
 
@@ -70,7 +77,7 @@ function appendThinking() {
   const div = document.createElement('div');
   div.className = 'message message--gillbert message--thinking';
   div.innerHTML = `
-    <div class="message-avatar">🎣</div>
+    <div class="message-avatar">🤖</div>
     <div class="message-bubble">
       <div class="thinking-dots"><span></span><span></span><span></span></div>
     </div>
@@ -84,7 +91,7 @@ function appendError(msg) {
   const div = document.createElement('div');
   div.className = 'message message--gillbert message--error';
   div.innerHTML = `
-    <div class="message-avatar">🎣</div>
+    <div class="message-avatar">🤖</div>
     <div class="message-bubble">${escapeHtml(msg)}</div>
   `;
   el.messages.appendChild(div);

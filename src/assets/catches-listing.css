@@ -322,6 +322,35 @@ body {
   color: #999;
 }
 
+/* No Results Banner */
+.no-results-banner {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 36px 24px;
+  background: #e8f4fd;
+  border: 1px solid #bde0f7;
+  border-radius: 12px;
+  color: #1a5276;
+}
+
+.no-results-icon {
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+
+.no-results-text {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a5276;
+}
+
+.no-results-hint {
+  margin: 0;
+  font-size: 14px;
+  color: #2e86c1;
+}
+
 /* Pagination */
 .pagination-container {
   display: flex;

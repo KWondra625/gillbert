@@ -382,7 +382,6 @@ function openDeleteModal() {
   const cancelBtn  = document.getElementById('deleteMediaCancel');
   confirmBtn.disabled = false;
   cancelBtn.disabled  = false;
-  confirmBtn.textContent = '🗑️ Permanently Delete';
 
   document.getElementById('deleteMediaModal').classList.add('open');
 }
