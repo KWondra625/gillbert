@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Catch Chat with Gillbert</title>
+  <link rel="stylesheet" href="./assets/catch-chat.css" />
+</head>
+<body>
+  <div class="chat-page">
+
+    <div class="chat-header">
+      <a href="./index.html" class="chat-header-back" aria-label="Back to home">←</a>
+      <div class="chat-header-info">
+        <div class="chat-header-title">💬 Catch Chat with Gillbert</div>
+        <div class="chat-header-subtitle">Our AI fishing companion</div>
+      </div>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-welcome" id="chatWelcome">
+        <span class="chat-welcome-icon">🤖</span>
+        <p>Hey there.  I'm Gillbert, an AI-powered fishing companion!<br>Tell me about a catch and I'll help get it logged in the record books.</p>
+      </div>
+    </div>
+
+    <div class="chat-input-bar">
+      <textarea
+        id="chatInput"
+        class="chat-input"
+        placeholder="Tell me about a catch…"
+        rows="1"
+        maxlength="2000"
+        aria-label="Message Gillbert"
+      ></textarea>
+      <button id="chatSendBtn" class="chat-send-btn" aria-label="Send message">
+        <svg class="chat-send-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M3.4 20.6 21.8 12 3.4 3.4l2.1 7.1 8.4 1.5-8.4 1.5z" fill="currentColor"/>
+        </svg>
+      </button>
+    </div>
+
+  </div>
+
+  <script src="./assets/config.js"></script>
+  <script src="./assets/catch-chat.js"></script>
+</body>
+</html>

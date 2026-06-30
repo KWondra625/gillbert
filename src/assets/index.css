@@ -17,13 +17,13 @@ body {
 
 .container {
   width: 100%;
-  max-width: 500px;
+  max-width: 600px;
   margin: auto;
 }
 
 .header {
   text-align: center;
-  margin-bottom: 48px;
+  margin-bottom: 36px;
   color: white;
 }
 
@@ -39,11 +39,56 @@ body {
   opacity: 0.9;
 }
 
+/* Section dividers */
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.section-label {
+  color: white;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .section-label {
+    font-size: 17px;
+  }
+}
+
+/* CTA grid */
+.cta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+@media (max-width: 440px) {
+  .cta-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cta-card--wide {
+  grid-column: 1 / -1;
+}
+
 .cta-card {
   display: block;
-  width: 100%;
-  padding: 24px;
-  margin-bottom: 16px;
+  padding: 20px;
   border-radius: 16px;
   background: white;
   color: #1a1a2e;
@@ -58,21 +103,171 @@ body {
 }
 
 .cta-card-title {
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 700;
   color: #1a1a2e;
   margin-bottom: 8px;
 }
 
 .cta-card-desc {
-  font-size: 14px;
+  font-size: 13px;
   color: #666;
   line-height: 1.5;
   margin: 0 0 12px 0;
 }
 
 .cta-card-action {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #4FACFE;
+}
+
+/* Coming soon card */
+.cta-card--coming-soon {
+  opacity: 0.65;
+  cursor: pointer;
+}
+
+.coming-soon-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  background: #f0f0f0;
+  color: #888;
+  border-radius: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Toast notification */
+.toast {
+  position: fixed;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(26, 26, 46, 0.92);
+  color: white;
+  padding: 12px 22px;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  white-space: nowrap;
+  z-index: 100;
+}
+
+.toast.hidden {
+  display: none;
+}
+
+/* ─── Admin Unlock Modal ──────────────────────── */
+.ri-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 900;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.ri-modal.open {
+  display: flex;
+}
+
+.ri-modal-sheet {
+  width: 100%;
+  max-width: 700px;
+  background: white;
+  border-radius: 16px 16px 0 0;
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.22s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.ri-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ri-modal-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #555;
+}
+
+.ri-modal-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  line-height: 1;
+  color: #aaa;
+  cursor: pointer;
+  padding: 0;
+}
+
+.ri-modal-close:hover {
+  color: #555;
+}
+
+.ri-modal-body {
+  padding: 12px 20px 20px;
+}
+
+.admin-pin-form {
+  display: flex;
+  gap: 10px;
+}
+
+.admin-pin-input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  font-size: 18px;
+  letter-spacing: 6px;
+  text-align: center;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  font-family: inherit;
+  color: #1a1a2e;
+}
+
+.admin-pin-input:focus {
+  outline: none;
+  border-color: #4FACFE;
+}
+
+.admin-pin-submit {
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  background: #4FACFE;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.admin-pin-submit:active {
+  opacity: 0.8;
+}
+
+.admin-pin-error {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: #e74c3c;
+  text-align: center;
+}
+
+.admin-pin-error.hidden {
+  display: none;
 }
