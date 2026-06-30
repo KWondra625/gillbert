@@ -8,24 +8,80 @@
 </head>
 <body>
   <div class="container">
-    <div class="header">
+    <div class="header" id="adminTapTarget">
       <h1>Gillbert</h1>
-      <p>🎣 Your AI companion who loves fishing! 🐟</p>
+      <p>🎣 Our crew's fishing record book. Log catches, browse history, and ask our AI-powered friend Gillbert anything. 🐟</p>
     </div>
 
-    <a href="https://api.builtbykw.net/webhook/9ade669b-27f8-4460-870b-694053bd2bbe/chat" class="cta-card">
-      <div class="cta-card-title">💬 Talk to Gillbert</div>
-      <p class="cta-card-desc">Have a conversation with your AI fishing companion to log a new catch. Just describe what you caught — Gillbert handles the rest.</p>
-      <span class="cta-card-action">Start chatting →</span>
-    </a>
+    <div class="section-divider"><span class="section-label">🎣 Log a Catch</span></div>
+    <div class="cta-grid">
+      <a href="./catch-chat.html" class="cta-card">
+        <div class="cta-card-title">💬 Chat with Gillbert</div>
+        <p class="cta-card-desc">Describe your catch in conversation with Gillbert who will capture the details and log it for you.</p>
+        <span class="cta-card-action">Start chat →</span>
+      </a>
+      <a href="./log-catch.html" class="cta-card">
+        <div class="cta-card-title">✏️ Log Manually</div>
+        <p class="cta-card-desc">Fill out a quick form to record a catch, great for historical entries or as an alternative to chatting with Gillbert.</p>
+        <span class="cta-card-action">Open form →</span>
+      </a>
+    </div>
 
-    <a href="./catches-listing.html" class="cta-card">
-      <div class="cta-card-title">🐟 Browse Catches</div>
-      <p class="cta-card-desc">Explore your full catch log with search and filtering. Tap any catch to view all the details and media from that day on the water.</p>
-      <span class="cta-card-action">View all catches →</span>
-    </a>
+    <div class="section-divider"><span class="section-label">📊 Review History</span></div>
+    <div class="cta-grid">
+      <a href="./catches-listing.html" class="cta-card">
+        <div class="cta-card-title">🐟 Browse Catches</div>
+        <p class="cta-card-desc">Search, filter, and view everything in the catch log. Including viewing photos and videos from each catch.</p>
+        <span class="cta-card-action">View catches →</span>
+      </a>
+      <a href="./ask-gillbert.html" class="cta-card">
+        <div class="cta-card-title">💬 Ask Gillbert</div>
+        <p class="cta-card-desc">Ask questions about any catch in the record books and get AI-powered insights on the full catch history.</p>
+        <span class="cta-card-action">Ask now →</span>
+      </a>
+      <a href="./fish-of-fame.html" class="cta-card cta-card--wide">
+        <div class="cta-card-title">🏆 Fish of Fame</div>
+        <p class="cta-card-desc">The most admirable accomplishments throughout the record books, all in one place.</p>
+        <span class="cta-card-action">View leaderboard →</span>
+      </a>
+    </div>
+
+    <div class="section-divider"><span class="section-label">ℹ️ About</span></div>
+    <div class="cta-grid">
+      <a href="./whats-new.html" class="cta-card cta-card--wide">
+        <div class="cta-card-title">✨ What's New</div>
+        <p class="cta-card-desc">See the full story of Gillbert — from the very first chat window to everything it is today.</p>
+        <span class="cta-card-action">See the history →</span>
+      </a>
+    </div>
+
+    <div id="comingSoonToast" class="toast hidden">
+      🚧 This feature is coming soon — stay tuned!
+    </div>
+
+    <div id="adminUnlockToast" class="toast hidden">
+      🔓 Reeled in Admin Mode!
+    </div>
+
+    <!-- Admin Unlock Modal -->
+    <div id="adminPinModal" class="ri-modal" role="dialog" aria-modal="true" aria-label="Admin Access">
+      <div class="ri-modal-sheet">
+        <div class="ri-modal-header">
+          <span class="ri-modal-title">🔒 Admin Access</span>
+          <button class="ri-modal-close" id="adminPinClose" aria-label="Close">&times;</button>
+        </div>
+        <div class="ri-modal-body">
+          <div class="admin-pin-form">
+            <input type="password" inputmode="numeric" pattern="[0-9]*" id="adminPinInput" class="admin-pin-input" placeholder="PIN" maxlength="4" autocomplete="off" />
+            <button id="adminPinSubmit" class="admin-pin-submit">Unlock</button>
+          </div>
+          <p id="adminPinError" class="admin-pin-error hidden">Incorrect PIN — try again.</p>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="./assets/app.js"></script>
+  <script src="./assets/admin.js"></script>
 </body>
 </html>

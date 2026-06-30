@@ -1,4 +1,6 @@
-const CATCH_MEDIA_GET_URL = API_BASE + "get-catch-media";
+const CATCH_MEDIA_GET_URL = API_BASE + "catch-media/get";
+const CATCH_VERIFY_URL    = API_BASE + "catch/verify";
+const CATCH_MEDIA_DELETE_URL = API_BASE + "catch-media/delete";
 
 // Primary fields shown in this exact order
 const FIELD_ORDER = [
@@ -12,10 +14,10 @@ const FIELD_ORDER = [
 ];
 
 // Audit fields shown in a separate muted section
-const AUDIT_FIELDS = ['id', 'recordSource', 'createdAt', 'updatedAt'];
+const AUDIT_FIELDS = ['id', 'recordSource', 'createdAt', 'verifiedAt', 'updatedAt' ];
 
 // Fields whose values are date/times and should be formatted for readability
-const DATETIME_FIELDS = new Set(['caughtWhen', 'createdAt', 'updatedAt']);
+const DATETIME_FIELDS = new Set(['caughtWhen', 'createdAt', 'verifiedAt', 'updatedAt']);
 
 // Known field label/icon mapping — unknown fields are auto-formatted from camelCase
 const FIELD_LABELS = {
@@ -33,12 +35,14 @@ const FIELD_LABELS = {
   waterTemp:       { label: "Water Temp",      icon: "🌡️" },
   notes:           { label: "Notes",           icon: "📝" },
   createdAt:       { label: "Created",         icon: "🕓" },
+  verifiedAt:      { label: "Verified",        icon: "✅" },
   updatedAt:       { label: "Last Updated",    icon: "🔄" },
   recordSource:    { label: "Record Source",   icon: "🗂️" },
+  
 };
 
 // Fields excluded from all loops (handled explicitly)
-const EXCLUDE_FIELDS = new Set(['catchNumber', 'fullSummary', 'headline', ...FIELD_ORDER, ...AUDIT_FIELDS]);
+const EXCLUDE_FIELDS = new Set(['catchNumber', 'fullSummary', 'headline', 'catchMediaCount', 'anglerId', 'bodyOfWaterId', 'fishSpeciesId', ...FIELD_ORDER, ...AUDIT_FIELDS]);
 
 const el = {
   status:           document.getElementById('status'),
@@ -47,6 +51,7 @@ const el = {
   lightbox:         document.getElementById('lightbox'),
   lightboxImg:      document.getElementById('lightboxImg'),
   lightboxClose:    document.getElementById('lightboxClose'),
+  backButton:       document.getElementById('backButton'),
 };
 
 function setStatus(msg, isError = false) {
@@ -112,6 +117,14 @@ function getCatchNumberFromUrl() {
   return params.get('catchNumber');
 }
 
+function setupBackButton() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('from') === 'fish-of-fame') {
+    el.backButton.href = './fish-of-fame.html';
+    el.backButton.textContent = '← Back to Fish of Fame';
+  }
+}
+
 async function loadCatchDetails(catchNumber) {
   try {
     showLoading();
@@ -144,6 +157,7 @@ async function loadCatchDetails(catchNumber) {
       return;
     }
 
+    await (window.adminIdentityCheck || Promise.resolve());
     setStatus("");
     renderDetails(catchData);
     hideLoading();
@@ -156,6 +170,7 @@ async function loadCatchDetails(catchNumber) {
 
 function renderDetails(catchData) {
   const catchNumber = catchData.catchNumber || "Unknown";
+  const isVerified = !!catchData.verifiedAt;
 
   document.title = `${catchNumber} · Gillbert`;
 
@@ -167,6 +182,9 @@ function renderDetails(catchData) {
       <div class="detail-summary-label">🎣 Headline</div>
       <p>${escapeHtml(catchData.headline)}</p>
     </div>` : '';
+
+  // Pending review badge — shown to everyone until this catch has been verified
+  const pendingBadgeHtml = isVerified ? '' : `<span class="pending-review-badge">⏳ Pending Review</span>`;
 
   // 1. Primary ordered fields
   const primaryRows = FIELD_ORDER
@@ -196,7 +214,10 @@ function renderDetails(catchData) {
       <div class="detail-card-header">
         <h2>${escapeHtml(catchNumber)} 🎣</h2>
       </div>
-      <div class="detail-card-section-label">Catch Details</div>
+      <div class="detail-card-section-label">
+        <span>Catch Details</span>
+        ${pendingBadgeHtml}
+      </div>
       <div class="detail-card-body">
         ${headlineHtml}
         ${primaryRows}
@@ -207,6 +228,11 @@ function renderDetails(catchData) {
         <div class="media-content"><p class="detail-media-loading">Loading media...</p></div>
       </div>
       <div class="detail-card-footer">
+        <div class="detail-card-footer-admin">
+          <a href="./edit-catch.html?catchNumber=${encodeURIComponent(catchNumber)}" id="editCatchLink" class="edit-catch-trigger hidden">🔓 ✏️ Edit</a>
+          <button id="verifyToggle" class="verify-toggle-trigger hidden ${isVerified ? 'verify-toggle-trigger--verified' : 'verify-toggle-trigger--pending'}">${isVerified ? '🔓 ↩️ Unverify' : '🔓 ✅ Verify'}</button>
+          <button id="manageMediaBtn" class="manage-media-trigger hidden">🔓 🗑️ Manage Media</button>
+        </div>
         <button class="record-info-trigger" id="recordInfoTrigger">ⓘ Record Info</button>
       </div>
     </div>`;
@@ -214,9 +240,57 @@ function renderDetails(catchData) {
   document.getElementById('recordInfoTrigger').addEventListener('click', () => {
     recordInfoModal.classList.add('open');
   });
+
+  const editCatchLink = document.getElementById('editCatchLink');
+  if (isAdminUnlocked()) editCatchLink.classList.remove('hidden');
+
+  const verifyToggle = document.getElementById('verifyToggle');
+  if (isAdminUnlocked()) {
+    verifyToggle.classList.remove('hidden');
+    verifyToggle.addEventListener('click', () => handleVerifyToggle(catchData, verifyToggle));
+  }
+
+  const manageMediaBtn = document.getElementById('manageMediaBtn');
+  if (isAdminUnlocked()) {
+    manageMediaBtn.classList.remove('hidden');
+    manageMediaBtn.addEventListener('click', handleManageMediaToggle);
+  }
+}
+
+async function handleVerifyToggle(catchData, button) {
+  const newVerified = !catchData.verifiedAt;
+  const originalLabel = button.textContent;
+  button.disabled = true;
+  button.textContent = newVerified ? '🔓 Verifying…' : '🔓 Unverifying…';
+
+  try {
+    const res = await fetch(CATCH_VERIFY_URL, {
+      method: 'POST',
+      headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ catchId: catchData.id, verified: newVerified }),
+    });
+
+    let data;
+    try { data = await res.json(); } catch { data = {}; }
+
+    if (!res.ok || data.success === false) {
+      throw new Error(data.message || 'Unable to update verification status.');
+    }
+
+    catchData.verifiedAt = newVerified ? new Date().toISOString() : null;
+    renderDetails(catchData);
+    loadCatchMedia(catchData.catchNumber);
+  } catch (err) {
+    console.error('Verify toggle failed:', err);
+    button.disabled = false;
+    button.textContent = originalLabel;
+    setStatus('Unable to update verification status ❌', true);
+  }
 }
 
 window.addEventListener("DOMContentLoaded", () => {
+  setupBackButton();
+
   const catchNumber = getCatchNumberFromUrl();
 
   if (!catchNumber) {
@@ -246,13 +320,120 @@ window.addEventListener("DOMContentLoaded", () => {
     if (e.target === recordInfoModal) recordInfoModal.classList.remove('open');
   });
 
+  const deleteMediaModal = document.getElementById('deleteMediaModal');
+  document.getElementById('deleteMediaClose').addEventListener('click', closeDeleteModal);
+  document.getElementById('deleteMediaCancel').addEventListener('click', closeDeleteModal);
+  document.getElementById('deleteMediaConfirm').addEventListener('click', handleMediaDelete);
+  deleteMediaModal.addEventListener('click', e => { if (e.target === deleteMediaModal) closeDeleteModal(); });
+
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeLightbox();
       recordInfoModal.classList.remove('open');
+      closeDeleteModal();
     }
   });
 });
+
+// ─── Admin Media Edit Mode ───────────────────────────────────────
+
+function handleManageMediaToggle() {
+  isMediaEditMode = !isMediaEditMode;
+  const btn         = document.getElementById('manageMediaBtn');
+  const mediaContent = document.querySelector('#mediaContainer .media-content');
+
+  if (isMediaEditMode) {
+    btn.textContent = '✖ Done';
+    btn.classList.add('manage-media-trigger--active');
+    mediaContent?.classList.add('media-content--edit-mode');
+  } else {
+    btn.textContent = '🔓 🗑️ Manage Media';
+    btn.classList.remove('manage-media-trigger--active');
+    mediaContent?.classList.remove('media-content--edit-mode');
+  }
+}
+
+// ─── Admin Delete State ──────────────────────────────────────────
+
+let pendingDeleteItem = null;
+let pendingDeleteTile = null;
+let isMediaEditMode   = false;
+
+function openDeleteModal() {
+  const preview = document.getElementById('deleteMediaPreview');
+  const info    = document.getElementById('deleteMediaInfo');
+
+  if (pendingDeleteItem.contentType === 'image/heic') {
+    preview.innerHTML = `<div class="dm-preview-placeholder">📷<br>${escapeHtml(pendingDeleteItem.originalFileName || 'HEIC Photo')}</div>`;
+  } else if (pendingDeleteItem.mediaType === 'Video') {
+    preview.innerHTML = `<video src="${encodeURI(pendingDeleteItem.readUrl)}" preload="metadata" muted playsinline></video>`;
+  } else {
+    preview.innerHTML = `<img src="${encodeURI(pendingDeleteItem.readUrl)}" alt="Media to delete">`;
+  }
+
+  const name = pendingDeleteItem.originalFileName;
+  const date = pendingDeleteItem.uploadedAt ? formatUploadedAt(pendingDeleteItem.uploadedAt) : '';
+  const parts = [];
+  if (name) parts.push(`<strong>${escapeHtml(name)}</strong>`);
+  if (date) parts.push(`Uploaded ${escapeHtml(date)}`);
+  info.innerHTML = parts.join('<br>');
+
+  const confirmBtn = document.getElementById('deleteMediaConfirm');
+  const cancelBtn  = document.getElementById('deleteMediaCancel');
+  confirmBtn.disabled = false;
+  cancelBtn.disabled  = false;
+
+  document.getElementById('deleteMediaModal').classList.add('open');
+}
+
+function closeDeleteModal() {
+  document.getElementById('deleteMediaModal').classList.remove('open');
+  document.getElementById('deleteMediaPreview').innerHTML = '';
+  pendingDeleteItem = null;
+  pendingDeleteTile = null;
+}
+
+async function handleMediaDelete() {
+  if (!pendingDeleteItem) return;
+
+  const confirmBtn = document.getElementById('deleteMediaConfirm');
+  const cancelBtn  = document.getElementById('deleteMediaCancel');
+  confirmBtn.disabled = true;
+  cancelBtn.disabled  = true;
+  confirmBtn.textContent = 'Deleting...';
+
+  try {
+    const res = await fetch(CATCH_MEDIA_DELETE_URL, {
+      method: 'POST',
+      headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mediaId: pendingDeleteItem.id }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Delete failed: ${res.status} ${text}`);
+    }
+
+    if (pendingDeleteTile) {
+      const grid    = pendingDeleteTile.closest('.media-grid');
+      const section = grid?.closest('.media-section');
+      pendingDeleteTile.remove();
+      if (grid && !grid.children.length) {
+        section?.remove();
+      } else if (section) {
+        const title = section.querySelector('.media-section-title');
+        if (title) title.textContent = title.textContent.replace(/\(\d+\)/, `(${grid.children.length})`);
+      }
+    }
+    closeDeleteModal();
+  } catch (err) {
+    console.error('Media delete failed:', err);
+    confirmBtn.disabled = false;
+    cancelBtn.disabled  = false;
+    confirmBtn.textContent = '🗑️ Permanently Delete';
+    setStatus('Delete failed ❌', true);
+  }
+}
 
 // ─── Media ───────────────────────────────────────────────────────
 
@@ -280,29 +461,42 @@ function formatUploadedAt(value) {
   return d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
+function buildDeleteBtn(item) {
+  if (!isAdminUnlocked() || !item.id) return '';
+  return `<button class="media-delete-btn"
+    data-media-id="${item.id}"
+    data-read-url="${encodeURI(item.readUrl || '')}"
+    data-media-type="${escapeHtml(item.mediaType || '')}"
+    data-content-type="${escapeHtml(item.contentType || '')}"
+    data-original-name="${escapeHtml(item.originalFileName || '')}"
+    data-uploaded-at="${escapeHtml(item.uploadedAt || '')}"
+    aria-label="Delete media">🗑️</button>`;
+}
+
 function buildMediaTile(item) {
   const { readUrl, mediaType, contentType, uploadedAt } = item;
-  const caption = uploadedAt
+  const caption    = uploadedAt
     ? `<div class="media-tile-caption">${escapeHtml(formatUploadedAt(uploadedAt))}</div>`
     : '';
+  const deleteBtn  = buildDeleteBtn(item);
 
   // HEIC — browsers can't render inline; show download placeholder
   if (contentType === 'image/heic') {
     return `
-      <div class="media-tile">
+      <div class="media-tile" data-media-id="${item.id || ''}">
         <div class="media-tile-placeholder">
           <div class="media-placeholder-icon">📷</div>
           <div class="media-placeholder-label">HEIC Photo</div>
           <a class="media-placeholder-link" href="${encodeURI(readUrl)}" target="_blank" rel="noopener">Open / Download</a>
         </div>
-        ${caption}
+        ${caption}${deleteBtn}
       </div>`;
   }
 
   // Video
   if (mediaType === 'Video') {
     return `
-      <div class="media-tile media-tile--video">
+      <div class="media-tile media-tile--video" data-media-id="${item.id || ''}">
         <video preload="metadata" playsinline>
           <source src="${encodeURI(readUrl)}" type="${escapeHtml(contentType)}">
         </video>
@@ -310,20 +504,20 @@ function buildMediaTile(item) {
           <div class="media-play-btn"></div>
           <div class="media-video-label">Video</div>
         </div>
-        ${caption}
+        ${caption}${deleteBtn}
       </div>`;
   }
 
   // Photo (jpeg, png, etc.)
   return `
-    <div class="media-tile media-tile--photo" data-url="${encodeURI(readUrl)}">
+    <div class="media-tile media-tile--photo" data-url="${encodeURI(readUrl)}" data-media-id="${item.id || ''}">
       <img
         src="${encodeURI(readUrl)}"
         alt="Catch photo"
         loading="lazy"
         onerror="this.closest('.media-tile').replaceWith(brokenTile())"
       />
-      ${caption}
+      ${caption}${deleteBtn}
     </div>`;
 }
 
@@ -383,6 +577,10 @@ function renderMedia(items) {
   html += '</div>';
   container.innerHTML = html;
 
+  if (isMediaEditMode) {
+    container.querySelector('.media-content')?.classList.add('media-content--edit-mode');
+  }
+
   // Wire up photo lightbox clicks
   container.querySelectorAll('.media-tile--photo').forEach(tile => {
     tile.addEventListener('click', () => openLightbox(tile.dataset.url));
@@ -405,6 +603,25 @@ function renderMedia(items) {
       }
     });
   });
+
+  // Wire up admin delete buttons
+  if (isAdminUnlocked()) {
+    container.querySelectorAll('.media-delete-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        pendingDeleteItem = {
+          id:               parseInt(btn.dataset.mediaId) || null,
+          readUrl:          btn.dataset.readUrl,
+          mediaType:        btn.dataset.mediaType,
+          contentType:      btn.dataset.contentType,
+          originalFileName: btn.dataset.originalName,
+          uploadedAt:       btn.dataset.uploadedAt,
+        };
+        pendingDeleteTile = btn.closest('.media-tile');
+        openDeleteModal();
+      });
+    });
+  }
 }
 
 // ─── Lightbox ────────────────────────────────────────────────────
