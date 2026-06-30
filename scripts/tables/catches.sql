@@ -12,8 +12,8 @@ CREATE TABLE IF NOT EXISTS catches (
     notes TEXT,
     conversation_id INT REFERENCES conversations(id),
     verified_at TIMESTAMPTZ, 
-    created_at TIMESTAMPZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPZ DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE OR REPLACE FUNCTION generate_catch_number()
