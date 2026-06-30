@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gillbert - What's New</title>
+  <link rel="stylesheet" href="./assets/whats-new.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>✨ What's New</h1>
+      <p>The story of Gillbert, from a single chat window to a full fishing companion.</p>
+    </div>
+
+    <div class="section-divider"><span class="section-label">🚀 Current Version</span></div>
+
+    <div class="version-card version-card--current">
+      <div class="version-card-header">
+        <div class="version-pill">Version 3</div>
+        <div class="version-date">July 2026</div>
+      </div>
+      <div class="version-title">The Official Record Book</div>
+      <div class="version-subtitle">A complete overhaul of the backend, AI, and everything in between.</div>
+
+      <div class="feature-group">
+        <div class="feature-group-label">🏗️ Under the Hood</div>
+        <ul class="feature-list">
+          <li>Migrated from Airtable to a self-hosted PostgreSQL database.  Faster, cheaper, more flexible, and ours to own</li>
+          <li>Switched the AI powering Gillbert from OpenAI to Claude Sonnet 4.6 (Anthropic)</li>
+          <li>All API workflows rebuilt and running on a self-hosted n8n instance on a Raspberry Pi</li>
+          <li>Photos and videos stored in Azure Blob Storage with secure, time-limited access links</li>
+          <li>App secured behind Cloudflare Zero Trust, only invited anglers can get in</li>
+        </ul>
+      </div>
+
+      <div class="feature-group">
+        <div class="feature-group-label">💬 Chat with Gillbert</div>
+        <ul class="feature-list">
+          <li>Replaced the raw n8n chat interface with a custom-built and styled Catch Chat window</li>
+          <li>Ask Gillbert introduced.  A separate AI chat to ask any question about the full catch history</li>
+          <li>Gillbert knows the entire record book and can give thoughtful, personalized answers</li>
+          <li>Catch numbers in chat responses are clickable links straight to the catch details</li>
+        </ul>
+      </div>
+
+      <div class="feature-group">
+        <div class="feature-group-label">🏆 Fish of Fame</div>
+        <ul class="feature-list">
+          <li>Leaderboard showing the biggest catches of all time, ranked by length</li>
+          <li>Per-species records and the record holder for every fish species in the books</li>
+          <li>Top Anglers ranking by total catch count and biggest fish</li>
+          <li>Pending review badge on catches that haven't been verified yet</li>
+        </ul>
+      </div>
+
+      <div class="feature-group">
+        <div class="feature-group-label">✏️ Catch Management</div>
+        <ul class="feature-list">
+          <li>Edit any catch after it's been logged.  Fix a length, update the date, edit the notes, etc.</li>
+          <li>Manual catch logging form as an alternative to chatting with Gillbert</li>
+          <li>Admin catch verification.  Mark catches as officially reviewed and verified</li>
+        </ul>
+      </div>
+
+      <div class="feature-group">
+        <div class="feature-group-label">📸 Media Improvements</div>
+        <ul class="feature-list">
+          <li>Apple HEIC photos and MOV videos are automatically converted on upload for universal viewing</li>
+          <li>Admin "Manage Media" mode to delete individual photos or videos from a catch</li>
+          <li>Photo and video counts update instantly after each deletion</li>
+        </ul>
+      </div>
+
+      <div class="feature-group">
+        <div class="feature-group-label">🔍 Browse & Discover</div>
+        <ul class="feature-list">
+          <li>Filter catches by angler, fish species, and body of water.  Mix and match</li>
+          <li>Active filters and search terms are remembered when navigating between pages</li>
+          <li>Friendly "no results" message when a search comes up empty, no more blank cards</li>
+        </ul>
+      </div>
+
+      <div class="feature-group">
+        <div class="feature-group-label">🔒 Admin Mode</div>
+        <ul class="feature-list">
+          <li>Admin mode hidden in plain sight</li>
+          <li>All destructive actions (deleting, editing, verifying) are gated behind admin mode</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section-divider"><span class="section-label">📖 History</span></div>
+
+    <div class="version-card version-card--v2">
+      <div class="version-card-header">
+        <div class="version-pill">Version 2</div>
+        <div class="version-date">Jan 2026</div>
+      </div>
+      <div class="version-title">The Scrapbook</div>
+      <div class="version-subtitle">Still chatting with Gillbert to log catches, but now with a real place to see them all.</div>
+      <ul class="feature-list">
+        <li>Catches listing page with text search and paginated browsing</li>
+        <li>Catch details page, tap into any catch to see the full record</li>
+        <li>Media upload, attach photos and videos to any catch</li>
+      </ul>
+    </div>
+
+    <div class="version-card version-card--v1">
+      <div class="version-card-header">
+        <div class="version-pill">Version 1</div>
+        <div class="version-date">2025</div>
+      </div>
+      <div class="version-title">The Beginning</div>
+      <div class="version-subtitle">It started with a conversation and a Raspberry Pi.</div>
+      <ul class="feature-list">
+        <li>Native n8n chat window, the very first way to talk to Gillbert</li>
+        <li>Log a catch by describing it in plain English, Gillbert captures the details</li>
+        <li>Data stored in Airtable, AI powered by OpenAI</li>
+      </ul>
+    </div>
+
+    <a href="./index.html" class="back-button">← Back to Home</a>
+  </div>
+</body>
+</html>
