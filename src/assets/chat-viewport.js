@@ -1,12 +1,19 @@
 (function () {
   const root = document.documentElement;
+  let rafId = null;
 
   function updateAppHeight() {
-    const viewportHeight = window.visualViewport
-      ? window.visualViewport.height
-      : window.innerHeight;
+    if (rafId !== null) cancelAnimationFrame(rafId);
 
-    root.style.setProperty('--app-height', Math.round(viewportHeight) + 'px');
+    rafId = requestAnimationFrame(() => {
+      const vv = window.visualViewport;
+      const viewportHeight = vv
+        ? Math.round(vv.height + vv.offsetTop)
+        : window.innerHeight;
+
+      root.style.setProperty('--app-height', viewportHeight + 'px');
+      rafId = null;
+    });
   }
 
   updateAppHeight();
