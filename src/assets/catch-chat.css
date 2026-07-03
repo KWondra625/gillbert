@@ -5,6 +5,8 @@
 html {
   height: 100%;
   background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 body {
@@ -13,14 +15,20 @@ body {
   background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
   height: var(--app-height, 100dvh);
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  overscroll-behavior: none;
 }
 
 .chat-page {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: var(--app-height, 100dvh);
   min-height: 0;
   max-width: 600px;
   margin: 0 auto;
@@ -108,6 +116,7 @@ body {
 .chat-messages {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 8px 16px 16px;
   display: flex;
   flex-direction: column;

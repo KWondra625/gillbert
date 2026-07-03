@@ -8,7 +8,7 @@
     rafId = requestAnimationFrame(() => {
       const vv = window.visualViewport;
       const viewportHeight = vv
-        ? Math.round(vv.height + vv.offsetTop)
+        ? Math.round(Math.max(vv.height, vv.height + vv.offsetTop))
         : window.innerHeight;
 
       root.style.setProperty('--app-height', viewportHeight + 'px');
