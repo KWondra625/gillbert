@@ -162,4 +162,7 @@ el.input.addEventListener('keydown', e => {
 
 el.sendBtn.addEventListener('click', sendMessage);
 
-window.addEventListener('DOMContentLoaded', () => el.input.focus());
+window.addEventListener('DOMContentLoaded', () => {
+  const isDesktop = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  if (isDesktop) el.input.focus();
+});
