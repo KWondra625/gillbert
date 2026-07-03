@@ -51,6 +51,7 @@ const el = {
   lightbox:         document.getElementById('lightbox'),
   lightboxImg:      document.getElementById('lightboxImg'),
   lightboxClose:    document.getElementById('lightboxClose'),
+  topHomeLink:      document.querySelector('.top-home-link'),
   backButton:       document.getElementById('backButton'),
 };
 
@@ -117,11 +118,56 @@ function getCatchNumberFromUrl() {
   return params.get('catchNumber');
 }
 
-function setupBackButton() {
+function setupBackNavigation() {
   const params = new URLSearchParams(window.location.search);
-  if (params.get('from') === 'fish-of-fame') {
-    el.backButton.href = './fish-of-fame.html';
-    el.backButton.textContent = '← Back to Fish of Fame';
+  const from = params.get('from');
+
+  // Allowlist accepted origins so unknown values safely fall back to Home.
+  const destinations = {
+    'list': {
+      href: './catches-listing.html',
+      topText: '← Catches',
+      topAria: 'Go back to Catches',
+      bottomText: '← Back to Listing',
+    },
+    'fish-of-fame': {
+      href: './fish-of-fame.html',
+      topText: '← Fish of Fame',
+      topAria: 'Go back to Fish of Fame',
+      bottomText: '← Back to Fish of Fame',
+    },
+    'catch-chat': {
+      href: './catch-chat.html',
+      topText: '← Catch Chat',
+      topAria: 'Go back to Catch Chat',
+      bottomText: '← Back to Catch Chat',
+    },
+    'ask-gillbert': {
+      href: './ask-gillbert.html',
+      topText: '← Ask Gillbert',
+      topAria: 'Go back to Ask Gillbert',
+      bottomText: '← Back to Ask Gillbert',
+    },
+  };
+
+  const fallback = {
+    href: './index.html',
+    topText: '← Home',
+    topAria: 'Go back to Home',
+    bottomText: '← Back to Home',
+  };
+
+  const nav = destinations[from] || fallback;
+
+  if (el.topHomeLink) {
+    el.topHomeLink.href = nav.href;
+    el.topHomeLink.textContent = nav.topText;
+    el.topHomeLink.setAttribute('aria-label', nav.topAria);
+  }
+
+  if (el.backButton) {
+    el.backButton.href = nav.href;
+    el.backButton.textContent = nav.bottomText;
   }
 }
 
@@ -289,7 +335,7 @@ async function handleVerifyToggle(catchData, button) {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-  setupBackButton();
+  setupBackNavigation();
 
   const catchNumber = getCatchNumberFromUrl();
 

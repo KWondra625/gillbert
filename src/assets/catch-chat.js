@@ -9,8 +9,7 @@ function escapeHtml(s) {
 
 function linkCatchNumbers(htmlText) {
   return htmlText.replace(/\bCatch\s+[A-Za-z0-9-]+\b/gi, match => {
-    const catchNumber = match.replace(/^Catch\s+/i, '');
-    const href = `./catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`;
+    const href = `./catch-details.html?catchNumber=${encodeURIComponent(match)}&from=catch-chat`;
     return `<a class="chat-catch-link" href="${href}">${match}</a>`;
   });
 }

@@ -5,7 +5,7 @@ marked.use({ breaks: true });
 
 function linkifyCatchNumbers(html) {
   return html.replace(/\bCatch\s+\d{2,}-\d+\b/gi, match => {
-    const href = `./catch-details.html?catchNumber=${encodeURIComponent(match)}`;
+    const href = `./catch-details.html?catchNumber=${encodeURIComponent(match)}&from=ask-gillbert`;
     return `<a class="chat-catch-link" href="${href}">${match}</a>`;
   });
 }

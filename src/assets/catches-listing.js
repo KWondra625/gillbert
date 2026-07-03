@@ -221,7 +221,7 @@ function renderCatchCard(catchData) {
         ${!verifiedAt ? '<div class="catch-pending-row"><span class="badge-pending" title="Not yet reviewed">⏳ Pending Review</span></div>' : ''}
       </div>
       <div class="catch-card-footer">
-        <a href="./catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}" class="card-button">
+        <a href="./catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}&from=list" class="card-button">
           🔍 View Details
         </a>
       </div>
