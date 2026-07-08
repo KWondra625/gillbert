@@ -39,6 +39,43 @@ function initChatShell(config) {
 
   const sessionId = getSessionId();
 
+  // ── History persistence ──────────────────────────────────────────────────
+  // Keeps the rendered transcript alive across page navigations within the
+  // same tab, so leaving Catch Chat / Ask Gillbert and coming back doesn't
+  // look like a fresh conversation. Cleared automatically when the tab
+  // closes, since it rides along in sessionStorage next to the sessionId.
+
+  const historyKey = `${sessionKey}_history`;
+
+  function loadHistory() {
+    try {
+      const raw = sessionStorage.getItem(historyKey);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  const history = loadHistory();
+
+  function saveHistory() {
+    try {
+      sessionStorage.setItem(historyKey, JSON.stringify(history));
+    } catch (err) {
+      // Storage quota hit (very unlikely for text-only chat) — drop the
+      // oldest quarter of messages and retry once rather than losing
+      // persistence entirely.
+      if (history.length > 1) {
+        history.splice(0, Math.ceil(history.length / 4));
+        try {
+          sessionStorage.setItem(historyKey, JSON.stringify(history));
+        } catch {
+          console.warn(`${logLabel}: unable to persist history`, err);
+        }
+      }
+    }
+  }
+
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   function escapeHtml(s) {
@@ -57,7 +94,7 @@ function initChatShell(config) {
     if (el.welcome) el.welcome.style.display = 'none';
   }
 
-  function appendMessage(role, text) {
+  function appendMessage(role, text, persist = true) {
     hideWelcome();
     const div = document.createElement('div');
     div.className = `message message--${role}`;
@@ -73,6 +110,12 @@ function initChatShell(config) {
 
     el.messages.appendChild(div);
     scrollToBottom();
+
+    if (persist) {
+      history.push({ role, text });
+      saveHistory();
+    }
+
     return div;
   }
 
@@ -101,6 +144,12 @@ function initChatShell(config) {
     el.messages.appendChild(div);
     scrollToBottom();
   }
+
+  // ── Rehydrate ────────────────────────────────────────────────────────────
+  // Replay any messages saved from earlier in this tab session. `persist`
+  // is false so we don't re-save what we just loaded.
+
+  history.forEach(({ role, text }) => appendMessage(role, text, false));
 
   // ── Send ─────────────────────────────────────────────────────────────────
 
