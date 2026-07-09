@@ -63,6 +63,18 @@ async function checkCloudflareIdentity() {
 // Fire immediately so the promise is in flight while page-specific scripts load
 window.adminIdentityCheck = checkCloudflareIdentity();
 
+// Resolves the current Cloudflare identity to an angler_id by matching its email
+// against each angler's loginEmails (from get-lookup-data). Returns null if there's
+// no Cloudflare session or no angler has this email registered.
+async function resolveMyAnglerId(anglers) {
+  await window.adminIdentityCheck;
+  const email = (window.cloudflareIdentity && window.cloudflareIdentity.email || '').toLowerCase();
+  if (!email || !Array.isArray(anglers)) return null;
+  const match = anglers.find(a => (a.loginEmails || []).some(e => e.toLowerCase() === email));
+  return match ? match.id : null;
+}
+window.resolveMyAnglerId = resolveMyAnglerId;
+
 // Wires up the tap-to-reveal PIN modal. No-op on pages that don't have
 // the trigger element and modal markup (currently index.html only).
 function initAdminTapTrigger() {

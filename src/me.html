@@ -94,6 +94,11 @@
     </div>
 
     <div class="card">
+      <p class="card-label">Angler Mapping</p>
+      <div id="anglerContent"><p class="muted">Checking…</p></div>
+    </div>
+
+    <div class="card">
       <p class="card-label">Admin Status</p>
       <div id="adminContent"><p class="muted">Checking…</p></div>
     </div>
@@ -133,6 +138,29 @@
       } else {
         identityEl.innerHTML =
           '<div class="row"><span class="row-value" style="color:#c0392b">⚠️ No identity detected — are you on the live site and logged in via Cloudflare Access?</span></div>';
+      }
+
+      // ── Angler mapping card ───────────────────────────────────
+      const anglerEl = document.getElementById('anglerContent');
+      if (identity && identity.email) {
+        try {
+          const res = await fetch(API_BASE + 'get-lookup-data', { headers: { 'X-API-Key': API_KEY } });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const raw = await res.json();
+          const lookupData = Array.isArray(raw) ? raw[0] : raw;
+          const anglers = lookupData.anglers || [];
+          const myAnglerId = await resolveMyAnglerId(anglers);
+          const myAngler = anglers.find(a => a.id === myAnglerId);
+
+          anglerEl.innerHTML = myAngler
+            ? `<div class="row"><span class="row-label">Angler ID</span><span class="row-value"><span class="pill pill-green">✅ ${myAngler.id}</span></span></div>
+               <div class="row"><span class="row-label">Angler Name</span><span class="row-value">${myAngler.name}</span></div>`
+            : `<div class="row"><span class="row-value"><span class="pill pill-amber">⚠️ No angler matches this email</span></span></div>`;
+        } catch (err) {
+          anglerEl.innerHTML = `<div class="row"><span class="row-value" style="color:#c0392b">⚠️ Unable to load angler lookup data</span></div>`;
+        }
+      } else {
+        anglerEl.innerHTML = '<div class="row"><span class="row-value muted">No identity to map</span></div>';
       }
 
       // ── Admin card ─────────────────────────────────────────────
