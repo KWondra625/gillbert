@@ -119,12 +119,32 @@
       await (window.adminIdentityCheck || Promise.resolve());
       const identity = window.cloudflareIdentity || null;
 
+      // Resolve the angler mapping once, up front — reused by both the Identity
+      // card (display name) and the Angler Mapping card below (single lookup fetch).
+      let myAngler = null;
+      let anglerLookupError = false;
+      if (identity && identity.email) {
+        try {
+          const res = await fetch(API_BASE + 'get-lookup-data', { headers: { 'X-API-Key': API_KEY } });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const raw = await res.json();
+          const lookupData = Array.isArray(raw) ? raw[0] : raw;
+          const anglers = lookupData.anglers || [];
+          const myAnglerId = await resolveMyAnglerId(anglers);
+          myAngler = anglers.find(a => a.id === myAnglerId) || null;
+        } catch (err) {
+          anglerLookupError = true;
+        }
+      }
+
       // ── Identity card ──────────────────────────────────────────
       const identityEl = document.getElementById('identityContent');
       if (identity && identity.email) {
         const rows = [
           ['Email',    identity.email    || '—'],
-          ['Name',     identity.name     || '—'],
+          // Cloudflare's one-time-pin login never supplies identity.name — resolve
+          // the display name via the angler mapping instead.
+          ['Name',     (myAngler && myAngler.name) || '—'],
           ['User UUID',identity.user_uuid|| '—'],
           ['Issued',   identity.iat ? new Date(identity.iat * 1000).toLocaleString() : '—'],
           ['Expires',  identity.exp ? new Date(identity.exp * 1000).toLocaleString() : '—'],
@@ -143,21 +163,13 @@
       // ── Angler mapping card ───────────────────────────────────
       const anglerEl = document.getElementById('anglerContent');
       if (identity && identity.email) {
-        try {
-          const res = await fetch(API_BASE + 'get-lookup-data', { headers: { 'X-API-Key': API_KEY } });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const raw = await res.json();
-          const lookupData = Array.isArray(raw) ? raw[0] : raw;
-          const anglers = lookupData.anglers || [];
-          const myAnglerId = await resolveMyAnglerId(anglers);
-          const myAngler = anglers.find(a => a.id === myAnglerId);
-
+        if (anglerLookupError) {
+          anglerEl.innerHTML = `<div class="row"><span class="row-value" style="color:#c0392b">⚠️ Unable to load angler lookup data</span></div>`;
+        } else {
           anglerEl.innerHTML = myAngler
             ? `<div class="row"><span class="row-label">Angler ID</span><span class="row-value"><span class="pill pill-green">✅ ${myAngler.id}</span></span></div>
                <div class="row"><span class="row-label">Angler Name</span><span class="row-value">${myAngler.name}</span></div>`
             : `<div class="row"><span class="row-value"><span class="pill pill-amber">⚠️ No angler matches this email</span></span></div>`;
-        } catch (err) {
-          anglerEl.innerHTML = `<div class="row"><span class="row-value" style="color:#c0392b">⚠️ Unable to load angler lookup data</span></div>`;
         }
       } else {
         anglerEl.innerHTML = '<div class="row"><span class="row-value muted">No identity to map</span></div>';
