@@ -11,6 +11,7 @@ const el = {
   paginationContainer: document.getElementById('paginationContainer'),
   searchInput: document.getElementById('searchInput'),
   searchBtn: document.getElementById('searchBtn'),
+  filterMeChip: document.getElementById('filterMeChip'),
   filterAnglerChip: document.getElementById('filterAnglerChip'),
   filterAnglerValue: document.getElementById('filterAnglerValue'),
   filterAnglerDropdown: document.getElementById('filterAnglerDropdown'),
@@ -29,7 +30,10 @@ let allCatches = [];
 let filteredCatches = [];
 let currentPage = 1;
 let lookups = { anglers: [], species: [], bodiesOfWater: [] };
-let activeFilters = { angler: '', species: '', water: '' };
+let activeFilters = { angler: '', species: '', water: '', me: false };
+
+// Resolved from the Cloudflare identity once lookups load; null if unmatched
+let myAnglerId = null;
 
 function setStatus(msg) {
   el.status.textContent = msg;
@@ -268,7 +272,13 @@ async function loadLookups() {
     lookups.anglers = data.anglers || [];
     lookups.species = data.fishSpecies || [];
     lookups.bodiesOfWater = data.bodiesOfWater || [];
+    myAnglerId = await resolveMyAnglerId(lookups.anglers);
+    if (myAnglerId == null) {
+      el.filterMeChip.style.display = 'none';
+      activeFilters.me = false;
+    }
     buildDropdowns();
+    applyFilters();
   } catch (e) {
     console.error('Lookup fetch failed', e);
   }
@@ -306,6 +316,7 @@ function applyFilters() {
     if (activeFilters.angler && c.anglerName !== activeFilters.angler) return false;
     if (activeFilters.species && c.fishSpeciesName !== activeFilters.species) return false;
     if (activeFilters.water && c.bodyOfWaterName !== activeFilters.water) return false;
+    if (activeFilters.me && !(myAnglerId != null && (c.anglerId === myAnglerId || c.createdByAnglerId === myAnglerId))) return false;
     return true;
   });
   currentPage = 1;
@@ -318,8 +329,9 @@ function updateFilterUI() {
   updateChip('angler', el.filterAnglerChip, el.filterAnglerValue);
   updateChip('species', el.filterSpeciesChip, el.filterSpeciesValue);
   updateChip('water', el.filterWaterChip, el.filterWaterValue);
+  el.filterMeChip.classList.toggle('active', !!activeFilters.me);
   buildDropdowns();
-  const hasFilter = activeFilters.angler || activeFilters.species || activeFilters.water;
+  const hasFilter = activeFilters.angler || activeFilters.species || activeFilters.water || activeFilters.me;
   if (hasFilter && allCatches.length) {
     el.filterSummary.classList.add('visible');
     el.filterSummaryText.textContent = `🎣 Showing ${filteredCatches.length} of ${allCatches.length} catches`;
@@ -344,6 +356,11 @@ function closeDropdowns() {
   document.querySelectorAll('.filter-chip-dropdown').forEach(d => d.classList.remove('open'));
   document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('open'));
 }
+
+el.filterMeChip.addEventListener('click', () => {
+  activeFilters.me = !activeFilters.me;
+  applyFilters();
+});
 
 ['filterAnglerChip', 'filterSpeciesChip', 'filterWaterChip'].forEach(chipId => {
   const chip = document.getElementById(chipId);
@@ -380,7 +397,7 @@ function closeDropdowns() {
 document.addEventListener('click', closeDropdowns);
 
 el.filterClearAll.addEventListener('click', () => {
-  activeFilters = { angler: '', species: '', water: '' };
+  activeFilters = { angler: '', species: '', water: '', me: false };
   sessionStorage.removeItem('gillbert_filters');
   applyFilters();
 });
