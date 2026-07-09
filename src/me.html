@@ -142,9 +142,6 @@
       if (identity && identity.email) {
         const rows = [
           ['Email',    identity.email    || '—'],
-          // Cloudflare's one-time-pin login never supplies identity.name — resolve
-          // the display name via the angler mapping instead.
-          ['Name',     (myAngler && myAngler.name) || '—'],
           ['User UUID',identity.user_uuid|| '—'],
           ['Issued',   identity.iat ? new Date(identity.iat * 1000).toLocaleString() : '—'],
           ['Expires',  identity.exp ? new Date(identity.exp * 1000).toLocaleString() : '—'],
