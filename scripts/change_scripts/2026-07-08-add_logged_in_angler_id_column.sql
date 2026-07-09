@@ -1,0 +1,1 @@
+ALTER TABLE conversations ADD COLUMN IF NOT EXISTS logged_in_angler_id INT REFERENCES anglers(id);
