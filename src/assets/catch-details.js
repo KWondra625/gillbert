@@ -46,7 +46,7 @@ const FIELD_LABELS = {
 };
 
 // Fields excluded from all loops (handled explicitly)
-const EXCLUDE_FIELDS = new Set(['catchNumber', 'fullSummary', 'headline', 'catchMediaCount', 'anglerId', 'bodyOfWaterId', 'fishSpeciesId', 'createdByAnglerName', 'updatedByAnglerName', ...FIELD_ORDER, ...AUDIT_FIELDS]);
+const EXCLUDE_FIELDS = new Set(['catchNumber', 'fullSummary', 'headline', 'catchMediaCount', 'anglerId', 'bodyOfWaterId', 'fishSpeciesId', 'createdByAnglerId', 'createdByAnglerName', 'updatedByAnglerId','updatedByAnglerName', ...FIELD_ORDER, ...AUDIT_FIELDS]);
 
 const el = {
   status:           document.getElementById('status'),
@@ -212,8 +212,10 @@ function renderDetails(catchData) {
       <p>${escapeHtml(catchData.headline)}</p>
     </div>` : '';
 
-  // Pending review badge — shown to everyone until this catch has been verified
-  const pendingBadgeHtml = isVerified ? '' : `<span class="pending-review-badge">⏳ Pending Review</span>`;
+  // Review status badge — pending (amber) until verified, then a green confirmation
+  const reviewStatusBadgeHtml = isVerified
+    ? `<span class="verified-badge">✅ Verified</span>`
+    : `<span class="pending-review-badge">⏳ Pending Review</span>`;
 
   // 1. Primary ordered fields
   const primaryRows = FIELD_ORDER
@@ -249,7 +251,7 @@ function renderDetails(catchData) {
       </div>
       <div class="detail-card-section-label">
         <span>Catch Details</span>
-        ${pendingBadgeHtml}
+        ${reviewStatusBadgeHtml}
       </div>
       <div class="detail-card-body">
         ${headlineHtml}
