@@ -1,1 +1,0 @@
-ALTER TABLE catch_media ADD COLUMN IF NOT EXISTS uploaded_by_angler_id INT REFERENCES anglers(id);
