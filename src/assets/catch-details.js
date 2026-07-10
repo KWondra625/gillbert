@@ -556,9 +556,12 @@ function buildDeleteBtn(item) {
 }
 
 function buildMediaTile(item) {
-  const { readUrl, mediaType, contentType, uploadedAt } = item;
-  const caption    = uploadedAt
-    ? `<div class="media-tile-caption">${escapeHtml(formatUploadedAt(uploadedAt))}</div>`
+  const { readUrl, mediaType, contentType, uploadedAt, uploadedByAnglerName } = item;
+  const captionText = uploadedAt
+    ? (uploadedByAnglerName ? `${formatUploadedAt(uploadedAt)} by ${uploadedByAnglerName}` : formatUploadedAt(uploadedAt))
+    : '';
+  const caption    = captionText
+    ? `<div class="media-tile-caption">${escapeHtml(captionText)}</div>`
     : '';
   const deleteBtn  = buildDeleteBtn(item);
 
