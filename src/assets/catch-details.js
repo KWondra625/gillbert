@@ -1,6 +1,10 @@
 const CATCH_MEDIA_GET_URL = API_BASE + "catch-media/get";
 const CATCH_VERIFY_URL    = API_BASE + "catch/verify";
 const CATCH_MEDIA_DELETE_URL = API_BASE + "catch-media/delete";
+const LOOKUP_URL          = API_BASE + "get-lookup-data";
+
+// Resolved from the Cloudflare identity once lookups load; null if unmatched
+let myAnglerId = null;
 
 // Primary fields shown in this exact order
 const FIELD_ORDER = [
@@ -14,7 +18,7 @@ const FIELD_ORDER = [
 ];
 
 // Audit fields shown in a separate muted section
-const AUDIT_FIELDS = ['id', 'recordSource', 'createdAt', 'verifiedAt', 'updatedAt' ];
+const AUDIT_FIELDS = ['id', 'recordSource', 'createdAt', 'updatedAt', 'verifiedAt'];
 
 // Fields whose values are date/times and should be formatted for readability
 const DATETIME_FIELDS = new Set(['caughtWhen', 'createdAt', 'verifiedAt', 'updatedAt']);
@@ -42,7 +46,7 @@ const FIELD_LABELS = {
 };
 
 // Fields excluded from all loops (handled explicitly)
-const EXCLUDE_FIELDS = new Set(['catchNumber', 'fullSummary', 'headline', 'catchMediaCount', 'anglerId', 'bodyOfWaterId', 'fishSpeciesId', ...FIELD_ORDER, ...AUDIT_FIELDS]);
+const EXCLUDE_FIELDS = new Set(['catchNumber', 'fullSummary', 'headline', 'catchMediaCount', 'anglerId', 'bodyOfWaterId', 'fishSpeciesId', 'createdByAnglerId', 'createdByAnglerName', 'updatedByAnglerId','updatedByAnglerName', ...FIELD_ORDER, ...AUDIT_FIELDS]);
 
 const el = {
   status:           document.getElementById('status'),
@@ -103,6 +107,18 @@ function buildRow(key, value, extraClass = '') {
     <div class="detail-row${extraClass ? ' ' + extraClass : ''}">
       <span class="detail-label">${meta.icon} ${escapeHtml(meta.label)}</span>
       <span class="detail-value">${formatValue(key, value)}</span>
+    </div>`;
+}
+
+// Combines a timestamp with the angler who caused it, e.g. "June 30, 2026 at 6:04 AM by Kurt".
+// Omits the "by ___" suffix entirely when there's no attribution (historical/unmatched-email catches).
+function buildAttributionRow(key, dateValue, byName, extraClass = '') {
+  const meta = FIELD_LABELS[key] || { label: camelToLabel(key), icon: "📌" };
+  const value = byName ? `${formatDateTime(dateValue)} by ${escapeHtml(byName)}` : formatDateTime(dateValue);
+  return `
+    <div class="detail-row${extraClass ? ' ' + extraClass : ''}">
+      <span class="detail-label">${meta.icon} ${escapeHtml(meta.label)}</span>
+      <span class="detail-value">${value}</span>
     </div>`;
 }
 
@@ -177,9 +193,10 @@ async function loadCatchDetails(catchNumber) {
     setStatus("Loading catch details...");
 
     const url = `${CATCHES_GET_URL}?catchNumber=${encodeURIComponent(catchNumber)}`;
-    const res = await fetch(url, {
-      headers: { "X-API-Key": API_KEY },
-    });
+    const [res, lookupRes] = await Promise.all([
+      fetch(url, { headers: { "X-API-Key": API_KEY } }),
+      fetch(LOOKUP_URL, { headers: { "X-API-Key": API_KEY } }),
+    ]);
 
     if (!res.ok) throw new Error(`GET failed: ${res.status}`);
 
@@ -204,6 +221,13 @@ async function loadCatchDetails(catchNumber) {
     }
 
     await (window.adminIdentityCheck || Promise.resolve());
+
+    if (lookupRes.ok) {
+      const lookupRaw = await lookupRes.json();
+      const lookupData = Array.isArray(lookupRaw) ? lookupRaw[0] : lookupRaw;
+      myAnglerId = await resolveMyAnglerId(lookupData.anglers || []);
+    }
+
     setStatus("");
     renderDetails(catchData);
     hideLoading();
@@ -218,6 +242,11 @@ function renderDetails(catchData) {
   const catchNumber = catchData.catchNumber || "Unknown";
   const isVerified = !!catchData.verifiedAt;
 
+  // Owner-edit: either the angler who caught the fish or whoever logged it, until verified.
+  // Admin PIN always overrides.
+  const isOwner = myAnglerId != null && (myAnglerId === catchData.anglerId || myAnglerId === catchData.createdByAnglerId);
+  const canEdit = isAdminUnlocked() || (isOwner && !isVerified);
+
   document.title = `${catchNumber} · Gillbert`;
 
   const hasValue = (key) => catchData[key] !== null && catchData[key] !== undefined && catchData[key] !== '';
@@ -229,8 +258,10 @@ function renderDetails(catchData) {
       <p>${escapeHtml(catchData.headline)}</p>
     </div>` : '';
 
-  // Pending review badge — shown to everyone until this catch has been verified
-  const pendingBadgeHtml = isVerified ? '' : `<span class="pending-review-badge">⏳ Pending Review</span>`;
+  // Review status badge — pending (amber) until verified, then a green confirmation
+  const reviewStatusBadgeHtml = isVerified
+    ? `<span class="verified-badge">✅ Verified</span>`
+    : `<span class="pending-review-badge">⏳ Pending Review</span>`;
 
   // 1. Primary ordered fields
   const primaryRows = FIELD_ORDER
@@ -247,7 +278,11 @@ function renderDetails(catchData) {
   // 3. Audit data — stored for the modal, not rendered inline
   const auditRows = AUDIT_FIELDS
     .filter(hasValue)
-    .map(key => buildRow(key, catchData[key], 'detail-row--audit'))
+    .map(key => {
+      if (key === 'createdAt') return buildAttributionRow('createdAt', catchData.createdAt, catchData.createdByAnglerName, 'detail-row--audit');
+      if (key === 'updatedAt') return buildAttributionRow('updatedAt', catchData.updatedAt, catchData.updatedByAnglerName, 'detail-row--audit');
+      return buildRow(key, catchData[key], 'detail-row--audit');
+    })
     .join('');
 
   // Populate the record info modal content
@@ -262,7 +297,7 @@ function renderDetails(catchData) {
       </div>
       <div class="detail-card-section-label">
         <span>Catch Details</span>
-        ${pendingBadgeHtml}
+        ${reviewStatusBadgeHtml}
       </div>
       <div class="detail-card-body">
         ${headlineHtml}
@@ -275,7 +310,7 @@ function renderDetails(catchData) {
       </div>
       <div class="detail-card-footer">
         <div class="detail-card-footer-admin">
-          <a href="./edit-catch.html?catchNumber=${encodeURIComponent(catchNumber)}" id="editCatchLink" class="edit-catch-trigger hidden">🔓 ✏️ Edit</a>
+          <a href="./edit-catch.html?catchNumber=${encodeURIComponent(catchNumber)}" id="editCatchLink" class="edit-catch-trigger hidden">✏️ Edit</a>
           <button id="verifyToggle" class="verify-toggle-trigger hidden ${isVerified ? 'verify-toggle-trigger--verified' : 'verify-toggle-trigger--pending'}">${isVerified ? '🔓 ↩️ Unverify' : '🔓 ✅ Verify'}</button>
           <button id="manageMediaBtn" class="manage-media-trigger hidden">🔓 🗑️ Manage Media</button>
         </div>
@@ -288,7 +323,7 @@ function renderDetails(catchData) {
   });
 
   const editCatchLink = document.getElementById('editCatchLink');
-  if (isAdminUnlocked()) editCatchLink.classList.remove('hidden');
+  if (canEdit) editCatchLink.classList.remove('hidden');
 
   const verifyToggle = document.getElementById('verifyToggle');
   if (isAdminUnlocked()) {
@@ -435,6 +470,7 @@ function openDeleteModal() {
 function closeDeleteModal() {
   document.getElementById('deleteMediaModal').classList.remove('open');
   document.getElementById('deleteMediaPreview').innerHTML = '';
+  document.getElementById('deleteMediaConfirm').textContent = 'Delete';
   pendingDeleteItem = null;
   pendingDeleteTile = null;
 }
@@ -476,7 +512,7 @@ async function handleMediaDelete() {
     console.error('Media delete failed:', err);
     confirmBtn.disabled = false;
     cancelBtn.disabled  = false;
-    confirmBtn.textContent = '🗑️ Permanently Delete';
+    confirmBtn.textContent = 'Delete';
     setStatus('Delete failed ❌', true);
   }
 }

@@ -269,6 +269,7 @@ async function loadLookups() {
     lookups.species = data.fishSpecies || [];
     lookups.bodiesOfWater = data.bodiesOfWater || [];
     buildDropdowns();
+    applyFilters();
   } catch (e) {
     console.error('Lookup fetch failed', e);
   }

@@ -10,6 +10,7 @@ function initChatShell(config) {
     sessionKey,
     renderGillbertReply,
     logLabel = 'Chat',
+    getExtraBody,
   } = config;
 
   const chatUrl = API_BASE + apiPath;
@@ -165,10 +166,11 @@ function initChatShell(config) {
     const thinkingEl = appendThinking();
 
     try {
+      const extraBody = getExtraBody ? await getExtraBody() : {};
       const res = await fetch(chatUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
-        body: JSON.stringify({ sessionId, chatInput: text }),
+        body: JSON.stringify({ sessionId, chatInput: text, ...extraBody }),
       });
 
       if (!res.ok) throw new Error(`Request failed (${res.status})`);

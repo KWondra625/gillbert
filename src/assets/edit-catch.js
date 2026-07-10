@@ -6,6 +6,9 @@ let lookups = null;
 let catchNumber = null;
 let catchId = null;
 
+// Resolved from the Cloudflare identity once lookups load; null if unmatched
+let myAnglerId = null;
+
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 
 const el = {
@@ -94,6 +97,18 @@ async function loadEditCatch() {
     populateSelect(el.anglerId,      lookups.anglers       || []);
     populateSelect(el.fishSpeciesId, lookups.fishSpecies   || []);
     populateSelect(el.bodyOfWaterId, lookups.bodiesOfWater || []);
+    myAnglerId = await resolveMyAnglerId(lookups.anglers || []);
+
+    // Owner-edit: either the angler who caught the fish or whoever logged it, until verified.
+    // Admin PIN always overrides.
+    const isOwner = myAnglerId != null && (myAnglerId === catchData.anglerId || myAnglerId === catchData.createdByAnglerId);
+    const canEdit = isAdminUnlocked() || (isOwner && !catchData.verifiedAt);
+    if (!canEdit) {
+      el.errorMsg.textContent = "You don't have permission to edit this catch.";
+      el.retryBtn.classList.add('hidden');
+      showState('errorState');
+      return;
+    }
 
     prefillForm(catchData);
 
@@ -211,6 +226,7 @@ async function submit() {
     fishSpeciesId: parseInt(el.fishSpeciesId.value, 10),
     bodyOfWaterId: parseInt(el.bodyOfWaterId.value, 10),
     caughtWhen:    buildCaughtWhen(),
+    updatedByAnglerId: myAnglerId,
   };
 
   const lengthStr = el.lengthInInches.value.trim();

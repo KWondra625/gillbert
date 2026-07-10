@@ -48,13 +48,19 @@ CREATE OR REPLACE VIEW vw_catch_details AS
             ELSE false
         END AS isUpdatedAfterVerification,
 
+        c.created_by_angler_id AS created_by_angler_id,
+        a2.name as created_by_angler_name,
         c.created_at AS created_at,
+        c.updated_by_angler_id AS updated_by_angler_id,
+        a3.name as updated_by_angler_name,
         c.updated_at AS updated_at,
 
         (SELECT COUNT(*) FROM catch_media cm WHERE cm.catch_id = c.id) AS catch_media_count
 
     FROM catches c 
         INNER JOIN anglers a ON c.angler_id = a.id
+        LEFT JOIN anglers a2 ON c.created_by_angler_id = a2.id
+        LEFT JOIN anglers a3 ON c.updated_by_angler_id = a3.id
         INNER JOIN fish_species fs ON c.fish_species_id = fs.id
         INNER JOIN bodies_of_water bow ON c.body_of_water_id = bow.id
     WHERE c.status = 'Active'
