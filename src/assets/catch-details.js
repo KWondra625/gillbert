@@ -41,7 +41,7 @@ const FIELD_LABELS = {
   createdAt:       { label: "Created",         icon: "🕓" },
   verifiedAt:      { label: "Verified",        icon: "✅" },
   updatedAt:       { label: "Last Updated",    icon: "🔄" },
-  recordSource:    { label: "Record Source",   icon: "🗂️" },
+  recordSource:    { label: "Source",          icon: "🗂️" },
   
 };
 
@@ -82,19 +82,34 @@ function escapeHtml(s) {
   }[m]));
 }
 
+// formatDateLabel/hasExplicitTime come from date-format.js (shared with
+// catches-listing.js — see that file for why this is extracted rather than
+// duplicated).
+
 function formatDateTime(value) {
   if (!value) return escapeHtml(String(value));
   const d = new Date(value);
   if (isNaN(d.getTime())) return escapeHtml(String(value));
-  return escapeHtml(
-    d.toLocaleString('en-US', {
-      month: 'long', day: 'numeric', year: 'numeric',
-      hour: 'numeric', minute: '2-digit', hour12: true,
-    })
-  );
+
+  const time = d.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  return escapeHtml(`${formatDateLabel(d)} at ${time}`);
+}
+
+// caughtWhen-only: log-catch.js and the chat n8n workflow both default the
+// time to local midnight when none is given (common for legacy/historical
+// entries) — that's not a real "caught at 12:00 AM" moment, so omit the time
+// entirely rather than display a fabricated one. Doesn't apply to
+// createdAt/updatedAt/verifiedAt — those are always real, explicit timestamps.
+function formatCaughtWhen(value) {
+  if (!value) return escapeHtml(String(value));
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return escapeHtml(String(value));
+
+  return hasExplicitTime(d) ? formatDateTime(value) : escapeHtml(formatDateLabel(d));
 }
 
 function formatValue(key, value) {
+  if (key === 'caughtWhen') return formatCaughtWhen(value);
   if (DATETIME_FIELDS.has(key)) return formatDateTime(value);
   if (key === 'length') return `${escapeHtml(String(value))}"`;
   if (key === 'waterDepth') return `${escapeHtml(String(value))}'`;

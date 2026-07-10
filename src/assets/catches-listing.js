@@ -143,6 +143,10 @@ function renderPage() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// formatDateLabel/hasExplicitTime come from date-format.js (shared with
+// catch-details.js — see that file for why this is extracted rather than
+// duplicated).
+
 function getRelativeTime(dateStr) {
   const diffMs = Date.now() - new Date(dateStr).getTime();
   const diffMins = Math.floor(diffMs / 60000);
@@ -175,13 +179,19 @@ function renderCatchCard(catchData) {
   const isRecentCatch = caughtWhen && (now - new Date(caughtWhen).getTime()) < 72 * 60 * 60 * 1000;
   const isRecentlyAdded = createdAt && (now - new Date(createdAt).getTime()) < 24 * 60 * 60 * 1000;
 
+  // No explicit time (see date-format.js) means skip both the relative-time
+  // and absolute-with-time treatments and just show the date.
+  const caughtWhenHasTime = caughtWhen && hasExplicitTime(new Date(caughtWhen));
+
   const caughtWhenDisplay = caughtWhen
-    ? isRecentCatch
-      ? getRelativeTime(caughtWhen)
-      : new Date(caughtWhen).toLocaleString('en-US', {
-          month: 'long', day: 'numeric', year: 'numeric',
-          hour: 'numeric', minute: '2-digit', hour12: true,
-        })
+    ? !caughtWhenHasTime
+      ? formatDateLabel(new Date(caughtWhen))
+      : isRecentCatch
+        ? getRelativeTime(caughtWhen)
+        : new Date(caughtWhen).toLocaleString('en-US', {
+            month: 'long', day: 'numeric', year: 'numeric',
+            hour: 'numeric', minute: '2-digit', hour12: true,
+          })
     : 'Unknown';
 
   return `
