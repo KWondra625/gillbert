@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS catch_media (
     media_type VARCHAR(50) NOT NULL CHECK (media_type IN ('Photo', 'Video')),
     content_type varchar(255) NOT NULL,
     file_size_bytes INT NOT NULL,
+    uploaded_by_angler_id INT REFERENCES anglers(id),
     uploaded_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

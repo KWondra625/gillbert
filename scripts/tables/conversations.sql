@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS conversations (
     n8n_conversation_id varchar(255) NOT NULL,
     channel varchar(255) NOT NULL,
     session_id varchar(255) NOT NULL,
+    logged_in_angler_id INT REFERENCES anglers(id),
     mode varchar(255),
     caught_when_utc TIMESTAMPTZ,
     timezone varchar(255),

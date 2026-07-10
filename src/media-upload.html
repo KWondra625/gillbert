@@ -41,8 +41,6 @@
           <p id="loadingMsg">Casting your media into the cloud…</p>
         </div>
       </div>
-
-      <a id="backToCatch" href="#" class="back-button">← Back to Catch</a>
     </div>
 
     <!-- Success state (shown after upload completes) -->
@@ -57,9 +55,13 @@
     <!-- Activity log — persists across states -->
     <br /><div id="log" class="log"></div>
 
+    <!-- Kept as the last element on the page so it stays below the activity log -->
+    <a id="backToCatch" href="#" class="back-button">← Back to Catch</a>
+
   </div>
 
   <script src="./assets/config.js"></script>
+  <script src="./assets/admin.js"></script>
   <script src="./assets/media-upload.js"></script>
 </body>
 </html>

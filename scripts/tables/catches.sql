@@ -11,8 +11,10 @@ CREATE TABLE IF NOT EXISTS catches (
     water_depth_in_feet FLOAT,
     notes TEXT,
     conversation_id INT REFERENCES conversations(id),
-    verified_at TIMESTAMPTZ, 
+    verified_at TIMESTAMPTZ,
+    created_by_angler_id INT REFERENCES anglers(id),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_by_angler_id INT REFERENCES anglers(id),
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
