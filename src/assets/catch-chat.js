@@ -26,6 +26,25 @@ function getSessionId() {
 
 const sessionId = getSessionId();
 
+// ── Identity ──────────────────────────────────────────────────────────────────
+
+const LOOKUP_URL = API_BASE + 'get-lookup-data';
+
+// Fired immediately so it's resolved (or in flight) by the time the user sends
+// their first message. Distinct from the "anglerId" the AI extracts from the
+// conversation (who caught the fish) — this is who's holding the phone.
+const loggedInAnglerIdPromise = (async () => {
+  try {
+    const res = await fetch(LOOKUP_URL, { headers: { 'X-API-Key': API_KEY } });
+    if (!res.ok) return null;
+    const raw = await res.json();
+    const data = Array.isArray(raw) ? raw[0] : raw;
+    return await resolveMyAnglerId(data.anglers || []);
+  } catch {
+    return null;
+  }
+})();
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function escapeHtml(s) {
@@ -119,10 +138,12 @@ async function sendMessage() {
   const thinkingEl = appendThinking();
 
   try {
+    const loggedInAnglerId = await loggedInAnglerIdPromise;
+
     const res = await fetch(CHAT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
-      body: JSON.stringify({ sessionId, chatInput: text }),
+      body: JSON.stringify({ sessionId, chatInput: text, loggedInAnglerId }),
     });
 
     if (!res.ok) throw new Error(`Request failed (${res.status})`);

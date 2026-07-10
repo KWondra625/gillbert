@@ -3,6 +3,7 @@ CREATE OR REPLACE VIEW vw_angler_details AS
             a.name AS name,
             a.status AS status,
             a.aliases AS aliases,
+            a.login_emails AS login_emails,
             COUNT(c.id) AS catch_count,
             biggest_catch.catch_id AS biggest_catch_id,
             biggest_catch.catch_number AS biggest_catch_number,
@@ -29,7 +30,7 @@ CREATE OR REPLACE VIEW vw_angler_details AS
         ORDER BY c3.length_in_inches DESC
         LIMIT 1
     ) biggest_catch
-    GROUP BY a.id, a.name, a.status, a.aliases, 
+    GROUP BY a.id, a.name, a.status, a.aliases, a.login_emails,
              last_catch.caught_when, last_catch.catch_id, last_catch.catch_number,
              biggest_catch.catch_id, biggest_catch.catch_number
     ORDER BY a.id;

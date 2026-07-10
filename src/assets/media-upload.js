@@ -1,7 +1,22 @@
 ﻿const SAS_WEBHOOK_URL    = N8N_BASE_URL + WEBHOOK_PATH + "gillbert/catch-media/get-sas";
 const COMMIT_WEBHOOK_URL = N8N_BASE_URL + WEBHOOK_PATH + "gillbert/catch-media/commit";
+const LOOKUP_URL         = API_BASE + 'get-lookup-data';
 
 const REDIRECT_DELAY = 20; // seconds
+
+// Fired immediately so it's resolved (or in flight) by the time the user hits Upload.
+// Multiple files in one upload are always attributed to the same person.
+const uploadedByAnglerIdPromise = (async () => {
+  try {
+    const res = await fetch(LOOKUP_URL, { headers: { 'X-API-Key': API_KEY } });
+    if (!res.ok) return null;
+    const raw = await res.json();
+    const data = Array.isArray(raw) ? raw[0] : raw;
+    return await resolveMyAnglerId(data.anglers || []);
+  } catch {
+    return null;
+  }
+})();
 
 const el = {
   noCatchState:     document.getElementById('noCatchState'),
@@ -125,11 +140,11 @@ async function uploadOne(uploadUrl, file) {
   if (!res.ok) throw new Error(`Azure PUT failed: ${res.status} ${await res.text()}`);
 }
 
-async function postUploadMetadata(catchNumber, uploads) {
+async function postUploadMetadata(catchNumber, uploads, uploadedByAnglerId) {
   const res = await fetch(COMMIT_WEBHOOK_URL, {
     method: "POST",
     headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
-    body: JSON.stringify({ catchNumber, uploads }),
+    body: JSON.stringify({ catchNumber, uploads, uploadedByAnglerId }),
   });
   const text = await res.text();
   if (!res.ok) throw new Error(`Commit webhook failed: ${res.status} ${text}`);
@@ -172,6 +187,7 @@ el.uploadBtn.addEventListener('click', async () => {
     log(`Files: ${files.length}`);
 
     const { uploads } = await getSasUrls(catchNumber, files);
+    const uploadedByAnglerId = await uploadedByAnglerIdPromise;
 
     setStatus("Reeling files into the cloud...");
     for (let i = 0; i < uploads.length; i++) {
@@ -192,14 +208,14 @@ el.uploadBtn.addEventListener('click', async () => {
       fetch(COMMIT_WEBHOOK_URL, {
         method: "POST",
         headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
-        body: JSON.stringify({ catchNumber, uploads }),
+        body: JSON.stringify({ catchNumber, uploads, uploadedByAnglerId }),
         keepalive: true,
       }).catch(() => {});
       log(`\n✅ Files are in — conversion finishing in the background. Give it a minute before checking your catch.`);
     } else {
       log(`\nDropping your catch in Gillbert's digital live well...`);
       setStatus("Stocking the live well...");
-      await postUploadMetadata(catchNumber, uploads);
+      await postUploadMetadata(catchNumber, uploads, uploadedByAnglerId);
       log(`✅ Locked in — your catch is fully documented!`);
     }
 
@@ -207,6 +223,7 @@ el.uploadBtn.addEventListener('click', async () => {
     setStatus("");
 
     el.uploadState.classList.add('hidden');
+    el.backToCatch.classList.add('hidden');
     el.successState.classList.remove('hidden');
     startSuccessCountdown(catchNumber);
 
@@ -226,6 +243,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   if (!catchNumber) {
     el.uploadState.classList.add('hidden');
+    el.backToCatch.classList.add('hidden');
     el.noCatchState.classList.remove('hidden');
     return;
   }

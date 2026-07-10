@@ -7,6 +7,9 @@ let actionIntent = 'view'; // 'view' | 'another'
 // Prevents showing validation errors before the user tries to submit
 let hasAttemptedSubmit = false;
 
+// Resolved from the Cloudflare identity once lookups load; null if unmatched
+let myAnglerId = null;
+
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 
 const el = {
@@ -53,6 +56,7 @@ async function fetchLookups() {
     populateSelect(el.anglerId,       data.anglers       || []);
     populateSelect(el.fishSpeciesId,  data.fishSpecies       || []);
     populateSelect(el.bodyOfWaterId,  data.bodiesOfWater || []);
+    myAnglerId = await resolveMyAnglerId(data.anglers || []);
     applyMode(getMode());
     showState('formState');
   } catch (err) {
@@ -189,6 +193,8 @@ async function submit() {
     caughtWhen:     buildCaughtWhen(),
     recordSource:   'Web Form',
     conversationId: null,
+    createdByAnglerId: myAnglerId,
+    updatedByAnglerId: myAnglerId,
   };
 
   const length = parseFloat(el.lengthInInches.value);
