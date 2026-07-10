@@ -223,6 +223,7 @@ el.uploadBtn.addEventListener('click', async () => {
     setStatus("");
 
     el.uploadState.classList.add('hidden');
+    el.backToCatch.classList.add('hidden');
     el.successState.classList.remove('hidden');
     startSuccessCountdown(catchNumber);
 
@@ -242,6 +243,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   if (!catchNumber) {
     el.uploadState.classList.add('hidden');
+    el.backToCatch.classList.add('hidden');
     el.noCatchState.classList.remove('hidden');
     return;
   }
