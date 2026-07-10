@@ -11,7 +11,11 @@
 
     rafId = requestAnimationFrame(() => {
       const vv = window.visualViewport;
-      const viewportHeight = vv ? Math.round(vv.height) : window.innerHeight;
+      // vv.offsetTop accounts for the browser scrolling the visual viewport
+      // down to keep the focused input visible above the keyboard — without
+      // it, --app-height is set too tall and leaves a gap under the keyboard.
+      // Math.max guards against offsetTop ever making the result smaller.
+      const viewportHeight = vv ? Math.round(Math.max(vv.height, vv.height + vv.offsetTop)) : window.innerHeight;
 
       root.style.setProperty('--app-height', viewportHeight + 'px');
       rafId = null;
@@ -25,5 +29,9 @@
 
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', updateAppHeight);
+    // offsetTop changes when the browser scrolls the visual viewport to keep
+    // the focused input visible — that can happen without a resize event,
+    // so this needs its own listener to stay in sync.
+    window.visualViewport.addEventListener('scroll', updateAppHeight);
   }
 })();
