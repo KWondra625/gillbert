@@ -602,6 +602,10 @@ body {
   margin-bottom: 4px;
 }
 
+.detail-media-loading {
+  font-style: italic;
+}
+
 .detail-media-empty-icon {
   font-size: 36px;
   margin-bottom: 10px;

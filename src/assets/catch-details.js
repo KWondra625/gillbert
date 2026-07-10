@@ -424,6 +424,7 @@ function openDeleteModal() {
 function closeDeleteModal() {
   document.getElementById('deleteMediaModal').classList.remove('open');
   document.getElementById('deleteMediaPreview').innerHTML = '';
+  document.getElementById('deleteMediaConfirm').textContent = 'Delete';
   pendingDeleteItem = null;
   pendingDeleteTile = null;
 }
@@ -465,7 +466,7 @@ async function handleMediaDelete() {
     console.error('Media delete failed:', err);
     confirmBtn.disabled = false;
     cancelBtn.disabled  = false;
-    confirmBtn.textContent = '🗑️ Permanently Delete';
+    confirmBtn.textContent = 'Delete';
     setStatus('Delete failed ❌', true);
   }
 }
