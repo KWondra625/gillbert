@@ -3,7 +3,8 @@
     "allow": [
       "Bash(curl -s -X GET \"$N8N_API_BASE_URL/*\")",
       "Bash(curl -s -o /dev/null -w *)",
-      "PowerShell(Get-ChildItem *)"
+      "PowerShell(Get-ChildItem *)",
+      "Bash(node --check *)"
     ]
   }
 }

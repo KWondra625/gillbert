@@ -1,7 +1,4 @@
 .top-nav {
-  position: sticky;
-  top: 10px;
-  z-index: 20;
   display: flex;
   justify-content: flex-end;
   margin-bottom: 14px;
@@ -45,7 +42,6 @@
 
 @media (max-width: 768px) {
   .top-nav {
-    top: 8px;
     margin-bottom: 10px;
   }
 }
