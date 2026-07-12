@@ -1,7 +1,0 @@
-/* Catch Chat — accent color override for the shared chat shell.
-   Shared layout/behavior styles live in chat-shell.css; this file only
-   customizes the send button accent so the two chat pages can't drift. */
-.chat-page {
-  --chat-accent: linear-gradient(135deg, #2f93ff 0%, #1f7ff0 100%);
-  --chat-accent-hover-shadow: rgba(0, 0, 0, 0.2);
-}

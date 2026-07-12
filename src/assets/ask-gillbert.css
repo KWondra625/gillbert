@@ -1,7 +1,0 @@
-/* Ask Gillbert — accent color override for the shared chat shell.
-   Shared layout/behavior styles live in chat-shell.css; this file only
-   customizes the send button accent so the two chat pages can't drift. */
-.chat-page {
-  --chat-accent: linear-gradient(135deg, #0da995 0%, #0c8a95 100%);
-  --chat-accent-hover-shadow: rgba(6, 86, 94, 0.35);
-}
