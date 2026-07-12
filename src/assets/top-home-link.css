@@ -31,6 +31,11 @@
   transform: scale(0.97);
 }
 
+.top-home-link:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
 .top-home-link--on-light {
   background: #f0f8ff;
   border-color: #d0eaff;
