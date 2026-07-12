@@ -41,7 +41,7 @@ const FIELD_LABELS = {
   createdAt:       { label: "Created",         icon: "🕓" },
   verifiedAt:      { label: "Verified",        icon: "✅" },
   updatedAt:       { label: "Last Updated",    icon: "🔄" },
-  recordSource:    { label: "Record Source",   icon: "🗂️" },
+  recordSource:    { label: "Source",          icon: "🗂️" },
   
 };
 
@@ -55,6 +55,7 @@ const el = {
   lightbox:         document.getElementById('lightbox'),
   lightboxImg:      document.getElementById('lightboxImg'),
   lightboxClose:    document.getElementById('lightboxClose'),
+  topHomeLink:      document.querySelector('.top-home-link'),
   backButton:       document.getElementById('backButton'),
 };
 
@@ -81,19 +82,34 @@ function escapeHtml(s) {
   }[m]));
 }
 
+// formatDateLabel/hasExplicitTime come from date-format.js (shared with
+// catches-listing.js — see that file for why this is extracted rather than
+// duplicated).
+
 function formatDateTime(value) {
   if (!value) return escapeHtml(String(value));
   const d = new Date(value);
   if (isNaN(d.getTime())) return escapeHtml(String(value));
-  return escapeHtml(
-    d.toLocaleString('en-US', {
-      month: 'long', day: 'numeric', year: 'numeric',
-      hour: 'numeric', minute: '2-digit', hour12: true,
-    })
-  );
+
+  const time = d.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  return escapeHtml(`${formatDateLabel(d)} at ${time}`);
+}
+
+// caughtWhen-only: log-catch.js and the chat n8n workflow both default the
+// time to local midnight when none is given (common for legacy/historical
+// entries) — that's not a real "caught at 12:00 AM" moment, so omit the time
+// entirely rather than display a fabricated one. Doesn't apply to
+// createdAt/updatedAt/verifiedAt — those are always real, explicit timestamps.
+function formatCaughtWhen(value) {
+  if (!value) return escapeHtml(String(value));
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return escapeHtml(String(value));
+
+  return hasExplicitTime(d) ? formatDateTime(value) : escapeHtml(formatDateLabel(d));
 }
 
 function formatValue(key, value) {
+  if (key === 'caughtWhen') return formatCaughtWhen(value);
   if (DATETIME_FIELDS.has(key)) return formatDateTime(value);
   if (key === 'length') return `${escapeHtml(String(value))}"`;
   if (key === 'waterDepth') return `${escapeHtml(String(value))}'`;
@@ -133,11 +149,56 @@ function getCatchNumberFromUrl() {
   return params.get('catchNumber');
 }
 
-function setupBackButton() {
+function setupBackNavigation() {
   const params = new URLSearchParams(window.location.search);
-  if (params.get('from') === 'fish-of-fame') {
-    el.backButton.href = './fish-of-fame.html';
-    el.backButton.textContent = '← Back to Fish of Fame';
+  const from = params.get('from');
+
+  // Allowlist accepted origins so unknown values safely fall back to Home.
+  const destinations = {
+    'list': {
+      href: './catches-listing.html',
+      topText: '← Catches',
+      topAria: 'Go back to Catches',
+      bottomText: '← Back to Listing',
+    },
+    'fish-of-fame': {
+      href: './fish-of-fame.html',
+      topText: '← Fish of Fame',
+      topAria: 'Go back to Fish of Fame',
+      bottomText: '← Back to Fish of Fame',
+    },
+    'catch-chat': {
+      href: './catch-chat.html',
+      topText: '← Catch Chat',
+      topAria: 'Go back to Catch Chat',
+      bottomText: '← Back to Catch Chat',
+    },
+    'ask-gillbert': {
+      href: './ask-gillbert.html',
+      topText: '← Ask Gillbert',
+      topAria: 'Go back to Ask Gillbert',
+      bottomText: '← Back to Ask Gillbert',
+    },
+  };
+
+  const fallback = {
+    href: './index.html',
+    topText: '← Home',
+    topAria: 'Go back to Home',
+    bottomText: '← Back to Home',
+  };
+
+  const nav = destinations[from] || fallback;
+
+  if (el.topHomeLink) {
+    el.topHomeLink.href = nav.href;
+    el.topHomeLink.textContent = nav.topText;
+    el.topHomeLink.setAttribute('aria-label', nav.topAria);
+  }
+
+  if (el.backButton) {
+    el.backButton.href = nav.href;
+    el.backButton.textContent = nav.bottomText;
   }
 }
 
@@ -324,7 +385,7 @@ async function handleVerifyToggle(catchData, button) {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-  setupBackButton();
+  setupBackNavigation();
 
   const catchNumber = getCatchNumberFromUrl();
 
@@ -510,9 +571,12 @@ function buildDeleteBtn(item) {
 }
 
 function buildMediaTile(item) {
-  const { readUrl, mediaType, contentType, uploadedAt } = item;
-  const caption    = uploadedAt
-    ? `<div class="media-tile-caption">${escapeHtml(formatUploadedAt(uploadedAt))}</div>`
+  const { readUrl, mediaType, contentType, uploadedAt, uploadedByAnglerName } = item;
+  const captionText = uploadedAt
+    ? (uploadedByAnglerName ? `${formatUploadedAt(uploadedAt)} by ${uploadedByAnglerName}` : formatUploadedAt(uploadedAt))
+    : '';
+  const caption    = captionText
+    ? `<div class="media-tile-caption">${escapeHtml(captionText)}</div>`
     : '';
   const deleteBtn  = buildDeleteBtn(item);
 

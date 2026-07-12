@@ -16,8 +16,8 @@ CREATE TABLE IF NOT EXISTS conversations (
     water_depth_ft_raw varchar(255),
     notes_raw TEXT,
     conversation_status varchar(255),
-    started_at TIMESTAMP,
-    ended_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    started_at TIMESTAMPTZ,
+    ended_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );

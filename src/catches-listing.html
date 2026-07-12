@@ -2,12 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content" />
   <title>Gillbert - Catch Listing</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
   <link rel="stylesheet" href="./assets/catches-listing.css" />
+  <link rel="stylesheet" href="./assets/top-home-link.css" />
 </head>
 <body>
   <div class="container">
+    <div class="top-nav">
+      <a href="./index.html" class="top-home-link" aria-label="Go back to Home">← Home</a>
+    </div>
+
     <div class="header">
       <h1>🎣 All Catches</h1>
       <p>Browse catch records</p>
@@ -84,6 +90,7 @@
 
   <script src="./assets/config.js"></script>
   <script src="./assets/admin.js"></script>
+  <script src="./assets/date-format.js"></script>
   <script src="./assets/catches-listing.js"></script>
 </body>
 </html>

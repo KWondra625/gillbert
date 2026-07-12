@@ -352,7 +352,7 @@ body {
 
 .media-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
 }
 
@@ -920,4 +920,13 @@ body {
   }
 
 
+}
+
+/* Desktop — widen the card so it isn't just the mobile layout floating in
+   empty space. .media-grid is already auto-fit/minmax, so this alone lets
+   it show more columns for catches with several photos, no restructure needed. */
+@media (min-width: 900px) {
+  .container {
+    max-width: 960px;
+  }
 }
