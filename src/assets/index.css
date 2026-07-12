@@ -82,6 +82,28 @@ body {
   }
 }
 
+/* Desktop — more breathing room instead of the mobile card grid floating
+   narrow in a lot of empty gradient. Kept at 2 columns (not 3): "Log a
+   Catch" only has 2 cards, and "Review History" mixes 2 regular cards with
+   one full-width one, so a 3rd column would leave a visible gap. */
+@media (min-width: 900px) {
+  .container {
+    max-width: 820px;
+  }
+
+  .cta-card {
+    padding: 24px;
+  }
+
+  .cta-card-title {
+    font-size: 19px;
+  }
+
+  .cta-card-desc {
+    font-size: 14px;
+  }
+}
+
 .cta-card--wide {
   grid-column: 1 / -1;
 }

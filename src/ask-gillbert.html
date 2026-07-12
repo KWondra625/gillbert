@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content" />
   <title>Ask Gillbert</title>
-  <link rel="stylesheet" href="./assets/ask-gillbert.css" />
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/chat-shell.css" />
   <style>
     .message-bubble p { margin: 0 0 8px; }
     .message-bubble p:last-child { margin-bottom: 0; }
@@ -21,16 +22,19 @@
   <div class="chat-page">
 
     <div class="chat-header">
-      <a href="./index.html" class="chat-header-back" aria-label="Back to home">←</a>
+      <a href="./index.html" class="chat-header-back" aria-label="Back to home">
+        <span class="chat-header-back-icon" aria-hidden="true">←</span>
+        <span class="chat-header-back-label">Home</span>
+      </a>
       <div class="chat-header-info">
-        <div class="chat-header-title">🔍 Ask Gillbert</div>
+        <div class="chat-header-title">💬 Ask Gillbert</div>
         <div class="chat-header-subtitle">Ask anything about the catch records</div>
       </div>
     </div>
 
     <div class="chat-messages" id="chatMessages">
       <div class="chat-welcome" id="chatWelcome">
-        <span class="chat-welcome-icon">🎣</span>
+        <span class="chat-welcome-icon">📖</span>
         <p>Hey! I've got the full catch record book loaded up.<br>Ask me anything — totals, records, who's catching what, when, where — whatever you want to know!</p>
       </div>
     </div>
@@ -43,6 +47,9 @@
         rows="1"
         maxlength="2000"
         aria-label="Ask Gillbert"
+        autocomplete="off"
+        data-lpignore="true"
+        data-1p-ignore
       ></textarea>
       <button id="chatSendBtn" class="chat-send-btn" aria-label="Send message">
         <svg class="chat-send-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -55,6 +62,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="./assets/config.js"></script>
+  <script src="./assets/chat-viewport.js"></script>
+  <script src="./assets/chat-shell.js"></script>
   <script src="./assets/ask-gillbert.js"></script>
 </body>
 </html>

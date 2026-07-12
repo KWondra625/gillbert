@@ -4,6 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Gillbert — Who's There?</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/top-home-link.css" />
   <style>
     * { box-sizing: border-box; }
     body {
@@ -85,6 +87,10 @@
 </head>
 <body>
   <div class="container">
+    <div class="top-nav">
+      <a href="./index.html" class="top-home-link" aria-label="Go back to Home">← Home</a>
+    </div>
+
     <h1>👤 Who's There?</h1>
     <p class="subtitle">Cloudflare Access identity — diagnostic only, not linked anywhere.</p>
 
@@ -108,7 +114,6 @@
       <pre id="rawContent">—</pre>
     </div>
 
-    <a href="./index.html" class="back">← Back to Gillbert</a>
   </div>
 
   <script src="./assets/config.js"></script>

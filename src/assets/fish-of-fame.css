@@ -401,3 +401,22 @@ body {
   .rank-row.rank-1 .rank-main { font-size: 17px; }
   .rank-row.rank-1 .rank-meta { font-size: 12px; }
 }
+
+/* Desktop — the three leaderboards fit side by side instead of one long
+   vertical scroll through each list in turn. */
+@media (min-width: 900px) {
+  .container {
+    max-width: 1140px;
+  }
+
+  #content {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+
+  .leaderboard-list {
+    margin-bottom: 0;
+  }
+}
