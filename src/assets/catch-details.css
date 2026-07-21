@@ -97,6 +97,30 @@ body {
   word-break: break-word;
 }
 
+.pending-review-badge,
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
+  line-height: 1.4;
+}
+
+.pending-review-badge {
+  background: #fff8e6;
+  color: #d98c00;
+}
+
+.verified-badge {
+  background: #e6f7ec;
+  color: #1a8a4a;
+}
+
 .detail-card-body {
   padding: 16px 24px;
 }
@@ -152,12 +176,15 @@ body {
   margin: 0;
 }
 
-/* ─── Card Footer (Record Info trigger) ─────────── */
+/* ─── Card Footer (Edit + Record Info triggers) ─── */
 .detail-card-footer {
   padding: 10px 24px;
   border-top: 1px solid #f0f0f0;
   background: #fafafa;
-  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 .record-info-trigger {
@@ -174,6 +201,73 @@ body {
 
 .record-info-trigger:hover {
   color: #4FACFE;
+}
+
+.detail-card-footer-admin {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: auto;
+}
+
+.edit-catch-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.edit-catch-trigger:active {
+  transform: scale(0.96);
+}
+
+.edit-catch-trigger.hidden {
+  display: none;
+}
+
+.verify-toggle-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+}
+
+.verify-toggle-trigger:active {
+  transform: scale(0.96);
+}
+
+.verify-toggle-trigger:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.verify-toggle-trigger.hidden {
+  display: none;
+}
+
+.verify-toggle-trigger--pending {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  color: #0d5c3f;
+  box-shadow: 0 2px 8px rgba(67, 233, 123, 0.3);
+}
+
+.verify-toggle-trigger--verified {
+  background: #f0f0f0;
+  color: #888;
 }
 
 /* ─── Record Info Modal ──────────────────────── */
@@ -258,7 +352,7 @@ body {
 
 .media-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
 }
 
@@ -464,6 +558,13 @@ body {
   background: #f0f8ff;
 }
 
+.detail-card-section-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 /* ─── Media Section (inside card) ───────────────── */
 .detail-media-section {
   padding: 0 0 20px;
@@ -501,6 +602,10 @@ body {
   margin-bottom: 4px;
 }
 
+.detail-media-loading {
+  font-style: italic;
+}
+
 .detail-media-empty-icon {
   font-size: 36px;
   margin-bottom: 10px;
@@ -531,6 +636,236 @@ body {
 
 .detail-upload-btn:active {
   transform: scale(0.98);
+}
+
+/* ─── Admin Media Delete Button ──────────────────── */
+.media-delete-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(220, 38, 38, 0.82);
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  transition: background 0.2s, transform 0.15s;
+  backdrop-filter: blur(2px);
+  padding: 0;
+  line-height: 1;
+}
+
+.media-content--edit-mode .media-delete-btn {
+  display: flex;
+}
+
+.media-delete-btn:hover {
+  background: rgba(185, 28, 28, 0.95);
+  transform: scale(1.12);
+}
+
+.media-delete-btn:active {
+  transform: scale(0.94);
+}
+
+/* ─── Media Edit Mode ────────────────────────────── */
+.media-content--edit-mode {
+  background: #fff5f5;
+  border-radius: 8px;
+  outline: 2px solid #fecaca;
+  outline-offset: -2px;
+  transition: background 0.25s;
+}
+
+/* ─── Manage Media Button ────────────────────────── */
+.manage-media-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #fff0f0;
+  color: #b91c1c;
+  box-shadow: 0 1px 4px rgba(185, 28, 28, 0.15);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.manage-media-trigger:active {
+  transform: scale(0.96);
+}
+
+.manage-media-trigger.hidden {
+  display: none;
+}
+
+.manage-media-trigger--active {
+  background: #f0f0f0;
+  color: #555;
+  box-shadow: none;
+}
+
+/* ─── Delete Confirmation Modal ──────────────────── */
+.dm-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 900;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.dm-modal.open {
+  display: flex;
+}
+
+.dm-modal-sheet {
+  width: 100%;
+  max-width: 700px;
+  background: white;
+  border-radius: 16px 16px 0 0;
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.22s ease-out;
+}
+
+.dm-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.dm-modal-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #dc2626;
+}
+
+.dm-modal-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  line-height: 1;
+  color: #aaa;
+  cursor: pointer;
+  padding: 0;
+}
+
+.dm-modal-close:hover {
+  color: #555;
+}
+
+.dm-modal-body {
+  padding: 16px 20px 12px;
+}
+
+.dm-preview {
+  width: 100%;
+  max-height: 220px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #111;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dm-preview img,
+.dm-preview video {
+  max-width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  display: block;
+}
+
+.dm-preview-placeholder {
+  color: #aaa;
+  font-size: 14px;
+  padding: 32px;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.dm-info {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.dm-info strong {
+  color: #333;
+  word-break: break-all;
+}
+
+.dm-warning {
+  font-size: 12px;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.dm-modal-footer {
+  display: flex;
+  gap: 10px;
+  padding: 12px 20px 4px;
+}
+
+.dm-btn {
+  flex: 1;
+  padding: 13px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+}
+
+.dm-btn:active {
+  transform: scale(0.97);
+}
+
+.dm-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+  transform: none;
+}
+
+.dm-btn--cancel {
+  background: #f0f0f0;
+  color: #555;
+}
+
+.dm-btn--cancel:hover:not(:disabled) {
+  background: #e4e4e4;
+}
+
+.dm-btn--delete {
+  background: #dc2626;
+  color: white;
+}
+
+.dm-btn--delete:hover:not(:disabled) {
+  background: #b91c1c;
 }
 
 /* ─── Back Button ────────────────────────────────── */
@@ -585,4 +920,13 @@ body {
   }
 
 
+}
+
+/* Desktop — widen the card so it isn't just the mobile layout floating in
+   empty space. .media-grid is already auto-fit/minmax, so this alone lets
+   it show more columns for catches with several photos, no restructure needed. */
+@media (min-width: 900px) {
+  .container {
+    max-width: 960px;
+  }
 }

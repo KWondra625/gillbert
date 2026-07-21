@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gillbert - Fish of Fame</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/fish-of-fame.css" />
+  <link rel="stylesheet" href="./assets/top-home-link.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="top-nav">
+      <a href="./index.html" class="top-home-link" aria-label="Go back to Home">← Home</a>
+    </div>
+
+    <div class="header">
+      <h1>🏆 Fish of Fame</h1>
+      <p>Biggest catches, species records, top anglers, all logged here. 
+        <br />
+        Our shack wall just went digital, and this one's coming with us wherever we go.</p>
+    </div>
+
+    <div id="status" class="status"></div>
+    <div id="loadingIndicator" class="loading-indicator">
+      <div class="fishing-animation">
+        🎣<span class="bobber">●</span>
+      </div>
+      <p>Loading the leaderboards...</p>
+    </div>
+
+    <div id="content" class="hidden">
+      <div class="leaderboard-section">
+        <div class="section-divider"><span class="section-label">📏 Biggest Catches</span></div>
+        <div id="topCatchesList" class="leaderboard-list"></div>
+      </div>
+
+      <div class="leaderboard-section">
+        <div class="section-divider"><span class="section-label">🐟 Fish Species Records</span></div>
+        <div id="fishSpeciesRecordsList" class="leaderboard-list"></div>
+      </div>
+
+      <div class="leaderboard-section">
+        <div class="section-divider"><span class="section-label">👤 Top Anglers</span></div>
+        <div id="topAnglersList" class="leaderboard-list"></div>
+      </div>
+    </div>
+    <br />
+    <a href="./index.html" class="back-button">← Back to Home</a>
+  </div>
+
+  <script src="./assets/config.js"></script>
+  <script src="./assets/fish-of-fame.js"></script>
+</body>
+</html>

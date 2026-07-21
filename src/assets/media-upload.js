@@ -1,7 +1,22 @@
-﻿const SAS_WEBHOOK_URL    = N8N_BASE_URL + WEBHOOK_PATH + "gillbert/upload-media/get-sas";
-const COMMIT_WEBHOOK_URL = N8N_BASE_URL + WEBHOOK_PATH + "gillbert/upload-media/commit";
+﻿const SAS_WEBHOOK_URL    = N8N_BASE_URL + WEBHOOK_PATH + "gillbert/catch-media/get-sas";
+const COMMIT_WEBHOOK_URL = N8N_BASE_URL + WEBHOOK_PATH + "gillbert/catch-media/commit";
+const LOOKUP_URL         = API_BASE + 'get-lookup-data';
 
 const REDIRECT_DELAY = 20; // seconds
+
+// Fired immediately so it's resolved (or in flight) by the time the user hits Upload.
+// Multiple files in one upload are always attributed to the same person.
+const uploadedByAnglerIdPromise = (async () => {
+  try {
+    const res = await fetch(LOOKUP_URL, { headers: { 'X-API-Key': API_KEY } });
+    if (!res.ok) return null;
+    const raw = await res.json();
+    const data = Array.isArray(raw) ? raw[0] : raw;
+    return await resolveMyAnglerId(data.anglers || []);
+  } catch {
+    return null;
+  }
+})();
 
 const el = {
   noCatchState:     document.getElementById('noCatchState'),
@@ -29,6 +44,19 @@ function setStatus(msg) {
 
 function log(msg) {
   el.log.textContent += msg + "\n";
+}
+
+function getContentType(file) {
+  if (file.type) return file.type;
+  const ext = file.name.split('.').pop().toLowerCase();
+  const types = {
+    heic: 'image/heic', heif: 'image/heic',
+    mov: 'video/quicktime',
+    mp4: 'video/mp4',
+    jpg: 'image/jpeg', jpeg: 'image/jpeg',
+    png: 'image/png', gif: 'image/gif', webp: 'image/webp',
+  };
+  return types[ext] || 'application/octet-stream';
 }
 
 function escapeHtml(s) {
@@ -91,7 +119,7 @@ async function getSasUrls(catchNumber, files) {
     headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
     body: JSON.stringify({
       catchNumber,
-      files: files.map(f => ({ name: f.name, size: f.size, type: f.type })),
+      files: files.map(f => ({ name: f.name, size: f.size, type: getContentType(f) })),
     }),
   });
   if (!res.ok) throw new Error(`SAS request failed: ${res.status} ${await res.text()}`);
@@ -105,18 +133,18 @@ async function uploadOne(uploadUrl, file) {
     method: "PUT",
     headers: {
       "x-ms-blob-type": "BlockBlob",
-      "Content-Type": file.type || "application/octet-stream",
+      "Content-Type": getContentType(file),
     },
     body: file,
   });
   if (!res.ok) throw new Error(`Azure PUT failed: ${res.status} ${await res.text()}`);
 }
 
-async function postUploadMetadata(catchNumber, uploads) {
+async function postUploadMetadata(catchNumber, uploads, uploadedByAnglerId) {
   const res = await fetch(COMMIT_WEBHOOK_URL, {
     method: "POST",
     headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
-    body: JSON.stringify({ catchNumber, uploads }),
+    body: JSON.stringify({ catchNumber, uploads, uploadedByAnglerId }),
   });
   const text = await res.text();
   if (!res.ok) throw new Error(`Commit webhook failed: ${res.status} ${text}`);
@@ -159,24 +187,43 @@ el.uploadBtn.addEventListener('click', async () => {
     log(`Files: ${files.length}`);
 
     const { uploads } = await getSasUrls(catchNumber, files);
+    const uploadedByAnglerId = await uploadedByAnglerIdPromise;
 
     setStatus("Reeling files into the cloud...");
     for (let i = 0; i < uploads.length; i++) {
       const name = uploads[i].originalName || files[i].name;
       log(`Uploading ${i + 1}/${uploads.length}: ${name}...`);
       await uploadOne(uploads[i].uploadUrl, files[i]);
-      log(`✅ ${name} is in the boat!`);
+      log(`🐟 ${name} is in the boat!`);
     }
 
-    log(`\nDropping your catch in Gillbert's digital live well...`);
-    setStatus("Stocking the live well...");
-    await postUploadMetadata(catchNumber, uploads);
-    log(`✅ Locked in — your catch is fully documented!`);
+    const hasAppleFormats = uploads.some(u =>
+      u.contentType === 'image/heic' || u.contentType === 'video/quicktime'
+    );
+
+    if (hasAppleFormats) {
+      log(`\nApple sent their proprietary nonsense. Converting so all of us can actually see this catch...`);
+      setStatus("Escaping Apple's walled garden...");
+      // Fire and forget — conversion outlasts Cloudflare's upstream timeout; keepalive ensures the request delivers
+      fetch(COMMIT_WEBHOOK_URL, {
+        method: "POST",
+        headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({ catchNumber, uploads, uploadedByAnglerId }),
+        keepalive: true,
+      }).catch(() => {});
+      log(`\n✅ Files are in — conversion finishing in the background. Give it a minute before checking your catch.`);
+    } else {
+      log(`\nDropping your catch in Gillbert's digital live well...`);
+      setStatus("Stocking the live well...");
+      await postUploadMetadata(catchNumber, uploads, uploadedByAnglerId);
+      log(`✅ Locked in — your catch is fully documented!`);
+    }
 
     el.loadingIndicator.classList.remove('visible');
     setStatus("");
 
     el.uploadState.classList.add('hidden');
+    el.backToCatch.classList.add('hidden');
     el.successState.classList.remove('hidden');
     startSuccessCountdown(catchNumber);
 
@@ -196,6 +243,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   if (!catchNumber) {
     el.uploadState.classList.add('hidden');
+    el.backToCatch.classList.add('hidden');
     el.noCatchState.classList.remove('hidden');
     return;
   }

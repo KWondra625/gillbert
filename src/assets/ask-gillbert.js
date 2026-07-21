@@ -1,0 +1,22 @@
+// Ask Gillbert — page-specific reply rendering. Shared send/scroll/focus
+// behavior lives in chat-shell.js via initChatShell().
+
+marked.use({ breaks: true });
+
+function linkifyCatchNumbers(html) {
+  return html.replace(/\bCatch\s+\d{2,}-\d+\b/gi, match => {
+    const href = `./catch-details.html?catchNumber=${encodeURIComponent(match)}&from=ask-gillbert`;
+    return `<a class="chat-catch-link" href="${href}">${match}</a>`;
+  });
+}
+
+function renderGillbertReply(text) {
+  return linkifyCatchNumbers(marked.parse(text));
+}
+
+initChatShell({
+  apiPath: 'ask-gillbert',
+  sessionKey: 'gillbert_ask_session',
+  renderGillbertReply,
+  logLabel: 'Ask',
+});

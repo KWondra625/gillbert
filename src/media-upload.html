@@ -4,11 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Upload Media · Gillbert</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
   <link rel="stylesheet" href="./assets/media-upload.css" />
 </head>
 <body>
   <div class="container">
-
     <!-- Error: no catchNumber in URL -->
     <div id="noCatchState" class="no-catch-state hidden">
       <div class="no-catch-icon">⚠️</div>
@@ -41,8 +41,6 @@
           <p id="loadingMsg">Casting your media into the cloud…</p>
         </div>
       </div>
-
-      <a id="backToCatch" href="#" class="back-button">← Back to Catch</a>
     </div>
 
     <!-- Success state (shown after upload completes) -->
@@ -55,11 +53,15 @@
     </div>
 
     <!-- Activity log — persists across states -->
-    <div id="log" class="log"></div>
+    <br /><div id="log" class="log"></div>
+
+    <!-- Kept as the last element on the page so it stays below the activity log -->
+    <a id="backToCatch" href="#" class="back-button">← Back to Catch</a>
 
   </div>
 
   <script src="./assets/config.js"></script>
+  <script src="./assets/admin.js"></script>
   <script src="./assets/media-upload.js"></script>
 </body>
 </html>

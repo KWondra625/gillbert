@@ -2,15 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content" />
   <title>Gillbert - Catch Listing</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
   <link rel="stylesheet" href="./assets/catches-listing.css" />
+  <link rel="stylesheet" href="./assets/top-home-link.css" />
 </head>
 <body>
   <div class="container">
+    <div class="top-nav">
+      <a href="./index.html" class="top-home-link" aria-label="Go back to Home">← Home</a>
+    </div>
+
     <div class="header">
       <h1>🎣 All Catches</h1>
-      <p>Browse your catch records</p>
+      <p>Browse catch records</p>
     </div>
 
     <div class="controls">
@@ -24,6 +30,42 @@
         />
         <button id="searchBtn" class="search-button">🔍 Search</button>
       </div>
+
+      <div class="filter-bar">
+        <div class="filter-chip-wrapper">
+          <button class="filter-chip" id="filterAnglerChip">
+            <span>👤</span>
+            <span class="filter-chip-label">Angler</span>
+            <span class="filter-chip-value" id="filterAnglerValue"></span>
+            <span class="filter-chip-arrow">▾</span>
+          </button>
+          <div class="filter-chip-dropdown" id="filterAnglerDropdown"></div>
+        </div>
+        <div class="filter-chip-wrapper">
+          <button class="filter-chip" id="filterSpeciesChip">
+            <span>🐟</span>
+            <span class="filter-chip-label">Species</span>
+            <span class="filter-chip-value" id="filterSpeciesValue"></span>
+            <span class="filter-chip-arrow">▾</span>
+          </button>
+          <div class="filter-chip-dropdown" id="filterSpeciesDropdown"></div>
+        </div>
+        <div class="filter-chip-wrapper">
+          <button class="filter-chip" id="filterWaterChip">
+            <span>💧</span>
+            <span class="filter-chip-label">Water</span>
+            <span class="filter-chip-value" id="filterWaterValue"></span>
+            <span class="filter-chip-arrow">▾</span>
+          </button>
+          <div class="filter-chip-dropdown" id="filterWaterDropdown"></div>
+        </div>
+      </div>
+
+      <div class="filter-summary" id="filterSummary">
+        <span id="filterSummaryText"></span>
+        <button class="filter-clear-all" id="filterClearAll">Clear All ×</button>
+      </div>
+
       <div id="status" class="status"></div>
       <div id="loadingIndicator" class="loading-indicator">
         <div class="fishing-animation">
@@ -47,6 +89,8 @@
   </div>
 
   <script src="./assets/config.js"></script>
+  <script src="./assets/admin.js"></script>
+  <script src="./assets/date-format.js"></script>
   <script src="./assets/catches-listing.js"></script>
 </body>
 </html>
