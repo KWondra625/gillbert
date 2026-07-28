@@ -11,7 +11,7 @@ function linkifyCatchNumbers(html) {
 }
 
 function renderGillbertReply(text) {
-  return linkifyCatchNumbers(marked.parse(text));
+  return linkifyCatchNumbers(DOMPurify.sanitize(marked.parse(text)));
 }
 
 initChatShell({
