@@ -241,9 +241,13 @@ async function loadCatchDetails(catchNumber) {
       const lookupRaw = await lookupRes.json();
       const lookupData = Array.isArray(lookupRaw) ? lookupRaw[0] : lookupRaw;
       myAnglerId = await resolveMyAnglerId(lookupData.anglers || []);
+      setStatus("");
+    } else {
+      // Owner-edit permission can't be resolved without this — fail closed (no
+      // Edit button) same as before, but tell the owner why instead of staying silent.
+      setStatus("Couldn't verify edit permissions — try reloading ⚠️", true);
     }
 
-    setStatus("");
     renderDetails(catchData);
     hideLoading();
   } catch (err) {
