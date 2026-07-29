@@ -31,6 +31,10 @@ let currentPage = 1;
 let lookups = { anglers: [], species: [], bodiesOfWater: [] };
 let activeFilters = { angler: '', species: '', water: '' };
 
+// Guards against loadLookups() rendering an empty-state flash if it resolves
+// before loadCatches() has populated allCatches for the first time.
+let catchesLoaded = false;
+
 function setStatus(msg) {
   el.status.textContent = msg;
 }
@@ -74,6 +78,7 @@ async function loadCatches() {
     // Accept either [{...}] OR { catches: [...] }; filter out null-placeholder rows the API returns on no-results
     allCatches = (Array.isArray(data) ? data : (data.catches || []))
       .filter(c => c && c.catchNumber);
+    catchesLoaded = true;
 
     if (!allCatches.length) {
       const hasTerm = !!el.searchInput.value.trim();
@@ -97,6 +102,7 @@ async function loadCatches() {
     hideLoading();
   } catch (err) {
     console.error(err);
+    catchesLoaded = true;
     setStatus("Failed to load catches ❌");
     el.catchesContainer.innerHTML = `<div class="empty-state"><p>Error loading catches.</p></div>`;
     el.paginationContainer.style.display = 'none';
@@ -279,7 +285,10 @@ async function loadLookups() {
     lookups.species = data.fishSpecies || [];
     lookups.bodiesOfWater = data.bodiesOfWater || [];
     buildDropdowns();
-    applyFilters();
+    // Only re-filter here if catches have already loaded — otherwise this would
+    // run against an empty allCatches and flash a false "no results" state.
+    // loadCatches() will call applyFilters() itself once it finishes.
+    if (catchesLoaded) applyFilters();
   } catch (e) {
     console.error('Lookup fetch failed', e);
   }
