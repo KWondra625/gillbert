@@ -11,7 +11,9 @@ window.ADMIN_EMAILS = ADMIN_EMAILS;
 
 function isAdminUnlocked() {
   const expires = Number(localStorage.getItem(ADMIN_UNLOCK_STORAGE_KEY) || 0);
-  if (Date.now() > expires) {
+  // Fail closed on a corrupted/non-numeric value — NaN > x is always false,
+  // which would otherwise leave admin unlocked forever.
+  if (!Number.isFinite(expires) || Date.now() > expires) {
     localStorage.removeItem(ADMIN_UNLOCK_STORAGE_KEY);
     return false;
   }
