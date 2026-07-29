@@ -4,7 +4,21 @@
       "Bash(curl -s -X GET \"$N8N_API_BASE_URL/*\")",
       "Bash(curl -s -o /dev/null -w *)",
       "PowerShell(Get-ChildItem *)",
-      "Bash(node --check *)"
+      "Bash(node --check *)",
+      "Bash(curl -s http://localhost:*)",
+      "mcp__claude-in-chrome__navigate",
+      "mcp__claude-in-chrome__tabs_context_mcp",
+      "Bash(export *)",
+      "Bash(set -a*)",
+      "Bash(curl -s \"https://api.builtbykw.net/webhook/gillbert/get-catches*)",
+      "Bash(curl -s https://api.builtbykw.net/webhook/gillbert/get-catches*)",
+      "Bash(curl -s \"https://api.builtbykw.net/webhook/gillbert/get-lookup-data*)",
+      "Bash(curl -s https://api.builtbykw.net/webhook/gillbert/get-lookup-data*)",
+      "Bash(curl -s \"https://api.builtbykw.net/webhook/gillbert/catch-media/get*)",
+      "Bash(curl -s https://api.builtbykw.net/webhook/gillbert/catch-media/get*)",
+      "PowerShell(Get-NetTCPConnection *)",
+      "Bash(rm -rf \"C:\\Users\\kurtw\\AppData\\Local\\Temp\\claude\\C--Users-kurtw-source-repos-KWondra625-Gillbert\\*)",
+      "Bash(mkdir -p \"C:\\Users\\kurtw\\AppData\\Local\\Temp\\claude\\C--Users-kurtw-source-repos-KWondra625-Gillbert\\*)"
     ]
   }
 }

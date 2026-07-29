@@ -198,7 +198,7 @@ function renderTopAnglers(list) {
       <a class="rank-row${rankClass(i)}" href="./catches-listing.html" data-angler="${escapeHtml(a.name)}">
         <div class="rank-badge">${rankBadge(i)}</div>
         <div class="rank-content">
-          <div class="rank-main">${escapeHtml(a.name)}${pendingBadge(a.biggestCatch?.verifiedAt)}</div>
+          <div class="rank-main">${escapeHtml(a.name)}${a.biggestCatch ? pendingBadge(a.biggestCatch.verifiedAt) : ''}</div>
           <div class="rank-meta">${escapeHtml(meta)}</div>
         </div>
         <span class="rank-link">View →</span>
