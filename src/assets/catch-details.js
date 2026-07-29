@@ -327,7 +327,7 @@ function renderDetails(catchData) {
         <div class="detail-card-footer-admin">
           <a href="./edit-catch.html?catchNumber=${encodeURIComponent(catchNumber)}" id="editCatchLink" class="edit-catch-trigger hidden">✏️ Edit</a>
           <button id="verifyToggle" class="verify-toggle-trigger hidden ${isVerified ? 'verify-toggle-trigger--verified' : 'verify-toggle-trigger--pending'}">${isVerified ? '🔓 ↩️ Unverify' : '🔓 ✅ Verify'}</button>
-          <button id="manageMediaBtn" class="manage-media-trigger hidden">🔓 🗑️ Manage Media</button>
+          <button id="manageMediaBtn" class="manage-media-trigger hidden${isMediaEditMode ? ' manage-media-trigger--active' : ''}">${isMediaEditMode ? '✖ Done' : '🔓 🗑️ Manage Media'}</button>
         </div>
         <button class="record-info-trigger" id="recordInfoTrigger">ⓘ Record Info</button>
       </div>
