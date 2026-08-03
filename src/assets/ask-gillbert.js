@@ -1,5 +1,6 @@
 // Ask Gillbert — page-specific reply rendering. Shared send/scroll/focus
-// behavior lives in chat-shell.js via initChatShell().
+// behavior lives in chat-shell.js via initChatShell(); identity resolution
+// (loggedInAnglerIdPromise) comes from chat-identity.js.
 
 marked.use({ breaks: true });
 
@@ -19,4 +20,5 @@ initChatShell({
   sessionKey: 'gillbert_ask_session',
   renderGillbertReply,
   logLabel: 'Ask',
+  getExtraBody: async () => ({ loggedInAnglerId: await loggedInAnglerIdPromise }),
 });
