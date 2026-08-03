@@ -1,0 +1,7 @@
+STATE:
+{{ JSON.stringify($json, null, 2) }}
+
+USER_MESSAGE:
+{{ $('Set Context').item.json.chat_input }}
+
+Respond only with a valid JSON object. No text before or after it.
