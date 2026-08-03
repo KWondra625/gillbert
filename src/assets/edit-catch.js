@@ -1,5 +1,6 @@
 const LOOKUP_URL     = API_BASE + 'get-lookup-data';
 const SAVE_CATCH_URL = API_BASE + 'catch/commit';
+const STATE_IDS = ['loadingState', 'errorState', 'formState', 'submittingState'];
 
 let hasAttemptedSubmit = false;
 let lookups = null;
@@ -32,24 +33,6 @@ const el = {
   cancelLink:       document.getElementById('cancelLink'),
 };
 
-// ── State management ──────────────────────────────────────────────────────────
-
-function showState(stateId) {
-  ['loadingState', 'errorState', 'formState', 'submittingState'].forEach(id => {
-    document.getElementById(id).classList.toggle('hidden', id !== stateId);
-  });
-}
-
-function populateSelect(selectEl, items) {
-  while (selectEl.options.length > 1) selectEl.remove(1);
-  items.forEach(item => {
-    const opt = document.createElement('option');
-    opt.value = item.id;
-    opt.textContent = item.name;
-    selectEl.appendChild(opt);
-  });
-}
-
 function getCatchNumberFromUrl() {
   return new URLSearchParams(window.location.search).get('catchNumber');
 }
@@ -57,13 +40,13 @@ function getCatchNumberFromUrl() {
 // ── Load catch + lookups ─────────────────────────────────────────────────────
 
 async function loadEditCatch() {
-  showState('loadingState');
+  showState('loadingState', STATE_IDS);
   catchNumber = getCatchNumberFromUrl();
 
   if (!catchNumber) {
     el.errorMsg.textContent = 'No catch specified to edit.';
     el.retryBtn.classList.add('hidden');
-    showState('errorState');
+    showState('errorState', STATE_IDS);
     return;
   }
 
@@ -102,18 +85,18 @@ async function loadEditCatch() {
     if (!canEditCatch(catchData, myAnglerId)) {
       el.errorMsg.textContent = "You don't have permission to edit this catch.";
       el.retryBtn.classList.add('hidden');
-      showState('errorState');
+      showState('errorState', STATE_IDS);
       return;
     }
 
     prefillForm(catchData);
 
     el.formSubtitle.textContent = `Editing ${catchData.catchNumber}`;
-    showState('formState');
+    showState('formState', STATE_IDS);
   } catch (err) {
     console.error('Failed to load catch for editing:', err);
     el.errorMsg.textContent = 'Unable to load this catch. Please check your connection and try again.';
-    showState('errorState');
+    showState('errorState', STATE_IDS);
   }
 }
 
@@ -133,61 +116,6 @@ function prefillForm(c) {
   el.notes.value            = c.notes || '';
 }
 
-// ── caughtWhen construction ───────────────────────────────────────────────────
-
-function buildCaughtWhen() {
-  const date = el.catchDate.value; // YYYY-MM-DD
-  if (!date) return null;
-
-  // Default to midnight when no time is given (full datetime string avoids UTC parsing gotcha)
-  const time = el.catchTime.value || '00:00';
-
-  // No trailing "Z" → JS parses as local time → .toISOString() converts to UTC
-  return new Date(`${date}T${time}:00`).toISOString();
-}
-
-// ── Validation ────────────────────────────────────────────────────────────────
-
-function validate() {
-  const errors = {};
-
-  if (!el.anglerId.value)      errors.anglerId      = 'Please select an angler.';
-  if (!el.fishSpeciesId.value) errors.fishSpeciesId = 'Please select a fish species.';
-  if (!el.bodyOfWaterId.value) errors.bodyOfWaterId = 'Please select a body of water.';
-  if (!el.catchDate.value)     errors.catchDate     = 'Please select a date.';
-
-  const length = parseFloat(el.lengthInInches.value);
-  if (el.lengthInInches.value !== '' && (isNaN(length) || length <= 0)) {
-    errors.lengthInInches = 'Length must be greater than 0.';
-  }
-
-  const depth = parseFloat(el.waterDepthInFeet.value);
-  if (el.waterDepthInFeet.value !== '' && (isNaN(depth) || depth <= 0)) {
-    errors.waterDepthInFeet = 'Water depth must be greater than 0.';
-  }
-
-  return errors;
-}
-
-function showErrors(errors) {
-  ['anglerId', 'fishSpeciesId', 'bodyOfWaterId', 'catchDate', 'lengthInInches', 'waterDepthInFeet'].forEach(id => {
-    const errEl = document.getElementById(`${id}Error`);
-    if (!errEl) return;
-    if (errors[id]) {
-      errEl.textContent = errors[id];
-      errEl.classList.remove('hidden');
-    } else {
-      errEl.classList.add('hidden');
-    }
-  });
-}
-
-function clearErrors() {
-  document.querySelectorAll('.field-error').forEach(e => e.classList.add('hidden'));
-  el.formError.textContent = '';
-  el.formError.classList.add('hidden');
-}
-
 // Clear individual field error as soon as the user corrects it
 ['anglerId', 'fishSpeciesId', 'bodyOfWaterId', 'catchDate', 'lengthInInches', 'waterDepthInFeet'].forEach(id => {
   const input = document.getElementById(id);
@@ -204,7 +132,7 @@ function clearErrors() {
 async function submit() {
   hasAttemptedSubmit = true;
 
-  const errors = validate();
+  const errors = validate(el);
   if (Object.keys(errors).length > 0) {
     showErrors(errors);
     document.querySelector('.field-error:not(.hidden)')
@@ -212,8 +140,8 @@ async function submit() {
     return;
   }
 
-  clearErrors();
-  showState('submittingState');
+  clearErrors(el);
+  showState('submittingState', STATE_IDS);
 
   const payload = {
     catchNumber,
@@ -221,7 +149,7 @@ async function submit() {
     anglerId:      parseInt(el.anglerId.value, 10),
     fishSpeciesId: parseInt(el.fishSpeciesId.value, 10),
     bodyOfWaterId: parseInt(el.bodyOfWaterId.value, 10),
-    caughtWhen:    buildCaughtWhen(),
+    caughtWhen:    buildCaughtWhen(el),
     updatedByAnglerId: myAnglerId,
   };
 
@@ -251,7 +179,7 @@ async function submit() {
     window.location.href = `./catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`;
   } catch (err) {
     console.error('Save catch failed:', err);
-    showState('formState');
+    showState('formState', STATE_IDS);
     el.formError.textContent = err.message || 'Something went wrong. Please try again.';
     el.formError.classList.remove('hidden');
     window.scrollTo({ top: 0, behavior: 'smooth' });

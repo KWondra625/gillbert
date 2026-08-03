@@ -1,5 +1,6 @@
 const LOOKUP_URL    = API_BASE + 'get-lookup-data';
 const SAVE_CATCH_URL = API_BASE + 'catch/commit';
+const STATE_IDS = ['loadingState', 'lookupErrorState', 'formState', 'submittingState'];
 
 // Tracks which save button was last clicked
 let actionIntent = 'view'; // 'view' | 'another'
@@ -34,18 +35,10 @@ const el = {
   saveAnotherBtn:    document.getElementById('saveAnotherBtn'),
 };
 
-// ── State management ──────────────────────────────────────────────────────────
-
-function showState(stateId) {
-  ['loadingState', 'lookupErrorState', 'formState', 'submittingState'].forEach(id => {
-    document.getElementById(id).classList.toggle('hidden', id !== stateId);
-  });
-}
-
 // ── Lookup data ───────────────────────────────────────────────────────────────
 
 async function fetchLookups() {
-  showState('loadingState');
+  showState('loadingState', STATE_IDS);
   try {
     const res = await fetch(LOOKUP_URL, { headers: { 'X-API-Key': API_KEY } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -58,23 +51,12 @@ async function fetchLookups() {
     populateSelect(el.bodyOfWaterId,  data.bodiesOfWater || []);
     myAnglerId = await resolveMyAnglerId(data.anglers || []);
     applyMode(getMode());
-    showState('formState');
+    showState('formState', STATE_IDS);
   } catch (err) {
     console.error('Lookup failed:', err);
     el.lookupErrorMsg.textContent = 'Unable to load options. Please check your connection and try again.';
-    showState('lookupErrorState');
+    showState('lookupErrorState', STATE_IDS);
   }
-}
-
-function populateSelect(selectEl, items) {
-  // Remove all options after the first placeholder option
-  while (selectEl.options.length > 1) selectEl.remove(1);
-  items.forEach(item => {
-    const opt = document.createElement('option');
-    opt.value = item.id;
-    opt.textContent = item.name;
-    selectEl.appendChild(opt);
-  });
 }
 
 // ── Mode toggle ───────────────────────────────────────────────────────────────
@@ -103,61 +85,6 @@ document.querySelectorAll('input[name="catchMode"]').forEach(radio => {
   radio.addEventListener('change', () => applyMode(getMode()));
 });
 
-// ── caughtWhen construction ───────────────────────────────────────────────────
-
-function buildCaughtWhen() {
-  const date = el.catchDate.value; // YYYY-MM-DD
-  if (!date) return null;
-
-  // Default to midnight when no time is given (full datetime string avoids UTC parsing gotcha)
-  const time = el.catchTime.value || '00:00';
-
-  // No trailing "Z" → JS parses as local time → .toISOString() converts to UTC
-  return new Date(`${date}T${time}:00`).toISOString();
-}
-
-// ── Validation ────────────────────────────────────────────────────────────────
-
-function validate() {
-  const errors = {};
-
-  if (!el.anglerId.value)      errors.anglerId      = 'Please select an angler.';
-  if (!el.fishSpeciesId.value) errors.fishSpeciesId = 'Please select a fish species.';
-  if (!el.bodyOfWaterId.value) errors.bodyOfWaterId = 'Please select a body of water.';
-  if (!el.catchDate.value)     errors.catchDate     = 'Please select a date.';
-
-  const length = parseFloat(el.lengthInInches.value);
-  if (el.lengthInInches.value !== '' && (isNaN(length) || length <= 0)) {
-    errors.lengthInInches = 'Length must be greater than 0.';
-  }
-
-  const depth = parseFloat(el.waterDepthInFeet.value);
-  if (el.waterDepthInFeet.value !== '' && (isNaN(depth) || depth <= 0)) {
-    errors.waterDepthInFeet = 'Water depth must be greater than 0.';
-  }
-
-  return errors;
-}
-
-function showErrors(errors) {
-  ['anglerId', 'fishSpeciesId', 'bodyOfWaterId', 'catchDate', 'lengthInInches', 'waterDepthInFeet'].forEach(id => {
-    const errEl = document.getElementById(`${id}Error`);
-    if (!errEl) return;
-    if (errors[id]) {
-      errEl.textContent = errors[id];
-      errEl.classList.remove('hidden');
-    } else {
-      errEl.classList.add('hidden');
-    }
-  });
-}
-
-function clearErrors() {
-  document.querySelectorAll('.field-error').forEach(e => e.classList.add('hidden'));
-  el.formError.textContent = '';
-  el.formError.classList.add('hidden');
-}
-
 // Clear individual field error as soon as the user corrects it
 ['anglerId', 'fishSpeciesId', 'bodyOfWaterId', 'catchDate', 'lengthInInches', 'waterDepthInFeet'].forEach(id => {
   const input = document.getElementById(id);
@@ -175,7 +102,7 @@ async function submit() {
   hasAttemptedSubmit = true;
   el.successBanner.classList.add('hidden');
 
-  const errors = validate();
+  const errors = validate(el);
   if (Object.keys(errors).length > 0) {
     showErrors(errors);
     document.querySelector('.field-error:not(.hidden)')
@@ -183,14 +110,14 @@ async function submit() {
     return;
   }
 
-  clearErrors();
-  showState('submittingState');
+  clearErrors(el);
+  showState('submittingState', STATE_IDS);
 
   const payload = {
     anglerId:       parseInt(el.anglerId.value, 10),
     fishSpeciesId:  parseInt(el.fishSpeciesId.value, 10),
     bodyOfWaterId:  parseInt(el.bodyOfWaterId.value, 10),
-    caughtWhen:     buildCaughtWhen(),
+    caughtWhen:     buildCaughtWhen(el),
     recordSource:   'Web Form',
     conversationId: null,
     createdByAnglerId: myAnglerId,
@@ -228,7 +155,7 @@ async function submit() {
       window.location.href = detailsUrl;
     } else {
       resetForm();
-      showState('formState');
+      showState('formState', STATE_IDS);
       el.successBannerLink.href        = detailsUrl;
       el.successBannerLink.textContent = `View ${catchNumber} →`;
       el.successBanner.classList.remove('hidden');
@@ -237,7 +164,7 @@ async function submit() {
 
   } catch (err) {
     console.error('Save catch failed:', err);
-    showState('formState');
+    showState('formState', STATE_IDS);
     el.formError.textContent = err.message || 'Something went wrong. Please try again.';
     el.formError.classList.remove('hidden');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -258,7 +185,7 @@ el.saveAnotherBtn.addEventListener('click', () => {
 
 function resetForm() {
   hasAttemptedSubmit = false;
-  clearErrors();
+  clearErrors(el);
 
   // Reset dropdowns to placeholder
   [el.anglerId, el.fishSpeciesId, el.bodyOfWaterId].forEach(sel => { sel.value = ''; });
