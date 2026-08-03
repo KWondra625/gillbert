@@ -50,7 +50,7 @@ async function fetchLookups() {
     populateSelect(el.fishSpeciesId,  data.fishSpecies       || []);
     populateSelect(el.bodyOfWaterId,  data.bodiesOfWater || []);
     myAnglerId = await resolveMyAnglerId(data.anglers || []);
-    applyMode(getMode());
+    setDefaultCatchTime();
     showState('formState', STATE_IDS);
   } catch (err) {
     console.error('Lookup failed:', err);
@@ -59,31 +59,13 @@ async function fetchLookups() {
   }
 }
 
-// ── Mode toggle ───────────────────────────────────────────────────────────────
+// ── Default catch time ───────────────────────────────────────────────────────
 
-function getMode() {
-  return document.querySelector('input[name="catchMode"]:checked').value;
+function setDefaultCatchTime() {
+  const threeMinAgo = new Date(Date.now() - 3 * 60 * 1000);
+  el.catchDate.value = threeMinAgo.toLocaleDateString('en-CA'); // en-CA forces YYYY-MM-DD
+  el.catchTime.value = threeMinAgo.toTimeString().slice(0, 5); // HH:MM
 }
-
-function todayStr() {
-  // Returns YYYY-MM-DD in local timezone (en-CA locale forces this format)
-  return new Date().toLocaleDateString('en-CA');
-}
-
-function applyMode(mode) {
-  if (mode === 'now') {
-    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
-    el.catchDate.value = fiveMinAgo.toLocaleDateString('en-CA');
-    el.catchTime.value = fiveMinAgo.toTimeString().slice(0, 5); // HH:MM
-  } else {
-    el.catchDate.value = todayStr();
-    el.catchTime.value = '';
-  }
-}
-
-document.querySelectorAll('input[name="catchMode"]').forEach(radio => {
-  radio.addEventListener('change', () => applyMode(getMode()));
-});
 
 // Clear individual field error as soon as the user corrects it
 ['anglerId', 'fishSpeciesId', 'bodyOfWaterId', 'catchDate', 'lengthInInches', 'waterDepthInFeet'].forEach(id => {
@@ -190,9 +172,7 @@ function resetForm() {
   // Reset dropdowns to placeholder
   [el.anglerId, el.fishSpeciesId, el.bodyOfWaterId].forEach(sel => { sel.value = ''; });
 
-  // Reset to historical mode
-  document.querySelector('input[name="catchMode"][value="historical"]').checked = true;
-  applyMode('historical');
+  setDefaultCatchTime();
 
   // Clear optional fields
   el.lengthInInches.value  = '';

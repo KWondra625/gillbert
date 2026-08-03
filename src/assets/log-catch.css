@@ -45,49 +45,6 @@ body {
   color: #666;
 }
 
-/* ── Mode toggle (segmented control) ─────────────────────────────── */
-
-.mode-toggle {
-  display: flex;
-  background: #f0f8ff;
-  border-radius: 10px;
-  padding: 4px;
-  margin-bottom: 24px;
-  border: 1px solid #d0eaff;
-  gap: 4px;
-}
-
-.mode-option {
-  flex: 1;
-  cursor: pointer;
-}
-
-.mode-option input[type="radio"] {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.mode-label {
-  display: block;
-  text-align: center;
-  padding: 10px 6px;
-  border-radius: 7px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #888;
-  cursor: pointer;
-  user-select: none;
-  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
-}
-
-.mode-option input[type="radio"]:checked + .mode-label {
-  background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(79, 172, 254, 0.35);
-}
-
 /* ── Field groups ────────────────────────────────────────────────── */
 
 .field-group {
