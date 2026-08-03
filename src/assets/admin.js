@@ -77,6 +77,14 @@ async function resolveMyAnglerId(anglers) {
 }
 window.resolveMyAnglerId = resolveMyAnglerId;
 
+// Owner-edit: either the angler who caught the fish or whoever logged it, until verified.
+// Admin PIN always overrides.
+function canEditCatch(catchData, myAnglerId) {
+  const isOwner = myAnglerId != null && (myAnglerId === catchData.anglerId || myAnglerId === catchData.createdByAnglerId);
+  return isAdminUnlocked() || (isOwner && !catchData.verifiedAt);
+}
+window.canEditCatch = canEditCatch;
+
 // Wires up the tap-to-reveal PIN modal. No-op on pages that don't have
 // the trigger element and modal markup (currently index.html only).
 function initAdminTapTrigger() {

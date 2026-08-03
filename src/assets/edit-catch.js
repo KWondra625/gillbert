@@ -99,11 +99,7 @@ async function loadEditCatch() {
     populateSelect(el.bodyOfWaterId, lookups.bodiesOfWater || []);
     myAnglerId = await resolveMyAnglerId(lookups.anglers || []);
 
-    // Owner-edit: either the angler who caught the fish or whoever logged it, until verified.
-    // Admin PIN always overrides.
-    const isOwner = myAnglerId != null && (myAnglerId === catchData.anglerId || myAnglerId === catchData.createdByAnglerId);
-    const canEdit = isAdminUnlocked() || (isOwner && !catchData.verifiedAt);
-    if (!canEdit) {
+    if (!canEditCatch(catchData, myAnglerId)) {
       el.errorMsg.textContent = "You don't have permission to edit this catch.";
       el.retryBtn.classList.add('hidden');
       showState('errorState');

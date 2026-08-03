@@ -261,10 +261,7 @@ function renderDetails(catchData) {
   const catchNumber = catchData.catchNumber || "Unknown";
   const isVerified = !!catchData.verifiedAt;
 
-  // Owner-edit: either the angler who caught the fish or whoever logged it, until verified.
-  // Admin PIN always overrides.
-  const isOwner = myAnglerId != null && (myAnglerId === catchData.anglerId || myAnglerId === catchData.createdByAnglerId);
-  const canEdit = isAdminUnlocked() || (isOwner && !isVerified);
+  const canEdit = canEditCatch(catchData, myAnglerId);
 
   document.title = `${catchNumber} · Gillbert`;
 
