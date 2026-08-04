@@ -54,7 +54,8 @@ async function fetchLookups() {
     const data = Array.isArray(raw) ? raw[0] : raw;
     console.log('Lookup response:', data);
     populateSelect(el.anglerId,       data.anglers       || []);
-    populateSelect(el.fishSpeciesId,  data.fishSpecies       || []);
+    const sortedSpecies = [...(data.fishSpecies || [])].sort((a, b) => a.name.localeCompare(b.name));
+    populateSelect(el.fishSpeciesId,  sortedSpecies);
     populateSelect(el.bodyOfWaterId,  data.bodiesOfWater || []);
     myAnglerId = await resolveMyAnglerId(data.anglers || []);
     applyMode(getMode());

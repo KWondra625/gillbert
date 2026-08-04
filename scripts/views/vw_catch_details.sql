@@ -9,7 +9,7 @@ CREATE OR REPLACE VIEW vw_catch_details AS
         a.name AS angler_name,
         
         fs.id AS fish_species_id,
-        fs.name AS fish_species_name,
+        COALESCE(fs.display_name_override, fs.name) AS fish_species_name,
         
         bow.id AS body_of_water_id,
         bow.name AS body_of_water_name,
@@ -26,7 +26,7 @@ CREATE OR REPLACE VIEW vw_catch_details AS
         -- Headline (without date/time)
         a.name || '''s '
         || CASE WHEN c.length_in_inches > 0 THEN c.length_in_inches::TEXT || 'in ' ELSE '' END
-        || fs.name
+        || COALESCE(fs.display_name_override, fs.name)
         || CASE WHEN bow.name IS NOT NULL THEN ' caught on ' || bow.name ELSE '' END
         || CASE WHEN c.water_depth_in_feet IS NOT NULL THEN ' in ' || c.water_depth_in_feet::TEXT || ''' of water' ELSE '' END
         || '.' AS headline,
@@ -34,7 +34,7 @@ CREATE OR REPLACE VIEW vw_catch_details AS
         -- Full Summary (with date/time)
         a.name || '''s '
         || CASE WHEN c.length_in_inches > 0 THEN c.length_in_inches::TEXT || 'in ' ELSE '' END
-        || fs.name
+        || COALESCE(fs.display_name_override, fs.name)
         || CASE WHEN bow.name IS NOT NULL THEN ' caught on ' || bow.name ELSE '' END
         || CASE WHEN c.water_depth_in_feet IS NOT NULL THEN ' in ' || c.water_depth_in_feet::TEXT || ''' of water' ELSE '' END
         || CASE WHEN c.caught_when IS NOT NULL THEN ' on ' || TO_CHAR(c.caught_when AT TIME ZONE 'America/Chicago', 'Mon DD, YYYY') || ' at ' || TO_CHAR(c.caught_when AT TIME ZONE 'America/Chicago', 'HH24:MI') ELSE '' END

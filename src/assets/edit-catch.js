@@ -95,7 +95,8 @@ async function loadEditCatch() {
     catchId = catchData.id;
 
     populateSelect(el.anglerId,      lookups.anglers       || []);
-    populateSelect(el.fishSpeciesId, lookups.fishSpecies   || []);
+    const sortedSpecies = [...(lookups.fishSpecies || [])].sort((a, b) => a.name.localeCompare(b.name));
+    populateSelect(el.fishSpeciesId, sortedSpecies);
     populateSelect(el.bodyOfWaterId, lookups.bodiesOfWater || []);
     myAnglerId = await resolveMyAnglerId(lookups.anglers || []);
 

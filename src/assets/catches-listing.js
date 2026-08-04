@@ -30,6 +30,10 @@ let filteredCatches = [];
 let currentPage = 1;
 let lookups = { anglers: [], species: [], bodiesOfWater: [] };
 let activeFilters = { angler: '', species: '', water: '' };
+// Species names with at least one catch — narrows the species filter dropdown
+// below the full roster. Fetched independently of allCatches so it always
+// reflects every catch, not just whatever the current search term matched.
+let speciesWithCatches = null;
 
 function setStatus(msg) {
   el.status.textContent = msg;
@@ -285,9 +289,27 @@ async function loadLookups() {
   }
 }
 
+async function loadSpeciesWithCatches() {
+  try {
+    const res = await fetch(CATCHES_GET_URL, { headers: { 'X-API-Key': API_KEY } });
+    if (!res.ok) return;
+    const data = await res.json();
+    const catches = (Array.isArray(data) ? data : (data.catches || [])).filter(c => c && c.catchNumber);
+    speciesWithCatches = new Set(catches.map(c => c.fishSpeciesName).filter(Boolean));
+    buildDropdowns();
+  } catch (e) {
+    console.error('Failed to load species-with-catches', e);
+  }
+}
+
 function buildDropdowns() {
   buildDropdown('angler', el.filterAnglerDropdown, lookups.anglers, 'All Anglers');
-  buildDropdown('species', el.filterSpeciesDropdown, lookups.species, 'All Species');
+  // Until speciesWithCatches has loaded, fall back to the full roster rather than showing nothing.
+  const caughtSpecies = (speciesWithCatches
+    ? lookups.species.filter(s => speciesWithCatches.has(s.name))
+    : lookups.species
+  ).slice().sort((a, b) => a.name.localeCompare(b.name));
+  buildDropdown('species', el.filterSpeciesDropdown, caughtSpecies, 'All Species');
   buildDropdown('water', el.filterWaterDropdown, lookups.bodiesOfWater, 'All Waters');
 }
 
@@ -407,4 +429,5 @@ window.addEventListener("DOMContentLoaded", () => {
   }
   loadLookups();
   loadCatches();
+  loadSpeciesWithCatches();
 });
