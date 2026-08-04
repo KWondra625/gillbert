@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gillbert - Fish Species</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/fish-species-listing.css" />
+  <link rel="stylesheet" href="./assets/top-home-link.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="top-nav">
+      <a href="./index.html" class="top-home-link" aria-label="Go back to Home">← Home</a>
+    </div>
+
+    <!-- ── Loading state ────────────────────────────────────────────── -->
+    <div id="loadingState">
+      <div class="header">
+        <h1>🐟 Fish Species</h1>
+        <p>Loading species…</p>
+      </div>
+      <div class="loading-indicator">
+        <div class="fishing-animation">🎣<span class="bobber">●</span></div>
+        <p>Loading fish species…</p>
+      </div>
+    </div>
+
+    <!-- ── Error state ──────────────────────────────────────────────── -->
+    <div id="errorState" class="hidden">
+      <div class="header">
+        <h1>🐟 Fish Species</h1>
+      </div>
+      <div class="error-card">
+        <p class="error-icon">⚠️</p>
+        <p id="errorMsg">Unable to load fish species. Please check your connection and try again.</p>
+        <button id="retryBtn" class="primary-button">🔄 Try Again</button>
+      </div>
+      <a href="./index.html" class="back-button">← Back to Home</a>
+    </div>
+
+    <!-- ── List state ───────────────────────────────────────────────── -->
+    <div id="listState" class="hidden">
+      <div class="header">
+        <h1>🐟 Fish Species</h1>
+        <p>Manage the fish species data</p>
+      </div>
+
+      <div class="controls">
+        <input
+          type="text"
+          id="searchInput"
+          class="search-input"
+          placeholder="Search species..."
+          title="Search by name or alias"
+        />
+        <div class="status-filter" id="statusFilter">
+          <button class="status-filter-btn active" data-status="">All</button>
+          <button class="status-filter-btn" data-status="Active">Active</button>
+          <button class="status-filter-btn" data-status="Inactive">Inactive</button>
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Aliases</th>
+              <th>Status</th>
+              <th>Catches</th>
+            </tr>
+          </thead>
+          <tbody id="speciesTableBody"></tbody>
+        </table>
+      </div>
+
+      <p id="emptyState" class="empty-state hidden">No species match your search.</p>
+
+      <a href="./index.html" class="back-button">← Back to Home</a>
+    </div>
+  </div>
+
+  <script src="./assets/config.js"></script>
+  <script src="./assets/admin.js"></script>
+  <script src="./assets/species-catches.js"></script>
+  <script src="./assets/fish-species-listing.js"></script>
+</body>
+</html>

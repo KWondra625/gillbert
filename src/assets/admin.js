@@ -21,6 +21,19 @@ function isAdminUnlocked() {
 function unlockAdmin() {
   const expires = Date.now() + ADMIN_UNLOCK_DAYS * 24 * 60 * 60 * 1000;
   localStorage.setItem(ADMIN_UNLOCK_STORAGE_KEY, String(expires));
+  revealAdminSection();
+}
+
+// Shows the home page's Admin section once unlocked. No-op on pages that
+// don't have this markup (currently index.html only).
+function revealAdminSection() {
+  const section = document.getElementById('adminSection');
+  const grid = document.getElementById('adminSectionGrid');
+  if (!section || !grid) return;
+  if (isAdminUnlocked()) {
+    section.classList.remove('hidden');
+    grid.classList.remove('hidden');
+  }
 }
 
 let _toastTimer = null;
@@ -139,3 +152,4 @@ function initAdminTapTrigger() {
 }
 
 document.addEventListener('DOMContentLoaded', initAdminTapTrigger);
+document.addEventListener('DOMContentLoaded', revealAdminSection);

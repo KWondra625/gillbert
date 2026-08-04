@@ -23,6 +23,8 @@ const el = {
   filterSummary: document.getElementById('filterSummary'),
   filterSummaryText: document.getElementById('filterSummaryText'),
   filterClearAll: document.getElementById('filterClearAll'),
+  topBackLink: document.getElementById('topBackLink'),
+  bottomBackLink: document.getElementById('bottomBackLink'),
 };
 
 let allCatches = [];
@@ -418,7 +420,31 @@ el.filterClearAll.addEventListener('click', () => {
   applyFilters();
 });
 
+// One-shot: whoever links here sets gillbert_return_to right before
+// navigating; we apply it once and clear it so a later plain/default visit
+// (e.g. from Home) doesn't inherit a stale destination from earlier in the
+// session. Unlike gillbert_filters/gillbert_search, this isn't meant to
+// persist — it describes how the user got here *this time*, not a standing
+// preference.
+function setupBackNavigation() {
+  let returnTo = null;
+  try { returnTo = JSON.parse(sessionStorage.getItem('gillbert_return_to') || 'null'); } catch (e) {}
+  sessionStorage.removeItem('gillbert_return_to');
+
+  const href = returnTo?.href || './index.html';
+  const label = returnTo?.label || 'Home';
+
+  el.topBackLink.href = href;
+  el.topBackLink.textContent = `← ${label}`;
+  el.topBackLink.setAttribute('aria-label', `Go back to ${label}`);
+
+  el.bottomBackLink.href = href;
+  el.bottomBackLink.textContent = `← Back to ${label}`;
+}
+
 window.addEventListener("DOMContentLoaded", () => {
+  setupBackNavigation();
+
   const savedSearch = sessionStorage.getItem('gillbert_search');
   if (savedSearch) {
     el.searchInput.value = savedSearch;
