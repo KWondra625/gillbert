@@ -164,7 +164,7 @@ async function submit() {
   };
 
   try {
-    const res = await fetch(FISH_SPECIES_UPDATE_URL, {
+    const res = await fetch(`${FISH_SPECIES_SAVE_URL}?action=update`, {
       method: 'POST',
       headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

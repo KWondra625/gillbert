@@ -57,6 +57,14 @@ body {
   margin-bottom: 12px;
 }
 
+.filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .status-filter {
   display: flex;
   gap: 6px;
@@ -83,6 +91,25 @@ body {
   background: white;
   color: #1a75d1;
   border-color: white;
+}
+
+.add-species-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  background: white;
+  color: #1a75d1;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+}
+
+.add-species-btn:active {
+  transform: scale(0.97);
 }
 
 /* ── Table ───────────────────────────────────────────────────────── */

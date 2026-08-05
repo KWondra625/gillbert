@@ -9,4 +9,4 @@ const API_BASE        = N8N_BASE_URL + WEBHOOK_PATH + "gillbert/";
 const CATCHES_GET_URL = API_BASE + "get-catches";
 
 const FISH_SPECIES_GET_URL    = API_BASE + "fish-species/get";
-const FISH_SPECIES_UPDATE_URL = API_BASE + "fish-species/update";
+const FISH_SPECIES_SAVE_URL = API_BASE + "fish-species/save";
