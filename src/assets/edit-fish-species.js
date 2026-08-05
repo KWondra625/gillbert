@@ -29,7 +29,7 @@ let originalData = null;
 let selectedStatus = 'Active';
 let currentCatchCount = 0;
 
-function renderViewCatchesLink(s, count) {
+function renderViewCatchesLink(count) {
   currentCatchCount = count;
   if (count > 0) {
     el.viewCatchesLink.textContent = `🎣 View ${count} Catch${count === 1 ? '' : 'es'}`;
@@ -124,13 +124,18 @@ async function load() {
 
     prefillForm(originalData);
     renderRecordInfo(originalData);
-    renderViewCatchesLink(originalData, counts[originalData.id] || 0);
+    renderViewCatchesLink(counts[originalData.id] || 0);
     el.formHeading.textContent = `✏️ Edit ${originalData.name}`;
     showState('formState');
   } catch (err) {
     console.error('Failed to load species:', err);
-    el.errorMsg.textContent = 'Unable to load this species. Please check your connection and try again.';
-    el.retryBtn.classList.remove('hidden');
+    if (err.message === 'Species not found.') {
+      el.errorMsg.textContent = 'This species no longer exists. It may have been removed.';
+      el.retryBtn.classList.add('hidden');
+    } else {
+      el.errorMsg.textContent = 'Unable to load this species. Please check your connection and try again.';
+      el.retryBtn.classList.remove('hidden');
+    }
     showState('errorState');
   }
 }

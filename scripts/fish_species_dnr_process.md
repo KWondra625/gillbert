@@ -80,11 +80,13 @@ a real use for it ever comes up.
    species, updated bag-limit groupings, dead DNR links).
 2. Hand-edit the `VALUES` list in `scripts/upsert_fish_species_roster.sql`
    — there's no automated diffing against the DNR site, this is manual.
-3. Re-run the script. It's safe to re-run as often as needed:
+3. Re-run only Step 2 of the script — Step 1 is **not** safe to re-run:
    - **Step 1** (the handful of identity-fixing `UPDATE`s for the
      originally-messy legacy rows) is a one-time historical correction,
-     not part of the ongoing refresh — it won't do anything harmful if
-     re-run, but it's not doing anything useful either at this point.
+     not part of the ongoing refresh. It writes directly to `aliases` and
+     `display_name_override` with no guard, so re-running it will stomp
+     any admin-UI edits made to those fields on the rows it touches.
+     **Skip it on every refresh after the first run.**
    - **Step 2** (the main upsert) only refreshes `family_display_name`,
      `family_scientific_name`, and `dnr_url` on conflict — it **never**
      touches `status`, `aliases`, `notes`, or `display_name_override` on

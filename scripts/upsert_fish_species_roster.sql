@@ -82,7 +82,7 @@ VALUES
     ('Yellow Perch',        'Active', ARRAY['Perch'],         NULL, 'Panfish',           'Percidae',      'https://dnr.wisconsin.gov/topic/fishing/species/yperch.html',   'Perch'),
     -- Pike
     ('Northern Pike',       'Active', ARRAY['Pike'],          NULL, 'Pike',              'Esocidae',      'https://dnr.wisconsin.gov/topic/fishing/species/npike.html',    NULL),
-    ('Muskellunge',         'Active', ARRAY['Muskie','Musky'],NULL, 'Pike',              'Esocidae',      'https://dnr.wisconsin.gov/topic/Fishing/species/musky.html',    'Musky'),
+    ('Muskellunge',         'Active', ARRAY['Muskie','Musky'],NULL, 'Pike',              'Esocidae',      'https://dnr.wisconsin.gov/topic/fishing/species/musky.html',    'Musky'),
     -- Walleye
     ('Walleye',             'Active', ARRAY['Pickerel'],      NULL, 'Walleye',           'Percidae',      'https://dnr.wisconsin.gov/topic/fishing/species/walleye.html',  NULL),
     ('Sauger',               'Active', NULL,                  NULL, 'Walleye',           'Percidae',      NULL, NULL),
