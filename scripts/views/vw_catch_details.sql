@@ -10,7 +10,8 @@ CREATE OR REPLACE VIEW vw_catch_details AS
         
         fs.id AS fish_species_id,
         COALESCE(fs.display_name_override, fs.name) AS fish_species_name,
-        
+        fs.dnr_url AS fish_species_dnr_url,
+
         bow.id AS body_of_water_id,
         bow.name AS body_of_water_name,
         

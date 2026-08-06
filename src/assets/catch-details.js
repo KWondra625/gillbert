@@ -46,7 +46,7 @@ const FIELD_LABELS = {
 };
 
 // Fields excluded from all loops (handled explicitly)
-const EXCLUDE_FIELDS = new Set(['catchNumber', 'fullSummary', 'headline', 'catchMediaCount', 'anglerId', 'bodyOfWaterId', 'fishSpeciesId', 'createdByAnglerId', 'createdByAnglerName', 'updatedByAnglerId','updatedByAnglerName', ...FIELD_ORDER, ...AUDIT_FIELDS]);
+const EXCLUDE_FIELDS = new Set(['catchNumber', 'fullSummary', 'headline', 'catchMediaCount', 'anglerId', 'bodyOfWaterId', 'fishSpeciesId', 'fishSpeciesDnrUrl', 'createdByAnglerId', 'createdByAnglerName', 'updatedByAnglerId','updatedByAnglerName', ...FIELD_ORDER, ...AUDIT_FIELDS]);
 
 const el = {
   status:           document.getElementById('status'),
@@ -116,12 +116,12 @@ function formatValue(key, value) {
   return escapeHtml(String(value));
 }
 
-function buildRow(key, value, extraClass = '') {
+function buildRow(key, value, extraClass = '', extraContent = '') {
   const meta = FIELD_LABELS[key] || { label: camelToLabel(key), icon: "📌" };
   return `
     <div class="detail-row${extraClass ? ' ' + extraClass : ''}">
       <span class="detail-label">${meta.icon} ${escapeHtml(meta.label)}</span>
-      <span class="detail-value">${formatValue(key, value)}</span>
+      <span class="detail-value">${formatValue(key, value)}${extraContent}</span>
     </div>`;
 }
 
@@ -281,7 +281,13 @@ function renderDetails(catchData) {
   // 1. Primary ordered fields
   const primaryRows = FIELD_ORDER
     .filter(hasValue)
-    .map(key => buildRow(key, catchData[key]))
+    .map(key => {
+      if (key === 'fishSpeciesName' && catchData.fishSpeciesDnrUrl) {
+        const dnrLink = `<a href="${encodeURI(catchData.fishSpeciesDnrUrl)}" target="_blank" rel="noopener" class="dnr-link">🔗 WI DNR</a>`;
+        return buildRow(key, catchData[key], '', dnrLink);
+      }
+      return buildRow(key, catchData[key]);
+    })
     .join('');
 
   // 2. Any extra fields the API returned that aren't in our known lists
