@@ -212,6 +212,7 @@ function renderTopAnglers(list) {
         angler: row.dataset.angler, species: '', water: '',
       }));
       sessionStorage.removeItem('gillbert_search');
+      sessionStorage.setItem('gillbert_return_to', JSON.stringify({ href: './fish-of-fame.html', label: 'Fish of Fame' }));
     });
   });
 }

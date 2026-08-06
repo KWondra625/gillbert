@@ -95,7 +95,9 @@ async function loadEditCatch() {
     catchId = catchData.id;
 
     populateSelect(el.anglerId,      lookups.anglers       || []);
-    populateSelect(el.fishSpeciesId, lookups.fishSpecies   || []);
+    const speciesForDropdown = (lookups.fishSpecies || []).map(s => ({ id: s.id, name: s.display_name_override || s.name }));
+    const sortedSpecies = speciesForDropdown.sort((a, b) => a.name.localeCompare(b.name));
+    populateSelect(el.fishSpeciesId, sortedSpecies);
     populateSelect(el.bodyOfWaterId, lookups.bodiesOfWater || []);
     myAnglerId = await resolveMyAnglerId(lookups.anglers || []);
 
