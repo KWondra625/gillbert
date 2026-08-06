@@ -96,6 +96,14 @@ async function loadCatches() {
       return;
     }
 
+    // A search-less fetch already pulled the complete catch set, which is
+    // also the full picture of which species have catches — reuse it here
+    // instead of loadSpeciesWithCatches() making a second, identical request.
+    if (!term) {
+      speciesWithCatches = new Set(allCatches.map(c => c.fishSpeciesName).filter(Boolean));
+      buildDropdowns();
+    }
+
     setStatus("");
     currentPage = 1;
     sessionStorage.setItem('gillbert_search', el.searchInput.value.trim());
@@ -292,6 +300,10 @@ async function loadLookups() {
 }
 
 async function loadSpeciesWithCatches() {
+  // When there's no active search term, loadCatches() fetches the full
+  // catch set itself and derives speciesWithCatches from it directly —
+  // no need for a second, identical request here.
+  if (!el.searchInput.value.trim()) return;
   try {
     const res = await fetch(CATCHES_GET_URL, { headers: { 'X-API-Key': API_KEY } });
     if (!res.ok) return;

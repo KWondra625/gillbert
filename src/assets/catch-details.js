@@ -283,7 +283,14 @@ function renderDetails(catchData) {
     .filter(hasValue)
     .map(key => {
       if (key === 'fishSpeciesName' && catchData.fishSpeciesDnrUrl) {
-        const dnrLink = `<a href="${encodeURI(catchData.fishSpeciesDnrUrl)}" target="_blank" rel="noopener" class="dnr-link">🔗 WI DNR</a>`;
+        let dnrHref = null;
+        try {
+          const u = new URL(catchData.fishSpeciesDnrUrl);
+          if (u.protocol === 'http:' || u.protocol === 'https:') dnrHref = u.href;
+        } catch {}
+        const dnrLink = dnrHref
+          ? `<a href="${escapeHtml(dnrHref)}" target="_blank" rel="noopener" class="dnr-link">🔗 WI DNR</a>`
+          : '';
         return buildRow(key, catchData[key], '', dnrLink);
       }
       return buildRow(key, catchData[key]);
