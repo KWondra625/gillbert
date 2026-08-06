@@ -78,7 +78,7 @@ a real use for it ever comes up.
 
 1. Re-check the sources above for anything that's changed (new common
    species, updated bag-limit groupings, dead DNR links).
-2. Hand-edit the `VALUES` list in `scripts/upsert_fish_species_roster.sql`
+2. Hand-edit the `VALUES` list in `scripts/fish_species_data/upsert_fish_species_roster.sql`
    — there's no automated diffing against the DNR site, this is manual.
 3. Re-run only Step 2 of the script — Step 1 is **not** safe to re-run:
    - **Step 1** (the handful of identity-fixing `UPDATE`s for the
@@ -97,7 +97,7 @@ Day-to-day status changes (turning a species on/off) don't need this
 script at all — that's what the admin UI (`fish-species-listing.html` /
 `edit-fish-species.html`) is for.
 
-`scripts/snapshot_fish_species_pre_metadata_expansion.sql` and
-`scripts/add_fish_species_metadata_columns.sql` were one-time migration
+`scripts/fish_species_data/snapshot_fish_species_pre_metadata_expansion.sql` and
+`scripts/fish_species_data/add_fish_species_metadata_columns.sql` were one-time migration
 artifacts from the original 10→33 expansion — not part of the ongoing
 refresh cycle, kept for historical reference.
