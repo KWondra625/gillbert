@@ -1,71 +1,13 @@
--- Expands fish_species from its original 10 rows to the curated ~30-species
--- roster (plus a permanent "Other" catch-all), sourced from the WI DNR's most-
--- common-species page and general fishing regulations pamphlet.
+-- Upserts the curated ~30-species roster (plus a permanent "Other"
+-- catch-all), sourced from the WI DNR's most-common-species page and general
+-- fishing regulations pamphlet. See fish_species_dnr_process.md for the full
+-- sourcing methodology and refresh process.
 --
--- Run this after add_fish_species_metadata_columns.sql.
---
--- STEP 1 renames/cleans up the 5 existing rows whose `name` is changing, plus
--- fixes 2 existing rows (Muskellunge, Bluegill) whose aliases were stored as a
--- single crammed string ("Muskie; Musky") instead of separate array elements,
--- which meant they never actually matched on either nickname alone. This step
--- is written to run once — re-running it will reset these rows' aliases/
--- display override/notes back to these values, so skip it on any later re-run.
---
--- STEP 2 is a single upsert covering the full roster (including the 5 renamed
--- above, plus the 5 untouched originals, plus all new species). It's keyed on
--- `name` and only refreshes the DNR-sourced columns (family_display_name,
--- family_scientific_name, dnr_url) on conflict — status, aliases, notes, and
--- display_name_override are left alone for existing rows so future re-runs
--- (e.g. after a DNR site refresh) never stomp anything you've hand-curated.
-
--- ── STEP 1: one-time renames + alias cleanup on existing rows ──────────────
-
--- "Bass" -> Largemouth Bass (old aliases bundled LMB/SMB into one string;
--- Smallmouth Bass becomes its own row in Step 2)
-UPDATE fish_species
-SET name = 'Largemouth Bass',
-    aliases = ARRAY['LMB', 'Largey']
-WHERE id = 2;
-
--- Fix crammed alias string, and display as "Musky"
-UPDATE fish_species
-SET aliases = ARRAY['Muskie', 'Musky'],
-    display_name_override = 'Musky'
-WHERE id = 4;
-
--- Fix crammed alias string
-UPDATE fish_species
-SET aliases = ARRAY['Blue Gill', 'Gill']
-WHERE id = 5;
-
--- "Crappie" -> Black Crappie (no catches logged yet, so no data risk; White
--- Crappie becomes its own row in Step 2)
-UPDATE fish_species
-SET name = 'Black Crappie',
-    aliases = NULL
-WHERE id = 6;
-
--- "Perch" -> Yellow Perch, with "Perch" as both the display override and an
--- alias (display override controls the UI label; alias is what chat matches on)
-UPDATE fish_species
-SET name = 'Yellow Perch',
-    aliases = ARRAY['Perch'],
-    display_name_override = 'Perch'
-WHERE id = 7;
-
--- "Dogfish" -> Bowfin (the real species name; "Dogfish" becomes the alias)
-UPDATE fish_species
-SET name = 'Bowfin',
-    aliases = ARRAY['Dogfish']
-WHERE id = 8;
-
--- "Sunfish" -> Pumpkinseed (not a distinct species; matches your buddies'
--- description of a bright yellow/orange bluegill-shaped fish)
-UPDATE fish_species
-SET name = 'Pumpkinseed'
-WHERE id = 10;
-
--- ── STEP 2: upsert the full roster ──────────────────────────────────────────
+-- Safe to re-run anytime (e.g. after a DNR site refresh) — keyed on `name`,
+-- and on conflict only refreshes the DNR-sourced columns (family_display_name,
+-- family_scientific_name, dnr_url). status, aliases, notes, and
+-- display_name_override are left alone for existing rows, so anything
+-- hand-curated through the admin UI always survives a re-run untouched.
 
 INSERT INTO fish_species
     (name, status, aliases, notes, family_display_name, family_scientific_name, dnr_url, display_name_override)

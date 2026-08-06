@@ -96,8 +96,3 @@ a real use for it ever comes up.
 Day-to-day status changes (turning a species on/off) don't need this
 script at all — that's what the admin UI (`fish-species-listing.html` /
 `edit-fish-species.html`) is for.
-
-`scripts/fish_species_data/snapshot_fish_species_pre_metadata_expansion.sql` and
-`scripts/fish_species_data/add_fish_species_metadata_columns.sql` were one-time migration
-artifacts from the original 10→33 expansion — not part of the ongoing
-refresh cycle, kept for historical reference.
