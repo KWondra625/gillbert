@@ -14,7 +14,9 @@ CREATE OR REPLACE VIEW vw_catch_details AS
 
         bow.id AS body_of_water_id,
         bow.name AS body_of_water_name,
-        
+        bow.wbic AS body_of_water_wbic,
+        bow.dnr_url_verified AS body_of_water_dnr_url_verified,
+
         c.caught_when AS caught_when,
         (c.caught_when AT TIME ZONE 'America/Chicago')::TIME AS caught_time,
         EXTRACT(DAY FROM c.caught_when AT TIME ZONE 'America/Chicago') AS caught_day,
