@@ -24,8 +24,6 @@ const el = {
   recordInfoBody:    document.getElementById('recordInfoBody'),
   viewCatchesLink:   document.getElementById('viewCatchesLink'),
   dnrSearchInput:    document.getElementById('dnrSearchInput'),
-  dnrSearchBtn:      document.getElementById('dnrSearchBtn'),
-  dnrSearchStatus:   document.getElementById('dnrSearchStatus'),
   dnrSearchResults:  document.getElementById('dnrSearchResults'),
 };
 
@@ -182,66 +180,8 @@ function renderUseDnrNameAction() {
 }
 
 // ── DNR search ──────────────────────────────────────────────────────────
-
-async function runDnrSearch() {
-  const q = el.dnrSearchInput.value.trim();
-  el.dnrSearchResults.classList.add('hidden');
-  el.dnrSearchResults.innerHTML = '';
-  if (!q) return;
-
-  el.dnrSearchStatus.textContent = 'Searching WI DNR…';
-  el.dnrSearchStatus.classList.remove('hidden');
-
-  try {
-    const res = await fetch(`${BODIES_OF_WATER_DNR_SEARCH_URL}?q=${encodeURIComponent(q)}`, {
-      headers: { 'X-API-Key': API_KEY },
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const raw = await res.json();
-    const unwrapped = Array.isArray(raw) && Array.isArray(raw[0]) ? raw[0] : (Array.isArray(raw) ? raw : []);
-    // n8n's "Always Output Data" (needed so a zero-result search doesn't
-    // return an empty body) injects a placeholder {} item when there are no
-    // real candidates — filter those out rather than treating one as a
-    // genuine result.
-    const results = unwrapped.filter(r => r && r.waterbodyWbic != null);
-
-    if (!results.length) {
-      el.dnrSearchStatus.textContent = 'No matches found on WI DNR.';
-      return;
-    }
-
-    el.dnrSearchStatus.classList.add('hidden');
-    renderDnrResults(results);
-  } catch (err) {
-    console.error('DNR search failed:', err);
-    el.dnrSearchStatus.textContent = 'Unable to search WI DNR right now. Please try again.';
-  }
-}
-
-function renderDnrResults(results) {
-  el.dnrSearchResults.innerHTML = results.map((r, i) => {
-    const mapLink = (r.latitude != null && r.longitude != null)
-      ? `<a href="https://www.google.com/maps?q=${encodeURIComponent(r.latitude)},${encodeURIComponent(r.longitude)}" target="_blank" rel="noopener" class="dnr-result-map">📍 View on Map</a>`
-      : '';
-    return `
-    <div class="dnr-result" data-index="${i}">
-      <div class="dnr-result-main">
-        <span class="dnr-result-name">${escapeHtml(r.waterbodyName || '(unnamed)')}</span>
-        <span class="dnr-result-wbic">WBIC ${escapeHtml(String(r.waterbodyWbic))}</span>
-      </div>
-      <div class="dnr-result-actions">
-        ${mapLink}
-        <button type="button" class="dnr-result-select" data-index="${i}">Use this</button>
-      </div>
-    </div>`;
-  }).join('');
-
-  el.dnrSearchResults.classList.remove('hidden');
-
-  el.dnrSearchResults.querySelectorAll('.dnr-result-select').forEach(btn => {
-    btn.addEventListener('click', () => selectDnrResult(results[Number(btn.dataset.index)]));
-  });
-}
+// runDnrSearch()/renderDnrResults() live in dnr-search.js, shared with
+// create-body-of-water.js. This page only needs to supply selectDnrResult().
 
 function selectDnrResult(r) {
   linkedDnr = {
@@ -408,11 +348,6 @@ el.statusPills.querySelectorAll('.status-pill').forEach(btn => {
 el.name.addEventListener('input', () => {
   if (el.name.value.trim()) el.nameError.classList.add('hidden');
   renderUseDnrNameAction();
-});
-
-el.dnrSearchBtn.addEventListener('click', runDnrSearch);
-el.dnrSearchInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') { e.preventDefault(); runDnrSearch(); }
 });
 
 el.saveBtn.addEventListener('click', submit);
