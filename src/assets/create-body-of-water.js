@@ -10,8 +10,6 @@ const el = {
   name:              document.getElementById('name'),
   nameError:         document.getElementById('nameError'),
   statusPills:       document.getElementById('statusPills'),
-  latitude:          document.getElementById('latitude'),
-  longitude:         document.getElementById('longitude'),
   notes:             document.getElementById('notes'),
   formError:         document.getElementById('formError'),
   createBtn:         document.getElementById('createBtn'),
@@ -73,7 +71,12 @@ async function runDnrSearch() {
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const raw = await res.json();
-    const results = Array.isArray(raw) && Array.isArray(raw[0]) ? raw[0] : (Array.isArray(raw) ? raw : []);
+    const unwrapped = Array.isArray(raw) && Array.isArray(raw[0]) ? raw[0] : (Array.isArray(raw) ? raw : []);
+    // n8n's "Always Output Data" (needed so a zero-result search doesn't
+    // return an empty body) injects a placeholder {} item when there are no
+    // real candidates — filter those out rather than treating one as a
+    // genuine result.
+    const results = unwrapped.filter(r => r && r.waterbodyWbic != null);
 
     if (!results.length) {
       el.dnrSearchStatus.textContent = 'No matches found on WI DNR.';
@@ -125,6 +128,10 @@ function selectDnrResult(r) {
     riverSysWbic: r.riverSysWbic ?? null,
     riverRowName: r.riverRowName || null,
     waterbodyRowName: r.waterbodyRowName || null,
+    // Latitude/longitude are purely DNR-derived for now — no manual pin
+    // entry (that'd be a separate "custom pin" feature, not part of this).
+    latitude: r.latitude ?? null,
+    longitude: r.longitude ?? null,
     dnrUrlVerified: true,
   };
 
@@ -181,14 +188,11 @@ async function submit() {
 
   showState('submittingState');
 
-  const lat = el.latitude.value.trim();
-  const lng = el.longitude.value.trim();
-
   const payload = {
     name: el.name.value.trim(),
     status: selectedStatus,
-    latitude: lat ? parseFloat(lat) : null,
-    longitude: lng ? parseFloat(lng) : null,
+    latitude: null,
+    longitude: null,
     notes: el.notes.value.trim() || null,
     ...(pendingDnrFields || {}),
   };

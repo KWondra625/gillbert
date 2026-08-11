@@ -48,18 +48,6 @@
 
       <form id="waterForm" novalidate>
 
-        <!-- DNR search widget -->
-        <div class="dnr-search-group">
-          <label for="dnrSearchInput">🔍 Search WI DNR <span class="optional-mark">(by name or WBIC, optional)</span></label>
-          <div class="dnr-search-row">
-            <input type="text" id="dnrSearchInput" placeholder="e.g. Pine Lake or 299100" />
-            <button type="button" id="dnrSearchBtn" class="dnr-search-btn">Search</button>
-          </div>
-          <p class="field-hint">Link this record to the official DNR entry to pull in its details.</p>
-          <div id="dnrSearchStatus" class="dnr-search-status hidden"></div>
-          <div id="dnrSearchResults" class="dnr-search-results hidden"></div>
-        </div>
-
         <!-- Name -->
         <div class="field-group">
           <label for="name">💧 Name <span class="required-mark">*</span></label>
@@ -77,22 +65,22 @@
           </div>
         </div>
 
-        <!-- Latitude / Longitude -->
-        <div class="field-row">
-          <div class="field-group">
-            <label for="latitude">📍 Latitude <span class="optional-mark">(optional)</span></label>
-            <input type="text" id="latitude" placeholder="e.g. 45.0092" />
-          </div>
-          <div class="field-group">
-            <label for="longitude">📍 Longitude <span class="optional-mark">(optional)</span></label>
-            <input type="text" id="longitude" placeholder="e.g. -89.2797" />
-          </div>
-        </div>
-
         <!-- Notes -->
         <div class="field-group">
           <label for="notes">📝 Notes <span class="optional-mark">(optional)</span></label>
           <textarea id="notes" rows="3" placeholder="Any details worth remembering…"></textarea>
+        </div>
+
+        <!-- DNR search widget -->
+        <div class="dnr-search-group">
+          <label for="dnrSearchInput">🔍 Search WI DNR <span class="optional-mark">(by name or WBIC, optional)</span></label>
+          <div class="dnr-search-row">
+            <input type="text" id="dnrSearchInput" placeholder="e.g. Pine Lake or 299100" />
+            <button type="button" id="dnrSearchBtn" class="dnr-search-btn">Search</button>
+          </div>
+          <p class="field-hint">Link this record to the official DNR entry to pull in its details.</p>
+          <div id="dnrSearchStatus" class="dnr-search-status hidden"></div>
+          <div id="dnrSearchResults" class="dnr-search-results hidden"></div>
         </div>
 
         <!-- DNR Info panel (shown once linked) -->

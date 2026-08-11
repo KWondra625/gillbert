@@ -92,15 +92,6 @@ body {
   margin-bottom: 20px;
 }
 
-.field-row {
-  display: flex;
-  gap: 12px;
-}
-
-.field-row .field-group {
-  flex: 1;
-}
-
 label {
   display: block;
   margin-bottom: 6px;
@@ -345,6 +336,25 @@ textarea {
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+.dnr-page-link {
+  color: #4FACFE;
+  font-size: 12px;
+  text-decoration: none;
+  word-break: break-word;
+}
+
+.dnr-page-link:hover {
+  text-decoration: underline;
+}
+
+.dnr-coords-value {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .dnr-verified-group {

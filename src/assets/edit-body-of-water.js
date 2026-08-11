@@ -12,8 +12,6 @@ const el = {
   nameError:         document.getElementById('nameError'),
   useDnrNameAction:  document.getElementById('useDnrNameAction'),
   statusPills:       document.getElementById('statusPills'),
-  latitude:          document.getElementById('latitude'),
-  longitude:         document.getElementById('longitude'),
   notes:             document.getElementById('notes'),
   dnrInfoPanel:      document.getElementById('dnrInfoPanel'),
   dnrInfoBody:       document.getElementById('dnrInfoBody'),
@@ -39,6 +37,27 @@ const HYDROTYPE_LABELS = {
 };
 
 const LANDLOCK_LABELS = { 0: 'Not landlocked', 1: 'Landlocked', 3: 'N/A (no flow)' };
+
+// shape_area/shape_len come from the DNR's WTM (WKID 3071) projection,
+// confirmed meters-based via that ArcGIS service's own metadata
+// (service-level "units": "esriMeters"). Converted here for display only —
+// the stored value stays in native square meters/meters, full precision.
+const SQUARE_METERS_PER_ACRE = 4046.8564224;
+const METERS_PER_FOOT = 0.3048;
+
+const TWO_DECIMAL_LOCALE_OPTS = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+
+function formatAcres(shapeAreaSqMeters) {
+  return (shapeAreaSqMeters / SQUARE_METERS_PER_ACRE).toLocaleString('en-US', TWO_DECIMAL_LOCALE_OPTS) + ' acres';
+}
+
+function formatFeet(shapeLenMeters) {
+  return (shapeLenMeters / METERS_PER_FOOT).toLocaleString('en-US', TWO_DECIMAL_LOCALE_OPTS) + ' ft';
+}
+
+function buildDnrPageUrl(wbic) {
+  return `https://apps.dnr.wi.gov/lakes/lakepages/LakeDetail.aspx?wbic=${encodeURIComponent(wbic)}`;
+}
 
 let waterId = null;
 let originalData = null;
@@ -97,11 +116,11 @@ function formatDateTime(value) {
   }));
 }
 
-function buildRecordInfoRow(icon, label, value) {
+function buildRecordInfoRow(icon, label, value, extraValueClass = '') {
   return `
     <div class="detail-row">
       <span class="detail-label">${icon} ${escapeHtml(label)}</span>
-      <span class="detail-value">${value}</span>
+      <span class="detail-value${extraValueClass ? ' ' + extraValueClass : ''}">${value}</span>
     </div>`;
 }
 
@@ -123,6 +142,7 @@ function renderDnrInfoPanel() {
 
   const hydroLabel = linkedDnr.hydrotype != null ? (HYDROTYPE_LABELS[linkedDnr.hydrotype] || `Code ${linkedDnr.hydrotype}`) : '—';
   const landlockLabel = linkedDnr.landlockCode != null ? (LANDLOCK_LABELS[linkedDnr.landlockCode] ?? `Code ${linkedDnr.landlockCode}`) : '—';
+  const dnrPageUrl = buildDnrPageUrl(linkedDnr.wbic);
 
   const rows = [
     buildRecordInfoRow('🏷️', 'DNR Name', escapeHtml(linkedDnr.dnrOfficialName || '—')),
@@ -130,9 +150,15 @@ function renderDnrInfoPanel() {
     buildRecordInfoRow('💧', 'Type', escapeHtml(hydroLabel)),
     buildRecordInfoRow('🔒', 'Landlocked', escapeHtml(landlockLabel)),
   ];
-  if (linkedDnr.shapeArea != null) rows.push(buildRecordInfoRow('📐', 'Area', escapeHtml(String(linkedDnr.shapeArea))));
-  if (linkedDnr.shapeLen != null) rows.push(buildRecordInfoRow('📏', 'Perimeter', escapeHtml(String(linkedDnr.shapeLen))));
+  if (linkedDnr.shapeArea != null) rows.push(buildRecordInfoRow('📐', 'Area', escapeHtml(formatAcres(linkedDnr.shapeArea))));
+  if (linkedDnr.shapeLen != null) rows.push(buildRecordInfoRow('📏', 'Perimeter', escapeHtml(formatFeet(linkedDnr.shapeLen))));
+  if (linkedDnr.latitude != null && linkedDnr.longitude != null) {
+    const mapUrl = `https://www.google.com/maps?q=${encodeURIComponent(linkedDnr.latitude)},${encodeURIComponent(linkedDnr.longitude)}`;
+    const coordsValue = `<span>${escapeHtml(`${linkedDnr.latitude.toFixed(5)}, ${linkedDnr.longitude.toFixed(5)}`)}</span><a href="${escapeHtml(mapUrl)}" target="_blank" rel="noopener" class="dnr-result-map">📍 View on Map</a>`;
+    rows.push(buildRecordInfoRow('📍', 'Coordinates', coordsValue, 'dnr-coords-value'));
+  }
   if (linkedDnr.riverSysName) rows.push(buildRecordInfoRow('🌊', 'River System', escapeHtml(linkedDnr.riverSysName)));
+  rows.push(buildRecordInfoRow('🔗', 'DNR Page', `<a href="${escapeHtml(dnrPageUrl)}" target="_blank" rel="noopener" class="dnr-page-link">View on WI DNR ↗</a>`));
 
   el.dnrInfoBody.innerHTML = rows.join('');
   el.dnrUrlVerified.checked = linkedDnr.dnrUrlVerified !== false;
@@ -172,7 +198,12 @@ async function runDnrSearch() {
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const raw = await res.json();
-    const results = Array.isArray(raw) && Array.isArray(raw[0]) ? raw[0] : (Array.isArray(raw) ? raw : []);
+    const unwrapped = Array.isArray(raw) && Array.isArray(raw[0]) ? raw[0] : (Array.isArray(raw) ? raw : []);
+    // n8n's "Always Output Data" (needed so a zero-result search doesn't
+    // return an empty body) injects a placeholder {} item when there are no
+    // real candidates — filter those out rather than treating one as a
+    // genuine result.
+    const results = unwrapped.filter(r => r && r.waterbodyWbic != null);
 
     if (!results.length) {
       el.dnrSearchStatus.textContent = 'No matches found on WI DNR.';
@@ -224,6 +255,10 @@ function selectDnrResult(r) {
     riverSysWbic: r.riverSysWbic ?? null,
     riverRowName: r.riverRowName || null,
     waterbodyRowName: r.waterbodyRowName || null,
+    // Latitude/longitude are purely DNR-derived for now — no manual pin
+    // entry (that'd be a separate "custom pin" feature, not part of this).
+    latitude: r.latitude ?? null,
+    longitude: r.longitude ?? null,
     dnrUrlVerified: true,
   };
 
@@ -286,8 +321,6 @@ async function load() {
 function prefillForm(w) {
   el.name.value = w.name || '';
   setStatus(w.status === 'Inactive' ? 'Inactive' : 'Active');
-  el.latitude.value = w.latitude != null ? String(w.latitude) : '';
-  el.longitude.value = w.longitude != null ? String(w.longitude) : '';
   el.notes.value = w.notes || '';
 
   linkedDnr = w.wbic ? {
@@ -301,6 +334,8 @@ function prefillForm(w) {
     riverSysWbic: w.riverSysWbic ?? null,
     riverRowName: w.riverRowName || null,
     waterbodyRowName: w.waterbodyRowName || null,
+    latitude: w.latitude ?? null,
+    longitude: w.longitude ?? null,
     dnrUrlVerified: w.dnrUrlVerified !== false,
   } : null;
 
@@ -325,23 +360,19 @@ async function submit() {
 
   showState('submittingState');
 
-  const lat = el.latitude.value.trim();
-  const lng = el.longitude.value.trim();
-
   const dnrFields = linkedDnr
     ? { ...linkedDnr, dnrUrlVerified: el.dnrUrlVerified.checked }
     : {
         wbic: null, dnrOfficialName: null, hydrotype: null, landlockCode: null,
         shapeArea: null, shapeLen: null, riverSysName: null, riverSysWbic: null,
-        riverRowName: null, waterbodyRowName: null, dnrUrlVerified: true,
+        riverRowName: null, waterbodyRowName: null, latitude: null, longitude: null,
+        dnrUrlVerified: true,
       };
 
   const payload = {
     id: parseInt(waterId, 10),
     name: el.name.value.trim(),
     status: selectedStatus,
-    latitude: lat ? parseFloat(lat) : null,
-    longitude: lng ? parseFloat(lng) : null,
     notes: el.notes.value.trim() || null,
     ...dnrFields,
   };

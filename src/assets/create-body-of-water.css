@@ -51,15 +51,6 @@ body {
   margin-bottom: 20px;
 }
 
-.field-row {
-  display: flex;
-  gap: 12px;
-}
-
-.field-row .field-group {
-  flex: 1;
-}
-
 label {
   display: block;
   margin-bottom: 6px;
