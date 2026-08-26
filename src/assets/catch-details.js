@@ -45,9 +45,6 @@ const FIELD_LABELS = {
   
 };
 
-// Fields excluded from all loops (handled explicitly)
-const EXCLUDE_FIELDS = new Set(['catchNumber', 'fullSummary', 'headline', 'catchMediaCount', 'anglerId', 'bodyOfWaterId', 'fishSpeciesId', 'createdByAnglerId', 'createdByAnglerName', 'updatedByAnglerId','updatedByAnglerName', ...FIELD_ORDER, ...AUDIT_FIELDS]);
-
 const el = {
   status:           document.getElementById('status'),
   loadingIndicator: document.getElementById('loadingIndicator'),
@@ -289,13 +286,7 @@ function renderDetails(catchData) {
     .map(key => buildRow(key, catchData[key]))
     .join('');
 
-  // 2. Any extra fields the API returned that aren't in our known lists
-  const extraRows = Object.keys(catchData)
-    .filter(key => !EXCLUDE_FIELDS.has(key) && !AUDIT_FIELDS.includes(key) && hasValue(key))
-    .map(key => buildRow(key, catchData[key]))
-    .join('');
-
-  // 3. Audit data — stored for the modal, not rendered inline
+  // 2. Audit data — stored for the modal, not rendered inline
   const auditRows = AUDIT_FIELDS
     .filter(hasValue)
     .map(key => {
@@ -322,7 +313,6 @@ function renderDetails(catchData) {
       <div class="detail-card-body">
         ${headlineHtml}
         ${primaryRows}
-        ${extraRows}
       </div>
       <div id="mediaContainer" class="detail-media-section">
         <div class="detail-section-label">Catch Media</div>
