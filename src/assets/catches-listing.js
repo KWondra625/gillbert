@@ -20,6 +20,9 @@ const el = {
   filterWaterChip: document.getElementById('filterWaterChip'),
   filterWaterValue: document.getElementById('filterWaterValue'),
   filterWaterDropdown: document.getElementById('filterWaterDropdown'),
+  filterPendingWrapper: document.getElementById('filterPendingWrapper'),
+  filterPendingChip: document.getElementById('filterPendingChip'),
+  filterPendingValue: document.getElementById('filterPendingValue'),
   filterSummary: document.getElementById('filterSummary'),
   filterSummaryText: document.getElementById('filterSummaryText'),
   filterClearAll: document.getElementById('filterClearAll'),
@@ -29,7 +32,7 @@ let allCatches = [];
 let filteredCatches = [];
 let currentPage = 1;
 let lookups = { anglers: [], species: [], bodiesOfWater: [] };
-let activeFilters = { angler: '', species: '', water: '' };
+let activeFilters = { angler: '', species: '', water: '', pendingOnly: false };
 
 // Guards against loadLookups() rendering an empty-state flash if it resolves
 // before loadCatches() has populated allCatches for the first time.
@@ -326,6 +329,7 @@ function applyFilters() {
     if (activeFilters.angler && c.anglerName !== activeFilters.angler) return false;
     if (activeFilters.species && c.fishSpeciesName !== activeFilters.species) return false;
     if (activeFilters.water && c.bodyOfWaterName !== activeFilters.water) return false;
+    if (activeFilters.pendingOnly && c.verifiedAt) return false;
     return true;
   });
   currentPage = 1;
@@ -338,14 +342,22 @@ function updateFilterUI() {
   updateChip('angler', el.filterAnglerChip, el.filterAnglerValue);
   updateChip('species', el.filterSpeciesChip, el.filterSpeciesValue);
   updateChip('water', el.filterWaterChip, el.filterWaterValue);
+  updatePendingChip();
   buildDropdowns();
-  const hasFilter = activeFilters.angler || activeFilters.species || activeFilters.water;
+  const hasFilter = activeFilters.angler || activeFilters.species || activeFilters.water || activeFilters.pendingOnly;
   if (hasFilter && allCatches.length) {
     el.filterSummary.classList.add('visible');
     el.filterSummaryText.textContent = `🎣 Showing ${filteredCatches.length} of ${allCatches.length} catches`;
   } else {
     el.filterSummary.classList.remove('visible');
   }
+}
+
+// Toggle chip (not a dropdown picker) — label always shows a live pending count.
+function updatePendingChip() {
+  const pendingCount = allCatches.filter(c => !c.verifiedAt).length;
+  el.filterPendingValue.textContent = ` (${pendingCount})`;
+  el.filterPendingChip.classList.toggle('active', activeFilters.pendingOnly);
 }
 
 function updateChip(filterKey, chipEl, valueEl) {
@@ -400,10 +412,22 @@ function closeDropdowns() {
 document.addEventListener('click', closeDropdowns);
 
 el.filterClearAll.addEventListener('click', () => {
-  activeFilters = { angler: '', species: '', water: '' };
+  activeFilters = { angler: '', species: '', water: '', pendingOnly: false };
   sessionStorage.removeItem('gillbert_filters');
   applyFilters();
 });
+
+el.filterPendingChip.addEventListener('click', () => {
+  activeFilters.pendingOnly = !activeFilters.pendingOnly;
+  applyFilters();
+});
+
+// Admin-only: reveal the "Pending Review" toggle once identity/PIN unlock resolves.
+// Runs independently of the page's data loads so it never delays them.
+async function setupPendingFilterGate() {
+  await (window.adminIdentityCheck || Promise.resolve());
+  if (isAdminUnlocked()) el.filterPendingWrapper.hidden = false;
+}
 
 window.addEventListener("DOMContentLoaded", () => {
   const savedSearch = sessionStorage.getItem('gillbert_search');
@@ -414,6 +438,7 @@ window.addEventListener("DOMContentLoaded", () => {
   if (savedFilters) {
     try { activeFilters = { ...activeFilters, ...JSON.parse(savedFilters) }; } catch (e) {}
   }
+  setupPendingFilterGate();
   loadLookups();
   loadCatches();
 });
