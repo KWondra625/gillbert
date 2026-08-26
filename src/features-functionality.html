@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gillbert - Features &amp; Functionality</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/features-functionality.css" />
+  <link rel="stylesheet" href="./assets/top-home-link.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="top-nav">
+      <a href="./index.html" class="top-home-link" aria-label="Go back to Home">← Home</a>
+    </div>
+
+    <div class="header">
+      <h1>🧰 Features &amp; Functionality</h1>
+      <p>Everything Gillbert can do today, all in one place.</p>
+    </div>
+
+    <div class="capability-card">
+      <div class="capability-card-header">
+        <span class="capability-icon">💬</span>
+        <span class="capability-title">Chat with Gillbert</span>
+      </div>
+      <ul class="feature-list">
+        <li>Log a catch in plain conversation — Gillbert asks the right questions and captures the details</li>
+        <li>Ask Gillbert: a separate AI chat for questions about the full catch history, with personalized, thoughtful answers</li>
+        <li class="is-new"><span class="new-badge">✨</span>Gillbert knows who it's talking to and greets you by name</li>
+        <li>Catch numbers in any chat response are clickable links straight to that catch's details</li>
+      </ul>
+    </div>
+
+    <div class="capability-card">
+      <div class="capability-card-header">
+        <span class="capability-icon">🐟</span>
+        <span class="capability-title">Catch Management</span>
+      </div>
+      <ul class="feature-list">
+        <li>Log a catch by chatting with Gillbert or filling out a quick manual form</li>
+        <li>Edit any catch after it's logged — fix a length, update the date, tweak the notes</li>
+        <li>Anglers can edit their own catches (or ones they logged) without the admin PIN, until it's verified</li>
+        <li>Admin verification marks a catch as officially reviewed</li>
+        <li class="is-new"><span class="new-badge">✨</span>Admin filter to instantly see which catches still need review</li>
+      </ul>
+    </div>
+
+    <div class="capability-card">
+      <div class="capability-card-header">
+        <span class="capability-icon">📸</span>
+        <span class="capability-title">Media</span>
+      </div>
+      <ul class="feature-list">
+        <li>Attach photos and videos to any catch</li>
+        <li>Apple HEIC photos and MOV videos are automatically converted for playback on any device</li>
+        <li class="is-new"><span class="new-badge">✨</span>Swipeable photo/video gallery — swipe or arrow through a catch's media like a mini slideshow</li>
+        <li>Admin "Manage Media" mode to remove individual photos or videos</li>
+      </ul>
+    </div>
+
+    <div class="capability-card">
+      <div class="capability-card-header">
+        <span class="capability-icon">🔍</span>
+        <span class="capability-title">Browse &amp; Discover</span>
+      </div>
+      <ul class="feature-list">
+        <li>Search and filter the full catch log by angler, fish species, and body of water — mix and match</li>
+        <li>Active filters and searches are remembered as you navigate around</li>
+        <li>Fish of Fame: biggest catches of all time, per-species records, and a Top Anglers leaderboard</li>
+      </ul>
+    </div>
+
+    <div class="capability-card">
+      <div class="capability-card-header">
+        <span class="capability-icon">🗺️</span>
+        <span class="capability-title">Reference Data</span>
+      </div>
+      <ul class="feature-list">
+        <li class="is-new"><span class="new-badge">✨</span>A managed roster of fish species — add new ones, mark them active or inactive, track aliases and family info</li>
+        <li>Each species can link out to its official Wisconsin DNR page</li>
+        <li>A managed roster of bodies of water, with the same active/inactive and admin controls</li>
+        <li class="is-new"><span class="new-badge">✨</span>Adding a new body of water can pull real details straight from the Wisconsin DNR's public waterbody data by name or WBIC, instead of typing everything by hand</li>
+      </ul>
+    </div>
+
+    <div class="capability-card">
+      <div class="capability-card-header">
+        <span class="capability-icon">🔒</span>
+        <span class="capability-title">Admin Mode</span>
+      </div>
+      <ul class="feature-list">
+        <li>Admin mode is hidden in plain sight — no visible "admin login" button for everyone to see</li>
+        <li>Every destructive or administrative action (editing, verifying, deleting, managing reference data) is gated behind it</li>
+      </ul>
+    </div>
+
+    <div class="capability-card">
+      <div class="capability-card-header">
+        <span class="capability-icon">🏗️</span>
+        <span class="capability-title">Under the Hood</span>
+      </div>
+      <ul class="feature-list">
+        <li>Self-hosted PostgreSQL database — fast, flexible, and fully owned</li>
+        <li>Powered by Claude (Anthropic) for all of Gillbert's conversational AI</li>
+        <li>All backend workflows run on a self-hosted n8n instance on a Raspberry Pi</li>
+        <li>Photos and videos live in Azure Blob Storage behind secure, time-limited links</li>
+        <li>The entire app sits behind Cloudflare Zero Trust — only invited anglers get in</li>
+      </ul>
+    </div>
+
+    <a href="./index.html" class="back-button">← Back to Home</a>
+  </div>
+</body>
+</html>
