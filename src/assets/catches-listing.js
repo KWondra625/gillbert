@@ -297,10 +297,15 @@ async function loadLookups() {
   }
 }
 
+// Builds each dropdown's markup and click listeners once, when the lookup
+// lists first arrive — the angler/species/water lists never change within a
+// page session, so there's no need to redo this on every filter interaction
+// (see syncDropdownSelections, called instead on each applyFilters()).
 function buildDropdowns() {
   buildDropdown('angler', el.filterAnglerDropdown, lookups.anglers, 'All Anglers');
   buildDropdown('species', el.filterSpeciesDropdown, lookups.species, 'All Species');
   buildDropdown('water', el.filterWaterDropdown, lookups.bodiesOfWater, 'All Waters');
+  syncDropdownSelections();
 }
 
 function buildDropdown(filterKey, dropdownEl, items, allLabel) {
@@ -309,9 +314,8 @@ function buildDropdown(filterKey, dropdownEl, items, allLabel) {
     ...items.map(i => ({ label: i.name || String(i), value: i.name || String(i) }))
   ];
   dropdownEl.innerHTML = options.map(opt => `
-    <div class="filter-option ${activeFilters[filterKey] === opt.value ? 'selected' : ''}"
-         data-filter="${filterKey}" data-value="${escapeHtml(opt.value)}">
-      <span class="filter-option-check">${activeFilters[filterKey] === opt.value ? '✓' : ''}</span>
+    <div class="filter-option" data-filter="${filterKey}" data-value="${escapeHtml(opt.value)}">
+      <span class="filter-option-check"></span>
       <span>${escapeHtml(opt.label)}</span>
     </div>
   `).join('');
@@ -321,6 +325,22 @@ function buildDropdown(filterKey, dropdownEl, items, allLabel) {
       closeDropdowns();
       applyFilters();
     });
+  });
+}
+
+// Cheap per-filter-change update: just toggles which existing option is
+// marked selected, no markup rebuild or listener re-attachment.
+function syncDropdownSelections() {
+  syncDropdownSelection(el.filterAnglerDropdown, 'angler');
+  syncDropdownSelection(el.filterSpeciesDropdown, 'species');
+  syncDropdownSelection(el.filterWaterDropdown, 'water');
+}
+
+function syncDropdownSelection(dropdownEl, filterKey) {
+  dropdownEl.querySelectorAll('.filter-option').forEach(optEl => {
+    const isSelected = optEl.dataset.value === activeFilters[filterKey];
+    optEl.classList.toggle('selected', isSelected);
+    optEl.querySelector('.filter-option-check').textContent = isSelected ? '✓' : '';
   });
 }
 
@@ -343,7 +363,7 @@ function updateFilterUI() {
   updateChip('species', el.filterSpeciesChip, el.filterSpeciesValue);
   updateChip('water', el.filterWaterChip, el.filterWaterValue);
   updatePendingChip();
-  buildDropdowns();
+  syncDropdownSelections();
   const hasFilter = activeFilters.angler || activeFilters.species || activeFilters.water || activeFilters.pendingOnly;
   if (hasFilter && allCatches.length) {
     el.filterSummary.classList.add('visible');
