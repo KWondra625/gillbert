@@ -45,7 +45,6 @@ async function fetchLookups() {
     const raw = await res.json();
     // n8n Respond to Webhook may wrap the payload in an array — unwrap if needed
     const data = Array.isArray(raw) ? raw[0] : raw;
-    console.log('Lookup response:', data);
     populateSelect(el.anglerId,       data.anglers       || []);
     populateSelect(el.fishSpeciesId,  data.fishSpecies       || []);
     populateSelect(el.bodyOfWaterId,  data.bodiesOfWater || []);
