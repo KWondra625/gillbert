@@ -1,7 +1,10 @@
 -- One-time migration: add WI DNR 24K Hydro Waterbodies metadata columns to
--- bodies_of_water, ahead of admin CRUD + WBIC-linking support. See
--- project_bodies_of_water_design.md (Claude's memory) for the full design
--- reasoning behind this column set.
+-- bodies_of_water, ahead of admin CRUD + WBIC-linking support. wbic is the
+-- durable external key; dnr_official_name/hydrotype/landlock_code/
+-- shape_area/shape_len/river_sys_*/*_row_name are copied once from DNR's
+-- ArcGIS layer via the dnr-search admin action, not live-queried on render.
+-- Full column-by-column rationale is in the PR that introduced this file
+-- ("Add admin CRUD and WI DNR WBIC linking for bodies of water").
 --
 -- Safe to re-run (IF NOT EXISTS guards).
 

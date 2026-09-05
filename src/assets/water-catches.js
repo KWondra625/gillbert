@@ -25,11 +25,17 @@ async function fetchCatchCounts() {
 }
 
 // Pre-selects waterName in catches-listing.html's filter, matching the
-// sessionStorage key/shape that page already restores on load. If returnTo
-// ({href, label}) is given, also sets a one-shot return-to context so its
-// back button comes back here instead of defaulting to Home.
-function goToFilteredCatches(waterName, returnTo) {
-  sessionStorage.setItem('gillbert_filters', JSON.stringify({ angler: '', species: '', water: waterName }));
+// sessionStorage key/shape that page already restores on load. Also carries
+// waterId through: unlike fish_species.name (UNIQUE), bodies_of_water.name
+// has no unique constraint (Catch Chat can create same-named duplicates),
+// so a name-only filter could show a different set than the count this
+// link was clicked from — catches-listing.js filters by waterId when
+// present, falling back to name-only for the general water dropdown filter
+// (which has no id to offer). If returnTo ({href, label}) is given, also
+// sets a one-shot return-to context so its back button comes back here
+// instead of defaulting to Home.
+function goToFilteredCatches(waterId, waterName, returnTo) {
+  sessionStorage.setItem('gillbert_filters', JSON.stringify({ angler: '', species: '', water: waterName, waterId }));
   sessionStorage.removeItem('gillbert_search');
   if (returnTo) sessionStorage.setItem('gillbert_return_to', JSON.stringify(returnTo));
   window.location.href = './catches-listing.html';

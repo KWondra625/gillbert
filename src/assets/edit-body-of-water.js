@@ -369,7 +369,7 @@ document.addEventListener('keydown', (e) => {
 el.viewCatchesLink.addEventListener('click', (e) => {
   e.preventDefault();
   if (currentCatchCount === 0 || !originalData) return;
-  goToFilteredCatches(originalData.name, {
+  goToFilteredCatches(originalData.id, originalData.name, {
     href: `./edit-body-of-water.html?id=${encodeURIComponent(originalData.id)}`,
     label: originalData.name,
   });

@@ -17,6 +17,13 @@ function escapeHtmlForDnrSearch(s) {
   }[m]));
 }
 
+// Bumped on every search, and captured per-request, so a slower response
+// for an earlier query can't overwrite the results of a newer one that
+// already resolved (searches aren't debounced/aborted, just fired on
+// button click/Enter, so overlap is possible if an admin re-searches
+// before the first request returns).
+let dnrSearchSeq = 0;
+
 async function runDnrSearch() {
   const input = document.getElementById('dnrSearchInput');
   const statusEl = document.getElementById('dnrSearchStatus');
@@ -27,6 +34,8 @@ async function runDnrSearch() {
   resultsEl.innerHTML = '';
   if (!q) return;
 
+  const seq = ++dnrSearchSeq;
+
   statusEl.textContent = 'Searching WI DNR…';
   statusEl.classList.remove('hidden');
 
@@ -36,6 +45,8 @@ async function runDnrSearch() {
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const raw = await res.json();
+    if (seq !== dnrSearchSeq) return; // a newer search already started
+
     const unwrapped = Array.isArray(raw) && Array.isArray(raw[0]) ? raw[0] : (Array.isArray(raw) ? raw : []);
     // n8n's "Always Output Data" (needed so a zero-result search doesn't
     // return an empty body) injects a placeholder {} item when there are no
@@ -51,6 +62,7 @@ async function runDnrSearch() {
     statusEl.classList.add('hidden');
     renderDnrResults(results);
   } catch (err) {
+    if (seq !== dnrSearchSeq) return; // a newer search already started
     console.error('DNR search failed:', err);
     statusEl.textContent = 'Unable to search WI DNR right now. Please try again.';
   }

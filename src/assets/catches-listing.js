@@ -31,7 +31,7 @@ let allCatches = [];
 let filteredCatches = [];
 let currentPage = 1;
 let lookups = { anglers: [], species: [], bodiesOfWater: [] };
-let activeFilters = { angler: '', species: '', water: '' };
+let activeFilters = { angler: '', species: '', water: '', waterId: null };
 // Species names with at least one catch — narrows the species filter dropdown
 // below the full roster. Fetched independently of allCatches so it always
 // reflects every catch, not just whatever the current search term matched.
@@ -342,6 +342,10 @@ function buildDropdown(filterKey, dropdownEl, items, allLabel) {
   dropdownEl.querySelectorAll('.filter-option').forEach(optEl => {
     optEl.addEventListener('click', () => {
       activeFilters[filterKey] = optEl.dataset.value;
+      // Manual dropdown picks only know a name, never a waterId — clear any
+      // id-based filter from a catch-count link so this pick isn't silently
+      // ignored by the id check in applyFilters().
+      if (filterKey === 'water') activeFilters.waterId = null;
       closeDropdowns();
       applyFilters();
     });
@@ -352,7 +356,9 @@ function applyFilters() {
   filteredCatches = allCatches.filter(c => {
     if (activeFilters.angler && c.anglerName !== activeFilters.angler) return false;
     if (activeFilters.species && c.fishSpeciesName !== activeFilters.species) return false;
-    if (activeFilters.water && c.bodyOfWaterName !== activeFilters.water) return false;
+    if (activeFilters.waterId != null) {
+      if (c.bodyOfWaterId !== activeFilters.waterId) return false;
+    } else if (activeFilters.water && c.bodyOfWaterName !== activeFilters.water) return false;
     return true;
   });
   currentPage = 1;
@@ -427,7 +433,7 @@ function closeDropdowns() {
 document.addEventListener('click', closeDropdowns);
 
 el.filterClearAll.addEventListener('click', () => {
-  activeFilters = { angler: '', species: '', water: '' };
+  activeFilters = { angler: '', species: '', water: '', waterId: null };
   sessionStorage.removeItem('gillbert_filters');
   applyFilters();
 });

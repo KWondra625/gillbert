@@ -85,7 +85,7 @@ function render() {
   el.tbody.innerHTML = rows.map(w => {
     const count = catchCounts[w.id] || 0;
     const countCell = count > 0
-      ? `<a href="#" class="catch-count-link" data-water-name="${escapeHtml(w.name)}">${count}</a>`
+      ? `<a href="#" class="catch-count-link" data-water-id="${w.id}" data-water-name="${escapeHtml(w.name)}">${count}</a>`
       : `<span class="catch-count-zero">0</span>`;
     const linkedIcon = w.wbic ? `<span class="wbic-linked-icon" title="Linked to WI DNR (WBIC ${escapeHtml(String(w.wbic))})">🔗</span>` : '';
     return `
@@ -107,7 +107,7 @@ function render() {
     link.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      goToFilteredCatches(link.dataset.waterName, { href: './bodies-of-water-listing.html', label: 'Bodies of Water' });
+      goToFilteredCatches(Number(link.dataset.waterId), link.dataset.waterName, { href: './bodies-of-water-listing.html', label: 'Bodies of Water' });
     });
   });
 }
