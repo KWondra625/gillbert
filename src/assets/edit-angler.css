@@ -526,6 +526,35 @@ textarea {
   word-break: break-word;
 }
 
+/* ── Crop modal ──────────────────────────────────────────────────── */
+
+.crop-modal-body {
+  padding: 12px 20px 8px;
+}
+
+.crop-modal-body cropper-canvas {
+  border-radius: 8px;
+  overflow: hidden;
+  background: #1a1a1a;
+}
+
+.crop-modal-body .field-hint {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.crop-modal-footer {
+  display: flex;
+  gap: 10px;
+  padding: 4px 20px 20px;
+}
+
+.crop-modal-footer .back-button,
+.crop-modal-footer .primary-button {
+  margin-top: 0;
+  flex: 1;
+}
+
 /* ── Utility ─────────────────────────────────────────────────────── */
 
 .hidden {

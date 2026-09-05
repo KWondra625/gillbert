@@ -29,6 +29,12 @@ const el = {
   recordInfoClose:   document.getElementById('recordInfoClose'),
   recordInfoBody:    document.getElementById('recordInfoBody'),
   viewCatchesLink:   document.getElementById('viewCatchesLink'),
+  cropModal:         document.getElementById('cropModal'),
+  cropModalClose:    document.getElementById('cropModalClose'),
+  cropCancelBtn:     document.getElementById('cropCancelBtn'),
+  cropConfirmBtn:    document.getElementById('cropConfirmBtn'),
+  cropperImage:      document.getElementById('cropperImage'),
+  cropperSelection:  document.getElementById('cropperSelection'),
 };
 
 let anglerId = null;
@@ -148,6 +154,53 @@ async function removeProfilePhoto() {
     el.profilePhotoStatus.textContent = 'Unable to remove photo. Please try again.';
   } finally {
     el.profilePhotoRemoveBtn.disabled = false;
+  }
+}
+
+// ── Crop modal ───────────────────────────────────────────────────────────
+// Browsers generally can't decode HEIC into an <img>/canvas at all (the same
+// reason the server-side conversion step exists), so cropping only applies
+// to formats the browser can actually render — HEIC skips straight to the
+// existing upload-as-is flow and lets the server-side conversion handle it.
+
+let cropObjectUrl = null;
+let pendingOriginalFile = null;
+
+function openCropModal(file) {
+  pendingOriginalFile = file;
+  cropObjectUrl = URL.createObjectURL(file);
+  el.cropperImage.src = cropObjectUrl;
+  el.cropModal.classList.add('open');
+  // Setting .src via a JS property (rather than a parse-time HTML attribute)
+  // doesn't auto-trigger the selection's initial sizing — has to be done
+  // explicitly once the new image has actually loaded.
+  el.cropperImage.$ready().then(() => el.cropperSelection.$initSelection());
+}
+
+function closeCropModal() {
+  el.cropModal.classList.remove('open');
+  if (cropObjectUrl) {
+    URL.revokeObjectURL(cropObjectUrl);
+    cropObjectUrl = null;
+  }
+  pendingOriginalFile = null;
+  // Reset so picking the same file again still fires 'change'.
+  el.profilePhotoInput.value = '';
+}
+
+async function confirmCrop() {
+  const originalFile = pendingOriginalFile;
+  try {
+    const canvas = await el.cropperSelection.$toCanvas();
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+    const croppedName = (originalFile.name || 'photo').replace(/\.[^.]+$/, '') + '-cropped.jpg';
+    const croppedFile = new File([blob], croppedName, { type: 'image/jpeg' });
+    closeCropModal();
+    uploadProfilePhoto(croppedFile);
+  } catch (err) {
+    console.error('Crop failed:', err);
+    closeCropModal();
+    el.profilePhotoStatus.textContent = 'Crop failed. Please try again.';
   }
 }
 
@@ -350,9 +403,23 @@ async function submit() {
 el.profilePhotoUploadBtn.addEventListener('click', () => el.profilePhotoInput.click());
 el.profilePhotoInput.addEventListener('change', () => {
   const file = el.profilePhotoInput.files && el.profilePhotoInput.files[0];
-  if (file) uploadProfilePhoto(file);
+  if (!file) return;
+  if (file.type === 'image/heic') {
+    // Can't preview/crop HEIC in-browser — upload as-is, server-side
+    // conversion handles it same as before.
+    uploadProfilePhoto(file);
+  } else {
+    openCropModal(file);
+  }
 });
 el.profilePhotoRemoveBtn.addEventListener('click', removeProfilePhoto);
+
+el.cropModalClose.addEventListener('click', closeCropModal);
+el.cropCancelBtn.addEventListener('click', closeCropModal);
+el.cropConfirmBtn.addEventListener('click', confirmCrop);
+el.cropModal.addEventListener('click', (e) => {
+  if (e.target === el.cropModal) closeCropModal();
+});
 
 el.statusPills.querySelectorAll('.status-pill').forEach(btn => {
   btn.addEventListener('click', () => setStatus(btn.dataset.status));
@@ -371,7 +438,9 @@ el.recordInfoModal.addEventListener('click', (e) => {
   if (e.target === el.recordInfoModal) el.recordInfoModal.classList.remove('open');
 });
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') el.recordInfoModal.classList.remove('open');
+  if (e.key !== 'Escape') return;
+  el.recordInfoModal.classList.remove('open');
+  if (el.cropModal.classList.contains('open')) closeCropModal();
 });
 
 el.viewCatchesLink.addEventListener('click', (e) => {

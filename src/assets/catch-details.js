@@ -6,6 +6,10 @@ const LOOKUP_URL          = API_BASE + "get-lookup-data";
 // Resolved from the Cloudflare identity once lookups load; null if unmatched
 let myAnglerId = null;
 
+// Angler id -> angler record (for profile photos on the headline byline),
+// populated from the same get-lookup-data call already used for resolveMyAnglerId.
+let anglersById = {};
+
 // Primary fields shown in this exact order
 const FIELD_ORDER = [
   'anglerName',
@@ -240,7 +244,9 @@ async function loadCatchDetails(catchNumber) {
     if (lookupRes.ok) {
       const lookupRaw = await lookupRes.json();
       const lookupData = Array.isArray(lookupRaw) ? lookupRaw[0] : lookupRaw;
-      myAnglerId = await resolveMyAnglerId(lookupData.anglers || []);
+      const anglers = lookupData.anglers || [];
+      myAnglerId = await resolveMyAnglerId(anglers);
+      anglersById = Object.fromEntries(anglers.map(a => [a.id, a]));
     }
 
     setStatus("");
@@ -267,10 +273,19 @@ function renderDetails(catchData) {
   const hasValue = (key) => catchData[key] !== null && catchData[key] !== undefined && catchData[key] !== '';
 
   // 0. Headline block — top of card
+  const anglerPhotoUrl = anglersById[catchData.anglerId] && anglersById[catchData.anglerId].profilePhotoReadUrl;
+  const anglerAvatarHtml = anglerPhotoUrl
+    ? `<img class="detail-angler-avatar" src="${escapeHtml(anglerPhotoUrl)}" alt="">`
+    : `<div class="detail-angler-avatar detail-angler-avatar--placeholder">🎣</div>`;
   const headlineHtml = catchData.headline ? `
     <div class="detail-summary">
-      <div class="detail-summary-label">🎣 Headline</div>
-      <p>${escapeHtml(catchData.headline)}</p>
+      <div class="detail-summary-byline">
+        ${anglerAvatarHtml}
+        <div class="detail-summary-text">
+          <div class="detail-summary-label">🎣 Headline</div>
+          <p>${escapeHtml(catchData.headline)}</p>
+        </div>
+      </div>
     </div>` : '';
 
   // Review status badge — pending (amber) until verified, then a green confirmation

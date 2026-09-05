@@ -140,8 +140,35 @@
         <div class="ri-modal-body" id="recordInfoBody"></div>
       </div>
     </div>
+
+    <!-- Crop Photo Modal -->
+    <div id="cropModal" class="ri-modal" role="dialog" aria-modal="true" aria-label="Crop Photo">
+      <div class="ri-modal-sheet">
+        <div class="ri-modal-header">
+          <span class="ri-modal-title">✂️ Crop Photo</span>
+          <button class="ri-modal-close" id="cropModalClose" aria-label="Cancel">&times;</button>
+        </div>
+        <div class="crop-modal-body">
+          <cropper-canvas background style="width:100%;height:320px;">
+            <cropper-image id="cropperImage" rotatable scalable translatable></cropper-image>
+            <cropper-shade hidden></cropper-shade>
+            <cropper-handle action="select" plain></cropper-handle>
+            <cropper-selection id="cropperSelection" initial-coverage="0.8" aspect-ratio="1">
+              <cropper-grid role="grid" covered></cropper-grid>
+              <cropper-crosshair centered></cropper-crosshair>
+            </cropper-selection>
+          </cropper-canvas>
+          <p class="field-hint">Drag to reposition, scroll or pinch to zoom — the square frame is fixed.</p>
+        </div>
+        <div class="crop-modal-footer">
+          <button type="button" id="cropCancelBtn" class="back-button">← Cancel</button>
+          <button type="button" id="cropConfirmBtn" class="primary-button">✅ Use This Crop</button>
+        </div>
+      </div>
+    </div>
   </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/2.2.0/cropper.min.js"></script>
   <script src="./assets/config.js"></script>
   <script src="./assets/admin.js"></script>
   <script src="./assets/angler-catches.js"></script>

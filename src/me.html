@@ -184,8 +184,11 @@
         if (anglerLookupError) {
           anglerEl.innerHTML = `<div class="row"><span class="row-value" style="color:#c0392b">⚠️ Unable to load angler lookup data</span></div>`;
         } else {
+          const photoHtml = myAngler && myAngler.profilePhotoReadUrl
+            ? `<img src="${myAngler.profilePhotoReadUrl}" alt="" style="width:48px;height:48px;border-radius:50%;object-fit:cover;display:block;margin-bottom:10px;">`
+            : '';
           anglerEl.innerHTML = myAngler
-            ? `<div class="row"><span class="row-label">Angler ID</span><span class="row-value"><span class="pill pill-green">✅ ${myAngler.id}</span></span></div>
+            ? `${photoHtml}<div class="row"><span class="row-label">Angler ID</span><span class="row-value"><span class="pill pill-green">✅ ${myAngler.id}</span></span></div>
                <div class="row"><span class="row-label">Angler Name</span><span class="row-value">${myAngler.name}</span></div>`
             : `<div class="row"><span class="row-value"><span class="pill pill-amber">⚠️ No angler matches this email</span></span></div>`;
         }

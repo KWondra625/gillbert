@@ -119,10 +119,11 @@ function computeTopAnglers(catches) {
 
   catches.forEach(c => {
     const name = c.anglerName || 'Unknown';
-    if (!byAngler.has(name)) {
-      byAngler.set(name, { name, count: 0, biggestCatch: null, speciesCounts: new Map() });
+    const key = c.anglerId ?? name;
+    if (!byAngler.has(key)) {
+      byAngler.set(key, { id: c.anglerId ?? null, name, count: 0, biggestCatch: null, speciesCounts: new Map() });
     }
-    const entry = byAngler.get(name);
+    const entry = byAngler.get(key);
     entry.count += 1;
 
     const length = (c.length != null && c.length !== '') ? Number(c.length) : null;
@@ -186,7 +187,7 @@ function renderFishSpeciesRecords(list) {
   }).join('');
 }
 
-function renderTopAnglers(list) {
+function renderTopAnglers(list, photosById) {
   if (!list.length) {
     el.topAnglersList.innerHTML = `<div class="rank-empty">No anglers on the board yet.</div>`;
     return;
@@ -194,9 +195,14 @@ function renderTopAnglers(list) {
 
   el.topAnglersList.innerHTML = list.map((a, i) => {
     const meta = [`${a.count} catch${a.count === 1 ? '' : 'es'}`, buildSpeciesBreakdown(a.speciesCounts)].filter(Boolean).join(' · ');
+    const photoUrl = photosById && a.id != null ? photosById[a.id] : null;
+    const avatarHtml = photoUrl
+      ? `<img class="rank-avatar" src="${escapeHtml(photoUrl)}" alt="">`
+      : `<div class="rank-avatar rank-avatar--placeholder">🎣</div>`;
     return `
       <a class="rank-row${rankClass(i)}" href="./catches-listing.html" data-angler="${escapeHtml(a.name)}">
         <div class="rank-badge">${rankBadge(i)}</div>
+        ${avatarHtml}
         <div class="rank-content">
           <div class="rank-main">${escapeHtml(a.name)}${pendingBadge(a.biggestCatch?.verifiedAt)}</div>
           <div class="rank-meta">${escapeHtml(meta)}</div>
@@ -218,14 +224,31 @@ function renderTopAnglers(list) {
 }
 
 // ── Load ─────────────────────────────────────────────────────────────────────────────────
+async function loadAnglerPhotos() {
+  try {
+    const res = await fetch(API_BASE + 'get-lookup-data', { headers: { 'X-API-Key': API_KEY } });
+    if (!res.ok) return {};
+    const raw = await res.json();
+    const data = Array.isArray(raw) ? raw[0] : raw;
+    const anglers = data.anglers || [];
+    return Object.fromEntries(
+      anglers.filter(a => a.profilePhotoReadUrl).map(a => [a.id, a.profilePhotoReadUrl])
+    );
+  } catch (err) {
+    console.error('Failed to load angler photos:', err);
+    return {};
+  }
+}
+
 async function loadFishOfFame() {
   try {
     showLoading();
     setStatus('');
 
-    const res = await fetch(CATCHES_GET_URL, {
-      headers: { 'X-API-Key': API_KEY },
-    });
+    const [res, photosById] = await Promise.all([
+      fetch(CATCHES_GET_URL, { headers: { 'X-API-Key': API_KEY } }),
+      loadAnglerPhotos(),
+    ]);
 
     if (!res.ok) throw new Error(`GET failed: ${res.status}`);
 
@@ -241,7 +264,7 @@ async function loadFishOfFame() {
 
     renderTopCatches(computeTopCatches(allCatches));
     renderFishSpeciesRecords(computeFishSpeciesRecords(allCatches));
-    renderTopAnglers(computeTopAnglers(allCatches));
+    renderTopAnglers(computeTopAnglers(allCatches), photosById);
     el.content.classList.remove('hidden');
   } catch (err) {
     console.error(err);
