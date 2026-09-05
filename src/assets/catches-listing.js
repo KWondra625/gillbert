@@ -290,7 +290,7 @@ async function loadLookups() {
     const raw = await res.json();
     const data = Array.isArray(raw) ? raw[0] : raw;
     lookups.anglers = data.anglers || [];
-    lookups.species = (data.fishSpecies || []).map(s => ({ id: s.id, name: s.display_name_override || s.name }));
+    lookups.species = (data.fishSpecies || []).map(s => ({ id: s.id, name: s.displayNameOverride || s.name }));
     lookups.bodiesOfWater = data.bodiesOfWater || [];
     buildDropdowns();
     applyFilters();

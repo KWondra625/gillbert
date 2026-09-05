@@ -54,7 +54,7 @@ async function fetchLookups() {
     const data = Array.isArray(raw) ? raw[0] : raw;
     console.log('Lookup response:', data);
     populateSelect(el.anglerId,       data.anglers       || []);
-    const speciesForDropdown = (data.fishSpecies || []).map(s => ({ id: s.id, name: s.display_name_override || s.name }));
+    const speciesForDropdown = (data.fishSpecies || []).map(s => ({ id: s.id, name: s.displayNameOverride || s.name }));
     const sortedSpecies = speciesForDropdown.sort((a, b) => a.name.localeCompare(b.name));
     populateSelect(el.fishSpeciesId,  sortedSpecies);
     populateSelect(el.bodyOfWaterId,  data.bodiesOfWater || []);
