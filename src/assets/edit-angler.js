@@ -8,6 +8,12 @@ const el = {
   errorMsg:          document.getElementById('errorMsg'),
   retryBtn:          document.getElementById('retryBtn'),
   formHeading:       document.getElementById('formHeading'),
+  profilePhotoImg:         document.getElementById('profilePhotoImg'),
+  profilePhotoPlaceholder: document.getElementById('profilePhotoPlaceholder'),
+  profilePhotoInput:       document.getElementById('profilePhotoInput'),
+  profilePhotoUploadBtn:   document.getElementById('profilePhotoUploadBtn'),
+  profilePhotoRemoveBtn:   document.getElementById('profilePhotoRemoveBtn'),
+  profilePhotoStatus:      document.getElementById('profilePhotoStatus'),
   name:              document.getElementById('name'),
   nameError:         document.getElementById('nameError'),
   statusPills:       document.getElementById('statusPills'),
@@ -32,6 +38,12 @@ let currentCatchCount = 0;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Defined locally, matching media-upload.js's own SAS/commit endpoint
+// constants rather than adding these to config.js — only this page uses them.
+const ANGLER_MEDIA_SAS_URL    = API_BASE + 'anglers/get-photo-sas';
+const ANGLER_MEDIA_COMMIT_URL = API_BASE + 'anglers/save-photo';
+const ANGLER_MEDIA_REMOVE_URL = API_BASE + 'anglers/delete-photo';
+
 function parseLoginEmails() {
   return el.loginEmails.value.split(',').map(e => e.trim()).filter(Boolean);
 }
@@ -44,6 +56,98 @@ function renderViewCatchesLink(count) {
   } else {
     el.viewCatchesLink.textContent = '🎣 No Catches Yet';
     el.viewCatchesLink.classList.add('view-catches-link--empty');
+  }
+}
+
+// ── Profile photo ────────────────────────────────────────────────────────
+
+function renderProfilePhoto(readUrl) {
+  if (readUrl) {
+    el.profilePhotoImg.src = readUrl;
+    el.profilePhotoImg.classList.remove('hidden');
+    el.profilePhotoPlaceholder.classList.add('hidden');
+    el.profilePhotoRemoveBtn.classList.remove('hidden');
+  } else {
+    el.profilePhotoImg.classList.add('hidden');
+    el.profilePhotoImg.removeAttribute('src');
+    el.profilePhotoPlaceholder.classList.remove('hidden');
+    el.profilePhotoRemoveBtn.classList.add('hidden');
+  }
+}
+
+async function uploadProfilePhoto(file) {
+  el.profilePhotoStatus.textContent = 'Uploading…';
+  el.profilePhotoUploadBtn.disabled = true;
+
+  // Instant local preview while the real upload happens in the background.
+  const previewUrl = URL.createObjectURL(file);
+  el.profilePhotoImg.src = previewUrl;
+  el.profilePhotoImg.classList.remove('hidden');
+  el.profilePhotoPlaceholder.classList.add('hidden');
+
+  try {
+    const sasRes = await fetch(ANGLER_MEDIA_SAS_URL, {
+      method: 'POST',
+      headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        anglerId: parseInt(anglerId, 10),
+        file: { name: file.name, size: file.size, type: file.type },
+      }),
+    });
+    if (!sasRes.ok) throw new Error(`HTTP ${sasRes.status}`);
+    const { uploadUrl, readUrl, blobPath, contentType } = await sasRes.json();
+
+    const putRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'x-ms-blob-type': 'BlockBlob', 'Content-Type': contentType || file.type },
+      body: file,
+    });
+    if (!putRes.ok) throw new Error(`Azure PUT failed: ${putRes.status}`);
+
+    const commitRes = await fetch(ANGLER_MEDIA_COMMIT_URL, {
+      method: 'POST',
+      headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        anglerId: parseInt(anglerId, 10),
+        blobPath, readUrl,
+        contentType: contentType || file.type,
+        originalName: file.name,
+      }),
+    });
+    if (!commitRes.ok) throw new Error(`HTTP ${commitRes.status}`);
+    const commitData = await commitRes.json();
+
+    renderProfilePhoto(commitData.readUrl || readUrl);
+    el.profilePhotoStatus.textContent = 'Photo updated.';
+  } catch (err) {
+    console.error('Profile photo upload failed:', err);
+    el.profilePhotoStatus.textContent = 'Upload failed. Please try again.';
+    renderProfilePhoto((originalData && originalData.profilePhotoReadUrl) || null);
+  } finally {
+    URL.revokeObjectURL(previewUrl);
+    el.profilePhotoUploadBtn.disabled = false;
+    el.profilePhotoInput.value = '';
+  }
+}
+
+async function removeProfilePhoto() {
+  el.profilePhotoStatus.textContent = 'Removing…';
+  el.profilePhotoRemoveBtn.disabled = true;
+
+  try {
+    const res = await fetch(ANGLER_MEDIA_REMOVE_URL, {
+      method: 'POST',
+      headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ anglerId: parseInt(anglerId, 10) }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    renderProfilePhoto(null);
+    el.profilePhotoStatus.textContent = 'Photo removed.';
+  } catch (err) {
+    console.error('Remove profile photo failed:', err);
+    el.profilePhotoStatus.textContent = 'Unable to remove photo. Please try again.';
+  } finally {
+    el.profilePhotoRemoveBtn.disabled = false;
   }
 }
 
@@ -175,6 +279,7 @@ async function load() {
 }
 
 function prefillForm(a) {
+  renderProfilePhoto(a.profilePhotoReadUrl || null);
   el.name.value = a.name || '';
   setStatus(a.status === 'Inactive' ? 'Inactive' : 'Active');
   el.aliases.value = (a.aliases || []).join(', ');
@@ -241,6 +346,13 @@ async function submit() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 }
+
+el.profilePhotoUploadBtn.addEventListener('click', () => el.profilePhotoInput.click());
+el.profilePhotoInput.addEventListener('change', () => {
+  const file = el.profilePhotoInput.files && el.profilePhotoInput.files[0];
+  if (file) uploadProfilePhoto(file);
+});
+el.profilePhotoRemoveBtn.addEventListener('click', removeProfilePhoto);
 
 el.statusPills.querySelectorAll('.status-pill').forEach(btn => {
   btn.addEventListener('click', () => setStatus(btn.dataset.status));

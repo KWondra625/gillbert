@@ -48,6 +48,21 @@
 
       <form id="anglerForm" novalidate>
 
+        <!-- Profile Photo -->
+        <div class="field-group profile-photo-group">
+          <label>📷 Profile Photo <span class="optional-mark">(optional)</span></label>
+          <div class="profile-photo-preview">
+            <img id="profilePhotoImg" class="profile-photo-img hidden" alt="Profile photo" />
+            <div id="profilePhotoPlaceholder" class="profile-photo-placeholder">🎣</div>
+          </div>
+          <input type="file" id="profilePhotoInput" accept="image/*" class="hidden" />
+          <div class="profile-photo-actions">
+            <button type="button" id="profilePhotoUploadBtn" class="profile-photo-btn">📤 Upload Photo</button>
+            <button type="button" id="profilePhotoRemoveBtn" class="profile-photo-btn profile-photo-btn--remove hidden">🗑️ Remove Photo</button>
+          </div>
+          <p id="profilePhotoStatus" class="field-hint"></p>
+        </div>
+
         <!-- Name -->
         <div class="field-group">
           <label for="name">🎣 Name <span class="required-mark">*</span></label>

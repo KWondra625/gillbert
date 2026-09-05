@@ -112,48 +112,96 @@ body {
   transform: scale(0.97);
 }
 
-/* ── Table ───────────────────────────────────────────────────────── */
+/* ── Angler cards ────────────────────────────────────────────────── */
 
-.table-scroll {
-  overflow-x: auto;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+.angler-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
   margin-bottom: 16px;
 }
 
-.data-table {
+@media (max-width: 480px) {
+  .angler-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.angler-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.angler-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
+}
+
+.angler-card-photo {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #f0f8ff;
+  border: 2px solid #d0eaff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.angler-card-img {
   width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
+  height: 100%;
+  object-fit: cover;
 }
 
-.data-table th {
-  text-align: left;
-  padding: 12px 16px;
-  font-size: 12px;
+.angler-card-placeholder {
+  font-size: 28px;
+}
+
+.angler-card-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.angler-card-name {
+  font-size: 16px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #888;
-  border-bottom: 2px solid #f0f0f0;
-  white-space: nowrap;
-}
-
-.data-table td {
-  padding: 12px 16px;
-  border-bottom: 1px solid #f5f5f5;
   color: #1a1a1a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.name-cell {
-  font-size: 15px;
-  font-weight: 700;
+.angler-card-aliases {
+  font-size: 12px;
+  color: #999;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.angler-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  flex-wrap: wrap;
 }
 
 .catch-count-link {
   color: #4FACFE;
   font-weight: 700;
+  font-size: 13px;
   text-decoration: none;
 }
 
@@ -163,19 +211,7 @@ body {
 
 .catch-count-zero {
   color: #ccc;
-}
-
-.data-row {
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.data-row:hover {
-  background: #f0f8ff;
-}
-
-.data-row:last-child td {
-  border-bottom: none;
+  font-size: 13px;
 }
 
 .empty-state {

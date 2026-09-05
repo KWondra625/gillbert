@@ -8,7 +8,7 @@ const el = {
   retryBtn:        document.getElementById('retryBtn'),
   searchInput:     document.getElementById('searchInput'),
   statusFilter:    document.getElementById('statusFilter'),
-  tbody:           document.getElementById('anglersTableBody'),
+  grid:            document.getElementById('anglerCardGrid'),
   emptyState:      document.getElementById('emptyState'),
 };
 
@@ -83,28 +83,36 @@ function render() {
 
   el.emptyState.classList.toggle('hidden', rows.length > 0);
 
-  el.tbody.innerHTML = rows.map(a => {
+  el.grid.innerHTML = rows.map(a => {
     const count = (anglerStats[a.id] && anglerStats[a.id].count) || 0;
     const countCell = count > 0
-      ? `<a href="#" class="catch-count-link" data-angler-name="${escapeHtml(a.name)}">${count}</a>`
-      : `<span class="catch-count-zero">0</span>`;
+      ? `<a href="#" class="catch-count-link" data-angler-name="${escapeHtml(a.name)}">${count} catch${count === 1 ? '' : 'es'}</a>`
+      : `<span class="catch-count-zero">No catches yet</span>`;
+    const photo = a.profilePhotoReadUrl
+      ? `<img class="angler-card-img" src="${escapeHtml(a.profilePhotoReadUrl)}" alt="" loading="lazy">`
+      : `<div class="angler-card-placeholder">🎣</div>`;
     return `
-    <tr class="data-row" data-id="${a.id}">
-      <td class="name-cell">${escapeHtml(a.name)}</td>
-      <td>${escapeHtml((a.aliases || []).join(', ') || '—')}</td>
-      <td><span class="pill ${pillClass(a.status)}">${escapeHtml(a.status)}</span></td>
-      <td>${countCell}</td>
-    </tr>
+    <div class="angler-card" data-id="${a.id}">
+      <div class="angler-card-photo">${photo}</div>
+      <div class="angler-card-body">
+        <div class="angler-card-name">${escapeHtml(a.name)}</div>
+        <div class="angler-card-aliases">${escapeHtml((a.aliases || []).join(', ') || '—')}</div>
+        <div class="angler-card-meta">
+          <span class="pill ${pillClass(a.status)}">${escapeHtml(a.status)}</span>
+          ${countCell}
+        </div>
+      </div>
+    </div>
   `;
   }).join('');
 
-  el.tbody.querySelectorAll('.data-row').forEach(row => {
-    row.addEventListener('click', () => {
-      window.location.href = `./edit-angler.html?id=${encodeURIComponent(row.dataset.id)}`;
+  el.grid.querySelectorAll('.angler-card').forEach(card => {
+    card.addEventListener('click', () => {
+      window.location.href = `./edit-angler.html?id=${encodeURIComponent(card.dataset.id)}`;
     });
   });
 
-  el.tbody.querySelectorAll('.catch-count-link').forEach(link => {
+  el.grid.querySelectorAll('.catch-count-link').forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();

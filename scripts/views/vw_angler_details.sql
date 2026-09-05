@@ -13,7 +13,17 @@ CREATE OR REPLACE VIEW vw_angler_details AS
             last_catch.catch_number AS last_catch_number,
             last_catch.caught_when AT TIME ZONE 'America/Chicago' AS last_catch_date,
             a.created_at AS created_at,
-            a.updated_at AS updated_at
+            a.updated_at AS updated_at,
+
+            -- Appended after the view's other columns (not grouped with the
+            -- rest of the angler fields above): CREATE OR REPLACE VIEW can
+            -- only add columns at the end, not insert them mid-list, or
+            -- Postgres errors on the shifted existing columns (see the
+            -- vw_catch_details fix from the Bodies of Water PR for the same
+            -- lesson learned the hard way).
+            a.profile_photo_blob_path AS profile_photo_blob_path,
+            a.profile_photo_read_url AS profile_photo_read_url,
+            a.profile_photo_uploaded_at AS profile_photo_uploaded_at
     FROM anglers a
     LEFT JOIN catches c ON a.id = c.angler_id
     LEFT JOIN LATERAL (

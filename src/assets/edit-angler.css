@@ -92,6 +92,63 @@ body {
   margin-bottom: 20px;
 }
 
+/* ── Profile photo ───────────────────────────────────────────────── */
+
+.profile-photo-group {
+  text-align: center;
+}
+
+.profile-photo-preview {
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #f0f8ff;
+  border: 2px solid #d0eaff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-photo-placeholder {
+  font-size: 40px;
+}
+
+.profile-photo-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.profile-photo-btn {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 20px;
+  border: 2px solid #d0eaff;
+  background: #f0f8ff;
+  color: #4FACFE;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.profile-photo-btn--remove {
+  border-color: #fcc;
+  background: #fff8f8;
+  color: #c0392b;
+}
+
+.profile-photo-group .field-hint {
+  text-align: center;
+}
+
 label {
   display: block;
   margin-bottom: 6px;
