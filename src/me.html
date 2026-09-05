@@ -83,6 +83,22 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.12);
     }
     .muted { color: #aaa; font-style: italic; font-size: 13px; }
+    .exit-admin-btn {
+      display: block;
+      width: 100%;
+      text-align: center;
+      padding: 12px;
+      margin-top: 10px;
+      background: #fff0f0;
+      border: 2px solid #fcc;
+      border-radius: 10px;
+      color: #c0392b;
+      font-weight: 700;
+      font-size: 14px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .exit-admin-btn:active { transform: scale(0.98); }
   </style>
 </head>
 <body>
@@ -188,7 +204,7 @@
 
       adminEl.innerHTML = `
         <div class="row">
-          <span class="row-label">CF Email</span>
+          <span class="row-label">Cloudflare Email</span>
           <span class="row-value">
             ${email
               ? `<span class="pill ${isAdminEmail ? 'pill-green' : 'pill-red'}">${isAdminEmail ? '✅' : '❌'} ${identity.email}</span>`
@@ -204,7 +220,17 @@
         ${expiresDate
           ? `<div class="row"><span class="row-label">Expires</span><span class="row-value">${expiresDate}</span></div>`
           : ''}
+        ${unlocked
+          ? '<button type="button" id="exitAdminBtn" class="exit-admin-btn">🔒 Exit Admin Mode</button>'
+          : ''}
       `;
+
+      if (unlocked) {
+        document.getElementById('exitAdminBtn').addEventListener('click', () => {
+          localStorage.removeItem(ADMIN_UNLOCK_STORAGE_KEY);
+          location.reload();
+        });
+      }
 
       // ── Raw response ───────────────────────────────────────────
       document.getElementById('rawContent').textContent = identity

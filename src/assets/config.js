@@ -14,3 +14,6 @@ const FISH_SPECIES_SAVE_URL = API_BASE + "fish-species/save";
 const BODIES_OF_WATER_GET_URL        = API_BASE + "bodies-of-water/get";
 const BODIES_OF_WATER_SAVE_URL       = API_BASE + "bodies-of-water/save";
 const BODIES_OF_WATER_DNR_SEARCH_URL = API_BASE + "bodies-of-water/dnr-search";
+
+const ANGLERS_GET_URL  = API_BASE + "anglers/get";
+const ANGLERS_SAVE_URL = API_BASE + "anglers/save";
