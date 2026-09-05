@@ -274,9 +274,12 @@ function renderDetails(catchData) {
 
   // 0. Headline block — top of card
   const anglerPhotoUrl = anglersById[catchData.anglerId] && anglersById[catchData.anglerId].profilePhotoReadUrl;
+  // No placeholder when there's no photo — the 🎣 icon already appears
+  // elsewhere on this page (headline, header), so repeating it here just
+  // to mark an absence reads as clutter rather than useful signal.
   const anglerAvatarHtml = anglerPhotoUrl
     ? `<img class="detail-angler-avatar" src="${escapeHtml(anglerPhotoUrl)}" alt="">`
-    : `<div class="detail-angler-avatar detail-angler-avatar--placeholder">🎣</div>`;
+    : '';
   const headlineHtml = catchData.headline ? `
     <div class="detail-summary">
       <div class="detail-summary-byline">
