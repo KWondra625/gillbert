@@ -14,7 +14,7 @@ CREATE OR REPLACE VIEW vw_catch_details AS
 
         bow.id AS body_of_water_id,
         bow.name AS body_of_water_name,
-        
+
         c.caught_when AS caught_when,
         (c.caught_when AT TIME ZONE 'America/Chicago')::TIME AS caught_time,
         EXTRACT(DAY FROM c.caught_when AT TIME ZONE 'America/Chicago') AS caught_day,
@@ -56,9 +56,17 @@ CREATE OR REPLACE VIEW vw_catch_details AS
         a3.name as updated_by_angler_name,
         c.updated_at AS updated_at,
 
-        (SELECT COUNT(*) FROM catch_media cm WHERE cm.catch_id = c.id) AS catch_media_count
+        (SELECT COUNT(*) FROM catch_media cm WHERE cm.catch_id = c.id) AS catch_media_count,
 
-    FROM catches c 
+        -- Appended after the view's other columns (not grouped with the
+        -- rest of body_of_water_* above): CREATE OR REPLACE VIEW can only
+        -- add columns at the end, not insert them mid-list, or Postgres
+        -- errors on the shifted existing columns. Consumers read these by
+        -- name, not position, so the non-adjacent placement is harmless.
+        bow.wbic AS body_of_water_wbic,
+        bow.dnr_url_verified AS body_of_water_dnr_url_verified
+
+    FROM catches c
         INNER JOIN anglers a ON c.angler_id = a.id
         LEFT JOIN anglers a2 ON c.created_by_angler_id = a2.id
         LEFT JOIN anglers a3 ON c.updated_by_angler_id = a3.id

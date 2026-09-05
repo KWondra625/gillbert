@@ -46,7 +46,7 @@ const FIELD_LABELS = {
 };
 
 // Fields excluded from all loops (handled explicitly)
-const EXCLUDE_FIELDS = new Set(['catchNumber', 'fullSummary', 'headline', 'catchMediaCount', 'anglerId', 'bodyOfWaterId', 'fishSpeciesId', 'fishSpeciesDnrUrl', 'createdByAnglerId', 'createdByAnglerName', 'updatedByAnglerId','updatedByAnglerName', ...FIELD_ORDER, ...AUDIT_FIELDS]);
+const EXCLUDE_FIELDS = new Set(['catchNumber', 'fullSummary', 'headline', 'catchMediaCount', 'anglerId', 'bodyOfWaterId', 'fishSpeciesId', 'fishSpeciesDnrUrl', 'bodyOfWaterWbic', 'bodyOfWaterDnrUrlVerified', 'createdByAnglerId', 'createdByAnglerName', 'updatedByAnglerId','updatedByAnglerName', ...FIELD_ORDER, ...AUDIT_FIELDS]);
 
 const el = {
   status:           document.getElementById('status'),
@@ -290,6 +290,16 @@ function renderDetails(catchData) {
         } catch {}
         const dnrLink = dnrHref
           ? `<a href="${escapeHtml(dnrHref)}" target="_blank" rel="noopener" class="dnr-link">🔗 WI DNR</a>`
+          : '';
+        return buildRow(key, catchData[key], '', dnrLink);
+      }
+      if (key === 'bodyOfWaterName' && catchData.bodyOfWaterWbic && catchData.bodyOfWaterDnrUrlVerified) {
+        // bodyOfWaterWbic should always be a plain integer from our own DB,
+        // but validate before building the href anyway — same defense in
+        // depth as the fish-species DNR link above.
+        const wbic = String(catchData.bodyOfWaterWbic).match(/^\d+$/) ? catchData.bodyOfWaterWbic : null;
+        const dnrLink = wbic
+          ? `<a href="${escapeHtml('https://apps.dnr.wi.gov/lakes/lakepages/LakeDetail.aspx?wbic=' + encodeURIComponent(wbic))}" target="_blank" rel="noopener" class="dnr-link">🔗 WI DNR</a>`
           : '';
         return buildRow(key, catchData[key], '', dnrLink);
       }
