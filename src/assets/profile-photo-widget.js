@@ -119,6 +119,18 @@ function createProfilePhotoWidget({ getAnglerId, elements: el }) {
   // same reason the server-side conversion step exists), so cropping only
   // applies to formats the browser can actually render — HEIC skips straight
   // to the upload-as-is flow and lets the server-side conversion handle it.
+  //
+  // file.type alone isn't reliable for this — browsers are known to report
+  // HEIC/HEIF as an empty string or 'image/heif' depending on OS/browser, the
+  // same reason media-upload.js falls back to extension sniffing.
+  function isHeic(file) {
+    if (file.type === 'image/heic' || file.type === 'image/heif') return true;
+    if (!file.type || file.type === 'application/octet-stream') {
+      const ext = (file.name || '').split('.').pop().toLowerCase();
+      return ext === 'heic' || ext === 'heif';
+    }
+    return false;
+  }
 
   function openCropModal(file) {
     pendingOriginalFile = file;
@@ -147,6 +159,7 @@ function createProfilePhotoWidget({ getAnglerId, elements: el }) {
     try {
       const canvas = await el.cropperSelection.$toCanvas();
       const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+      if (!blob) throw new Error('Canvas produced no image data.');
       const croppedName = (originalFile.name || 'photo').replace(/\.[^.]+$/, '') + '-cropped.jpg';
       const croppedFile = new File([blob], croppedName, { type: 'image/jpeg' });
       closeCropModal();
@@ -162,7 +175,7 @@ function createProfilePhotoWidget({ getAnglerId, elements: el }) {
   el.input.addEventListener('change', () => {
     const file = el.input.files && el.input.files[0];
     if (!file) return;
-    if (file.type === 'image/heic') {
+    if (isHeic(file)) {
       uploadProfilePhoto(file);
     } else {
       openCropModal(file);
