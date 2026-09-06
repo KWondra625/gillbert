@@ -209,6 +209,28 @@ body {
   margin: 0;
 }
 
+.detail-summary-byline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.detail-summary-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.detail-angler-avatar {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: white;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
 /* ─── Card Footer (Edit + Record Info triggers) ─── */
 .detail-card-footer {
   padding: 10px 24px;
