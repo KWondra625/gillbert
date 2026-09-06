@@ -44,11 +44,23 @@ let currentCatchCount = 0;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Defined locally, matching media-upload.js's own SAS/commit endpoint
-// constants rather than adding these to config.js — only this page uses them.
-const ANGLER_MEDIA_SAS_URL    = API_BASE + 'anglers/get-photo-sas';
-const ANGLER_MEDIA_COMMIT_URL = API_BASE + 'anglers/save-photo';
-const ANGLER_MEDIA_REMOVE_URL = API_BASE + 'anglers/delete-photo';
+const photoWidget = createProfilePhotoWidget({
+  getAnglerId: () => anglerId,
+  elements: {
+    img: el.profilePhotoImg,
+    placeholder: el.profilePhotoPlaceholder,
+    input: el.profilePhotoInput,
+    uploadBtn: el.profilePhotoUploadBtn,
+    removeBtn: el.profilePhotoRemoveBtn,
+    status: el.profilePhotoStatus,
+    cropModal: el.cropModal,
+    cropModalClose: el.cropModalClose,
+    cropCancelBtn: el.cropCancelBtn,
+    cropConfirmBtn: el.cropConfirmBtn,
+    cropperImage: el.cropperImage,
+    cropperSelection: el.cropperSelection,
+  },
+});
 
 function parseLoginEmails() {
   return el.loginEmails.value.split(',').map(e => e.trim()).filter(Boolean);
@@ -62,145 +74,6 @@ function renderViewCatchesLink(count) {
   } else {
     el.viewCatchesLink.textContent = '🎣 No Catches Yet';
     el.viewCatchesLink.classList.add('view-catches-link--empty');
-  }
-}
-
-// ── Profile photo ────────────────────────────────────────────────────────
-
-function renderProfilePhoto(readUrl) {
-  if (readUrl) {
-    el.profilePhotoImg.src = readUrl;
-    el.profilePhotoImg.classList.remove('hidden');
-    el.profilePhotoPlaceholder.classList.add('hidden');
-    el.profilePhotoRemoveBtn.classList.remove('hidden');
-  } else {
-    el.profilePhotoImg.classList.add('hidden');
-    el.profilePhotoImg.removeAttribute('src');
-    el.profilePhotoPlaceholder.classList.remove('hidden');
-    el.profilePhotoRemoveBtn.classList.add('hidden');
-  }
-}
-
-async function uploadProfilePhoto(file) {
-  el.profilePhotoStatus.textContent = 'Uploading…';
-  el.profilePhotoUploadBtn.disabled = true;
-
-  // Instant local preview while the real upload happens in the background.
-  const previewUrl = URL.createObjectURL(file);
-  el.profilePhotoImg.src = previewUrl;
-  el.profilePhotoImg.classList.remove('hidden');
-  el.profilePhotoPlaceholder.classList.add('hidden');
-
-  try {
-    const sasRes = await fetch(ANGLER_MEDIA_SAS_URL, {
-      method: 'POST',
-      headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        anglerId: parseInt(anglerId, 10),
-        file: { name: file.name, size: file.size, type: file.type },
-      }),
-    });
-    if (!sasRes.ok) throw new Error(`HTTP ${sasRes.status}`);
-    const { uploadUrl, readUrl, blobPath, contentType } = await sasRes.json();
-
-    const putRes = await fetch(uploadUrl, {
-      method: 'PUT',
-      headers: { 'x-ms-blob-type': 'BlockBlob', 'Content-Type': contentType || file.type },
-      body: file,
-    });
-    if (!putRes.ok) throw new Error(`Azure PUT failed: ${putRes.status}`);
-
-    const commitRes = await fetch(ANGLER_MEDIA_COMMIT_URL, {
-      method: 'POST',
-      headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        anglerId: parseInt(anglerId, 10),
-        blobPath, readUrl,
-        contentType: contentType || file.type,
-        originalName: file.name,
-      }),
-    });
-    if (!commitRes.ok) throw new Error(`HTTP ${commitRes.status}`);
-    const commitData = await commitRes.json();
-
-    renderProfilePhoto(commitData.readUrl || readUrl);
-    el.profilePhotoStatus.textContent = 'Photo updated.';
-  } catch (err) {
-    console.error('Profile photo upload failed:', err);
-    el.profilePhotoStatus.textContent = 'Upload failed. Please try again.';
-    renderProfilePhoto((originalData && originalData.profilePhotoReadUrl) || null);
-  } finally {
-    URL.revokeObjectURL(previewUrl);
-    el.profilePhotoUploadBtn.disabled = false;
-    el.profilePhotoInput.value = '';
-  }
-}
-
-async function removeProfilePhoto() {
-  el.profilePhotoStatus.textContent = 'Removing…';
-  el.profilePhotoRemoveBtn.disabled = true;
-
-  try {
-    const res = await fetch(ANGLER_MEDIA_REMOVE_URL, {
-      method: 'POST',
-      headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ anglerId: parseInt(anglerId, 10) }),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    renderProfilePhoto(null);
-    el.profilePhotoStatus.textContent = 'Photo removed.';
-  } catch (err) {
-    console.error('Remove profile photo failed:', err);
-    el.profilePhotoStatus.textContent = 'Unable to remove photo. Please try again.';
-  } finally {
-    el.profilePhotoRemoveBtn.disabled = false;
-  }
-}
-
-// ── Crop modal ───────────────────────────────────────────────────────────
-// Browsers generally can't decode HEIC into an <img>/canvas at all (the same
-// reason the server-side conversion step exists), so cropping only applies
-// to formats the browser can actually render — HEIC skips straight to the
-// existing upload-as-is flow and lets the server-side conversion handle it.
-
-let cropObjectUrl = null;
-let pendingOriginalFile = null;
-
-function openCropModal(file) {
-  pendingOriginalFile = file;
-  cropObjectUrl = URL.createObjectURL(file);
-  el.cropperImage.src = cropObjectUrl;
-  el.cropModal.classList.add('open');
-  // Setting .src via a JS property (rather than a parse-time HTML attribute)
-  // doesn't auto-trigger the selection's initial sizing — has to be done
-  // explicitly once the new image has actually loaded.
-  el.cropperImage.$ready().then(() => el.cropperSelection.$initSelection());
-}
-
-function closeCropModal() {
-  el.cropModal.classList.remove('open');
-  if (cropObjectUrl) {
-    URL.revokeObjectURL(cropObjectUrl);
-    cropObjectUrl = null;
-  }
-  pendingOriginalFile = null;
-  // Reset so picking the same file again still fires 'change'.
-  el.profilePhotoInput.value = '';
-}
-
-async function confirmCrop() {
-  const originalFile = pendingOriginalFile;
-  try {
-    const canvas = await el.cropperSelection.$toCanvas();
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
-    const croppedName = (originalFile.name || 'photo').replace(/\.[^.]+$/, '') + '-cropped.jpg';
-    const croppedFile = new File([blob], croppedName, { type: 'image/jpeg' });
-    closeCropModal();
-    uploadProfilePhoto(croppedFile);
-  } catch (err) {
-    console.error('Crop failed:', err);
-    closeCropModal();
-    el.profilePhotoStatus.textContent = 'Crop failed. Please try again.';
   }
 }
 
@@ -332,7 +205,7 @@ async function load() {
 }
 
 function prefillForm(a) {
-  renderProfilePhoto(a.profilePhotoReadUrl || null);
+  photoWidget.setPhoto(a.profilePhotoReadUrl || null);
   el.name.value = a.name || '';
   setStatus(a.status === 'Inactive' ? 'Inactive' : 'Active');
   el.aliases.value = (a.aliases || []).join(', ');
@@ -400,27 +273,6 @@ async function submit() {
   }
 }
 
-el.profilePhotoUploadBtn.addEventListener('click', () => el.profilePhotoInput.click());
-el.profilePhotoInput.addEventListener('change', () => {
-  const file = el.profilePhotoInput.files && el.profilePhotoInput.files[0];
-  if (!file) return;
-  if (file.type === 'image/heic') {
-    // Can't preview/crop HEIC in-browser — upload as-is, server-side
-    // conversion handles it same as before.
-    uploadProfilePhoto(file);
-  } else {
-    openCropModal(file);
-  }
-});
-el.profilePhotoRemoveBtn.addEventListener('click', removeProfilePhoto);
-
-el.cropModalClose.addEventListener('click', closeCropModal);
-el.cropCancelBtn.addEventListener('click', closeCropModal);
-el.cropConfirmBtn.addEventListener('click', confirmCrop);
-el.cropModal.addEventListener('click', (e) => {
-  if (e.target === el.cropModal) closeCropModal();
-});
-
 el.statusPills.querySelectorAll('.status-pill').forEach(btn => {
   btn.addEventListener('click', () => setStatus(btn.dataset.status));
 });
@@ -440,7 +292,6 @@ el.recordInfoModal.addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   el.recordInfoModal.classList.remove('open');
-  if (el.cropModal.classList.contains('open')) closeCropModal();
 });
 
 el.viewCatchesLink.addEventListener('click', (e) => {

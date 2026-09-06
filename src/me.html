@@ -99,6 +99,132 @@
       cursor: pointer;
     }
     .exit-admin-btn:active { transform: scale(0.98); }
+
+    /* ── Profile photo widget ─────────────────────────────────────── */
+    .profile-photo-preview {
+      width: 96px;
+      height: 96px;
+      margin: 0 auto 12px;
+      border-radius: 50%;
+      overflow: hidden;
+      background: #f0f8ff;
+      border: 2px solid #d0eaff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .profile-photo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .profile-photo-placeholder {
+      font-size: 40px;
+    }
+    .profile-photo-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+    .profile-photo-btn {
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 20px;
+      border: 2px solid #d0eaff;
+      background: #f0f8ff;
+      color: #4FACFE;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .profile-photo-btn--remove {
+      border-color: #fcc;
+      background: #fff8f8;
+      color: #c0392b;
+    }
+    .field-hint {
+      margin: 6px 0 0 0;
+      font-size: 12px;
+      color: #999;
+      text-align: center;
+    }
+
+    /* ── Crop modal ────────────────────────────────────────────────── */
+    .ri-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 900;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .ri-modal.open { display: flex; }
+    .ri-modal-sheet {
+      width: 100%;
+      max-width: 500px;
+      background: white;
+      border-radius: 16px 16px 0 0;
+      padding-bottom: max(24px, env(safe-area-inset-bottom));
+      box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
+      animation: slideUp 0.22s ease-out;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(24px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    .ri-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .ri-modal-title { font-size: 15px; font-weight: 700; color: #555; }
+    .ri-modal-close {
+      background: none;
+      border: none;
+      font-size: 28px;
+      line-height: 1;
+      color: #aaa;
+      cursor: pointer;
+      padding: 0;
+    }
+    .ri-modal-close:hover { color: #555; }
+    .crop-modal-body { padding: 12px 20px 8px; }
+    .crop-modal-body cropper-canvas {
+      border-radius: 8px;
+      overflow: hidden;
+      background: #1a1a1a;
+    }
+    .crop-modal-body .field-hint { margin-top: 10px; }
+    .crop-modal-footer {
+      display: flex;
+      gap: 10px;
+      padding: 4px 20px 20px;
+    }
+    .crop-modal-footer .crop-back-button,
+    .crop-modal-footer .crop-primary-button {
+      flex: 1;
+      padding: 14px 12px;
+      font-size: 15px;
+      font-weight: 700;
+      border-radius: 10px;
+      cursor: pointer;
+      text-align: center;
+      font-family: inherit;
+    }
+    .crop-modal-footer .crop-back-button {
+      background: #f0f8ff;
+      color: #4FACFE;
+      border: 2px solid #d0eaff;
+    }
+    .crop-modal-footer .crop-primary-button {
+      background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
+      color: white;
+      border: none;
+      box-shadow: 0 4px 16px rgba(79, 172, 254, 0.3);
+    }
   </style>
 </head>
 <body>
@@ -108,7 +234,12 @@
     </div>
 
     <h1>👤 Who's There?</h1>
-    <p class="subtitle">Cloudflare Access identity — diagnostic only, not linked anywhere.</p>
+    <p class="subtitle">Update your profile photo, and see how Gillbert recognizes your Cloudflare Access login.</p>
+
+    <div class="card">
+      <p class="card-label">My Profile Photo</p>
+      <div id="photoCardContent"><p class="muted">Checking…</p></div>
+    </div>
 
     <div class="card">
       <p class="card-label">Cloudflare Identity</p>
@@ -132,7 +263,44 @@
 
   </div>
 
+  <!-- Crop Photo Modal -->
+  <div id="cropModal" class="ri-modal" role="dialog" aria-modal="true" aria-label="Crop Photo">
+    <div class="ri-modal-sheet">
+      <div class="ri-modal-header">
+        <span class="ri-modal-title">✂️ Crop Photo</span>
+        <button class="ri-modal-close" id="cropModalClose" aria-label="Cancel">&times;</button>
+      </div>
+      <div class="crop-modal-body">
+        <cropper-canvas background style="width:100%;height:320px;">
+          <cropper-image id="cropperImage"></cropper-image>
+          <cropper-shade></cropper-shade>
+          <cropper-handle action="select" plain></cropper-handle>
+          <cropper-selection id="cropperSelection" initial-coverage="0.8" aspect-ratio="1" movable resizable>
+            <cropper-grid role="grid" covered></cropper-grid>
+            <cropper-crosshair centered></cropper-crosshair>
+            <cropper-handle action="move" theme-color="rgba(255, 255, 255, 0.35)"></cropper-handle>
+            <cropper-handle action="n-resize"></cropper-handle>
+            <cropper-handle action="e-resize"></cropper-handle>
+            <cropper-handle action="s-resize"></cropper-handle>
+            <cropper-handle action="w-resize"></cropper-handle>
+            <cropper-handle action="ne-resize"></cropper-handle>
+            <cropper-handle action="nw-resize"></cropper-handle>
+            <cropper-handle action="se-resize"></cropper-handle>
+            <cropper-handle action="sw-resize"></cropper-handle>
+          </cropper-selection>
+        </cropper-canvas>
+        <p class="field-hint">Drag to draw or move the square, resize from a corner — always kept 1:1.</p>
+      </div>
+      <div class="crop-modal-footer">
+        <button type="button" id="cropCancelBtn" class="crop-back-button">← Cancel</button>
+        <button type="button" id="cropConfirmBtn" class="crop-primary-button">✅ Use This Crop</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/2.2.0/cropper.min.js"></script>
   <script src="./assets/config.js"></script>
+  <script src="./assets/profile-photo-widget.js"></script>
   <script src="./assets/admin.js"></script>
   <script>
     (async () => {
@@ -176,6 +344,47 @@
       } else {
         identityEl.innerHTML =
           '<div class="row"><span class="row-value" style="color:#c0392b">⚠️ No identity detected — are you on the live site and logged in via Cloudflare Access?</span></div>';
+      }
+
+      // ── My Profile Photo card ─────────────────────────────────
+      const photoCardEl = document.getElementById('photoCardContent');
+      if (anglerLookupError) {
+        photoCardEl.innerHTML = '<p class="muted" style="color:#c0392b">⚠️ Unable to load angler lookup data</p>';
+      } else if (myAngler) {
+        photoCardEl.innerHTML = `
+          <div class="profile-photo-preview">
+            <img id="profilePhotoImg" class="profile-photo-img hidden" alt="Profile photo" />
+            <div id="profilePhotoPlaceholder" class="profile-photo-placeholder">🎣</div>
+          </div>
+          <input type="file" id="profilePhotoInput" accept="image/*" class="hidden" />
+          <div class="profile-photo-actions">
+            <button type="button" id="profilePhotoUploadBtn" class="profile-photo-btn">📤 Upload Photo</button>
+            <button type="button" id="profilePhotoRemoveBtn" class="profile-photo-btn profile-photo-btn--remove hidden">🗑️ Remove Photo</button>
+          </div>
+          <p id="profilePhotoStatus" class="field-hint"></p>
+        `;
+        const photoWidget = createProfilePhotoWidget({
+          getAnglerId: () => myAngler.id,
+          elements: {
+            img: document.getElementById('profilePhotoImg'),
+            placeholder: document.getElementById('profilePhotoPlaceholder'),
+            input: document.getElementById('profilePhotoInput'),
+            uploadBtn: document.getElementById('profilePhotoUploadBtn'),
+            removeBtn: document.getElementById('profilePhotoRemoveBtn'),
+            status: document.getElementById('profilePhotoStatus'),
+            cropModal: document.getElementById('cropModal'),
+            cropModalClose: document.getElementById('cropModalClose'),
+            cropCancelBtn: document.getElementById('cropCancelBtn'),
+            cropConfirmBtn: document.getElementById('cropConfirmBtn'),
+            cropperImage: document.getElementById('cropperImage'),
+            cropperSelection: document.getElementById('cropperSelection'),
+          },
+        });
+        photoWidget.setPhoto(myAngler.profilePhotoReadUrl || null);
+      } else if (identity && identity.email) {
+        photoCardEl.innerHTML = '<p class="muted">No angler matches this email — nothing to attach a photo to.</p>';
+      } else {
+        photoCardEl.innerHTML = '<p class="muted">Log in via Cloudflare Access to manage your photo.</p>';
       }
 
       // ── Angler mapping card ───────────────────────────────────
