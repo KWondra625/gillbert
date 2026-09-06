@@ -26,17 +26,23 @@ const el = {
   filterSummary: document.getElementById('filterSummary'),
   filterSummaryText: document.getElementById('filterSummaryText'),
   filterClearAll: document.getElementById('filterClearAll'),
+  topBackLink: document.getElementById('topBackLink'),
+  bottomBackLink: document.getElementById('bottomBackLink'),
 };
 
 let allCatches = [];
 let filteredCatches = [];
 let currentPage = 1;
 let lookups = { anglers: [], species: [], bodiesOfWater: [] };
-let activeFilters = { angler: '', species: '', water: '', pendingOnly: false };
+let activeFilters = { angler: '', species: '', water: '', waterId: null, pendingOnly: false };
 
 // Guards against loadLookups() rendering an empty-state flash if it resolves
 // before loadCatches() has populated allCatches for the first time.
 let catchesLoaded = false;
+// Species names with at least one catch — narrows the species filter dropdown
+// below the full roster. Fetched independently of allCatches so it always
+// reflects every catch, not just whatever the current search term matched.
+let speciesWithCatches = null;
 
 function setStatus(msg) {
   el.status.textContent = msg;
@@ -96,6 +102,14 @@ async function loadCatches() {
       setStatus("");
       hideLoading();
       return;
+    }
+
+    // A search-less fetch already pulled the complete catch set, which is
+    // also the full picture of which species have catches — reuse it here
+    // instead of loadSpeciesWithCatches() making a second, identical request.
+    if (!term) {
+      speciesWithCatches = new Set(allCatches.map(c => c.fishSpeciesName).filter(Boolean));
+      buildDropdowns();
     }
 
     setStatus("");
@@ -285,7 +299,7 @@ async function loadLookups() {
     const raw = await res.json();
     const data = Array.isArray(raw) ? raw[0] : raw;
     lookups.anglers = data.anglers || [];
-    lookups.species = data.fishSpecies || [];
+    lookups.species = (data.fishSpecies || []).map(s => ({ id: s.id, name: s.displayNameOverride || s.name }));
     lookups.bodiesOfWater = data.bodiesOfWater || [];
     buildDropdowns();
     // Only re-filter here if catches have already loaded — otherwise this would
@@ -297,13 +311,35 @@ async function loadLookups() {
   }
 }
 
+async function loadSpeciesWithCatches() {
+  // When there's no active search term, loadCatches() fetches the full
+  // catch set itself and derives speciesWithCatches from it directly —
+  // no need for a second, identical request here.
+  if (!el.searchInput.value.trim()) return;
+  try {
+    const res = await fetch(CATCHES_GET_URL, { headers: { 'X-API-Key': API_KEY } });
+    if (!res.ok) return;
+    const data = await res.json();
+    const catches = (Array.isArray(data) ? data : (data.catches || [])).filter(c => c && c.catchNumber);
+    speciesWithCatches = new Set(catches.map(c => c.fishSpeciesName).filter(Boolean));
+    buildDropdowns();
+  } catch (e) {
+    console.error('Failed to load species-with-catches', e);
+  }
+}
+
 // Builds each dropdown's markup and click listeners once, when the lookup
 // lists first arrive — the angler/species/water lists never change within a
 // page session, so there's no need to redo this on every filter interaction
 // (see syncDropdownSelections, called instead on each applyFilters()).
 function buildDropdowns() {
   buildDropdown('angler', el.filterAnglerDropdown, lookups.anglers, 'All Anglers');
-  buildDropdown('species', el.filterSpeciesDropdown, lookups.species, 'All Species');
+  // Until speciesWithCatches has loaded, fall back to the full roster rather than showing nothing.
+  const caughtSpecies = (speciesWithCatches
+    ? lookups.species.filter(s => speciesWithCatches.has(s.name))
+    : lookups.species
+  ).slice().sort((a, b) => a.name.localeCompare(b.name));
+  buildDropdown('species', el.filterSpeciesDropdown, caughtSpecies, 'All Species');
   buildDropdown('water', el.filterWaterDropdown, lookups.bodiesOfWater, 'All Waters');
   syncDropdownSelections();
 }
@@ -322,6 +358,10 @@ function buildDropdown(filterKey, dropdownEl, items, allLabel) {
   dropdownEl.querySelectorAll('.filter-option').forEach(optEl => {
     optEl.addEventListener('click', () => {
       activeFilters[filterKey] = optEl.dataset.value;
+      // Manual dropdown picks only know a name, never a waterId — clear any
+      // id-based filter from a catch-count link so this pick isn't silently
+      // ignored by the id check in applyFilters().
+      if (filterKey === 'water') activeFilters.waterId = null;
       closeDropdowns();
       applyFilters();
     });
@@ -348,7 +388,9 @@ function applyFilters() {
   filteredCatches = allCatches.filter(c => {
     if (activeFilters.angler && c.anglerName !== activeFilters.angler) return false;
     if (activeFilters.species && c.fishSpeciesName !== activeFilters.species) return false;
-    if (activeFilters.water && c.bodyOfWaterName !== activeFilters.water) return false;
+    if (activeFilters.waterId != null) {
+      if (c.bodyOfWaterId !== activeFilters.waterId) return false;
+    } else if (activeFilters.water && c.bodyOfWaterName !== activeFilters.water) return false;
     if (activeFilters.pendingOnly && c.verifiedAt) return false;
     return true;
   });
@@ -432,7 +474,7 @@ function closeDropdowns() {
 document.addEventListener('click', closeDropdowns);
 
 el.filterClearAll.addEventListener('click', () => {
-  activeFilters = { angler: '', species: '', water: '', pendingOnly: false };
+  activeFilters = { angler: '', species: '', water: '', waterId: null, pendingOnly: false };
   sessionStorage.removeItem('gillbert_filters');
   applyFilters();
 });
@@ -449,7 +491,31 @@ async function setupPendingFilterGate() {
   if (isAdminUnlocked()) el.filterPendingWrapper.hidden = false;
 }
 
+// One-shot: whoever links here sets gillbert_return_to right before
+// navigating; we apply it once and clear it so a later plain/default visit
+// (e.g. from Home) doesn't inherit a stale destination from earlier in the
+// session. Unlike gillbert_filters/gillbert_search, this isn't meant to
+// persist — it describes how the user got here *this time*, not a standing
+// preference.
+function setupBackNavigation() {
+  let returnTo = null;
+  try { returnTo = JSON.parse(sessionStorage.getItem('gillbert_return_to') || 'null'); } catch (e) {}
+  sessionStorage.removeItem('gillbert_return_to');
+
+  const href = returnTo?.href || './index.html';
+  const label = returnTo?.label || 'Home';
+
+  el.topBackLink.href = href;
+  el.topBackLink.textContent = `← ${label}`;
+  el.topBackLink.setAttribute('aria-label', `Go back to ${label}`);
+
+  el.bottomBackLink.href = href;
+  el.bottomBackLink.textContent = `← Back to ${label}`;
+}
+
 window.addEventListener("DOMContentLoaded", () => {
+  setupBackNavigation();
+
   const savedSearch = sessionStorage.getItem('gillbert_search');
   if (savedSearch) {
     el.searchInput.value = savedSearch;
@@ -461,4 +527,5 @@ window.addEventListener("DOMContentLoaded", () => {
   setupPendingFilterGate();
   loadLookups();
   loadCatches();
+  loadSpeciesWithCatches();
 });

@@ -46,7 +46,9 @@ async function fetchLookups() {
     // n8n Respond to Webhook may wrap the payload in an array — unwrap if needed
     const data = Array.isArray(raw) ? raw[0] : raw;
     populateSelect(el.anglerId,       data.anglers       || []);
-    populateSelect(el.fishSpeciesId,  data.fishSpecies       || []);
+    const speciesForDropdown = (data.fishSpecies || []).map(s => ({ id: s.id, name: s.displayNameOverride || s.name }));
+    const sortedSpecies = speciesForDropdown.sort((a, b) => a.name.localeCompare(b.name));
+    populateSelect(el.fishSpeciesId,  sortedSpecies);
     populateSelect(el.bodyOfWaterId,  data.bodiesOfWater || []);
     myAnglerId = await resolveMyAnglerId(data.anglers || []);
     setDefaultCatchTime();

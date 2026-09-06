@@ -152,6 +152,39 @@ body {
   word-break: break-word;
 }
 
+.detail-value:has(.dnr-link) {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dnr-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: #f0f8ff;
+  color: #1a75d1;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1px solid #d0eaff;
+  white-space: nowrap;
+  vertical-align: middle;
+  transition: transform 0.15s, background 0.15s;
+}
+
+.dnr-link:hover {
+  background: #e0f0ff;
+}
+
+.dnr-link:active {
+  transform: scale(0.96);
+}
+
 /* Summary block */
 .detail-summary {
   margin-top: 0;
@@ -174,6 +207,28 @@ body {
 
 .detail-summary p {
   margin: 0;
+}
+
+.detail-summary-byline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.detail-summary-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.detail-angler-avatar {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: white;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
 /* ─── Card Footer (Edit + Record Info triggers) ─── */

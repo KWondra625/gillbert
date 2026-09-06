@@ -5,6 +5,17 @@ CREATE TABLE IF NOT EXISTS bodies_of_water (
     latitude double precision,
     longitude double precision,
     notes TEXT,
+    wbic integer,
+    dnr_url_verified boolean NOT NULL DEFAULT true,
+    dnr_official_name varchar(255),
+    hydrotype smallint,
+    landlock_code smallint,
+    shape_area double precision,
+    shape_len double precision,
+    river_sys_name varchar(255),
+    river_sys_wbic integer,
+    river_row_name varchar(255),
+    waterbody_row_name varchar(255),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );

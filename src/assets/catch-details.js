@@ -6,6 +6,10 @@ const LOOKUP_URL          = API_BASE + "get-lookup-data";
 // Resolved from the Cloudflare identity once lookups load; null if unmatched
 let myAnglerId = null;
 
+// Angler id -> angler record (for profile photos on the headline byline),
+// populated from the same get-lookup-data call already used for resolveMyAnglerId.
+let anglersById = {};
+
 // Primary fields shown in this exact order
 const FIELD_ORDER = [
   'anglerName',
@@ -117,12 +121,12 @@ function formatValue(key, value) {
   return escapeHtml(String(value));
 }
 
-function buildRow(key, value, extraClass = '') {
+function buildRow(key, value, extraClass = '', extraContent = '') {
   const meta = FIELD_LABELS[key] || { label: camelToLabel(key), icon: "📌" };
   return `
     <div class="detail-row${extraClass ? ' ' + extraClass : ''}">
       <span class="detail-label">${meta.icon} ${escapeHtml(meta.label)}</span>
-      <span class="detail-value">${formatValue(key, value)}</span>
+      <span class="detail-value">${formatValue(key, value)}${extraContent}</span>
     </div>`;
 }
 
@@ -241,7 +245,9 @@ async function loadCatchDetails(catchNumber) {
     if (lookupRes.ok) {
       const lookupRaw = await lookupRes.json();
       const lookupData = Array.isArray(lookupRaw) ? lookupRaw[0] : lookupRaw;
-      myAnglerId = await resolveMyAnglerId(lookupData.anglers || []);
+      const anglers = lookupData.anglers || [];
+      myAnglerId = await resolveMyAnglerId(anglers);
+      anglersById = Object.fromEntries(anglers.map(a => [a.id, a]));
       setStatus("");
     } else {
       // Owner-edit permission can't be resolved without this — fail closed (no
@@ -269,10 +275,22 @@ function renderDetails(catchData) {
   const hasValue = (key) => catchData[key] !== null && catchData[key] !== undefined && catchData[key] !== '';
 
   // 0. Headline block — top of card
+  const anglerPhotoUrl = anglersById[catchData.anglerId] && anglersById[catchData.anglerId].profilePhotoReadUrl;
+  // No placeholder when there's no photo — the 🎣 icon already appears
+  // elsewhere on this page (headline, header), so repeating it here just
+  // to mark an absence reads as clutter rather than useful signal.
+  const anglerAvatarHtml = anglerPhotoUrl
+    ? `<img class="detail-angler-avatar" src="${escapeHtml(anglerPhotoUrl)}" alt="">`
+    : '';
   const headlineHtml = catchData.headline ? `
     <div class="detail-summary">
-      <div class="detail-summary-label">🎣 Headline</div>
-      <p>${escapeHtml(catchData.headline)}</p>
+      <div class="detail-summary-byline">
+        ${anglerAvatarHtml}
+        <div class="detail-summary-text">
+          <div class="detail-summary-label">🎣 Headline</div>
+          <p>${escapeHtml(catchData.headline)}</p>
+        </div>
+      </div>
     </div>` : '';
 
   // Review status badge — pending (amber) until verified, then a green confirmation
@@ -283,7 +301,30 @@ function renderDetails(catchData) {
   // 1. Primary ordered fields
   const primaryRows = FIELD_ORDER
     .filter(hasValue)
-    .map(key => buildRow(key, catchData[key]))
+    .map(key => {
+      if (key === 'fishSpeciesName' && catchData.fishSpeciesDnrUrl) {
+        let dnrHref = null;
+        try {
+          const u = new URL(catchData.fishSpeciesDnrUrl);
+          if (u.protocol === 'http:' || u.protocol === 'https:') dnrHref = u.href;
+        } catch {}
+        const dnrLink = dnrHref
+          ? `<a href="${escapeHtml(dnrHref)}" target="_blank" rel="noopener" class="dnr-link">🔗 WI DNR</a>`
+          : '';
+        return buildRow(key, catchData[key], '', dnrLink);
+      }
+      if (key === 'bodyOfWaterName' && catchData.bodyOfWaterWbic && catchData.bodyOfWaterDnrUrlVerified) {
+        // bodyOfWaterWbic should always be a plain integer from our own DB,
+        // but validate before building the href anyway — same defense in
+        // depth as the fish-species DNR link above.
+        const wbic = String(catchData.bodyOfWaterWbic).match(/^\d+$/) ? catchData.bodyOfWaterWbic : null;
+        const dnrLink = wbic
+          ? `<a href="${escapeHtml('https://apps.dnr.wi.gov/lakes/lakepages/LakeDetail.aspx?wbic=' + encodeURIComponent(wbic))}" target="_blank" rel="noopener" class="dnr-link">🔗 WI DNR</a>`
+          : '';
+        return buildRow(key, catchData[key], '', dnrLink);
+      }
+      return buildRow(key, catchData[key]);
+    })
     .join('');
 
   // 2. Audit data — stored for the modal, not rendered inline
