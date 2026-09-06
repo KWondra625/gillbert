@@ -20,6 +20,9 @@ const el = {
   filterWaterChip: document.getElementById('filterWaterChip'),
   filterWaterValue: document.getElementById('filterWaterValue'),
   filterWaterDropdown: document.getElementById('filterWaterDropdown'),
+  filterGroupChip: document.getElementById('filterGroupChip'),
+  filterGroupValue: document.getElementById('filterGroupValue'),
+  filterGroupDropdown: document.getElementById('filterGroupDropdown'),
   filterPendingWrapper: document.getElementById('filterPendingWrapper'),
   filterPendingChip: document.getElementById('filterPendingChip'),
   filterPendingValue: document.getElementById('filterPendingValue'),
@@ -34,7 +37,10 @@ let allCatches = [];
 let filteredCatches = [];
 let currentPage = 1;
 let lookups = { anglers: [], species: [], bodiesOfWater: [] };
-let activeFilters = { angler: '', species: '', water: '', waterId: null, pendingOnly: false };
+let activeFilters = { angler: '', species: '', water: '', waterId: null, group: '', pendingOnly: false };
+// anglerId -> groups[] — built once lookups.anglers loads, so the Group
+// filter can check a catch's angler without re-deriving this per catch.
+let groupsByAnglerId = {};
 
 // Guards against loadLookups() rendering an empty-state flash if it resolves
 // before loadCatches() has populated allCatches for the first time.
@@ -301,6 +307,7 @@ async function loadLookups() {
     lookups.anglers = data.anglers || [];
     lookups.species = (data.fishSpecies || []).map(s => ({ id: s.id, name: s.displayNameOverride || s.name }));
     lookups.bodiesOfWater = data.bodiesOfWater || [];
+    groupsByAnglerId = Object.fromEntries(lookups.anglers.map(a => [a.id, a.groups || []]));
     buildDropdowns();
     // Only re-filter here if catches have already loaded — otherwise this would
     // run against an empty allCatches and flash a false "no results" state.
@@ -341,6 +348,10 @@ function buildDropdowns() {
   ).slice().sort((a, b) => a.name.localeCompare(b.name));
   buildDropdown('species', el.filterSpeciesDropdown, caughtSpecies, 'All Species');
   buildDropdown('water', el.filterWaterDropdown, lookups.bodiesOfWater, 'All Waters');
+  const allGroups = Array.from(new Set(lookups.anglers.flatMap(a => a.groups || [])))
+    .sort((a, b) => a.localeCompare(b))
+    .map(name => ({ name }));
+  buildDropdown('group', el.filterGroupDropdown, allGroups, 'All Groups');
   syncDropdownSelections();
 }
 
@@ -374,6 +385,7 @@ function syncDropdownSelections() {
   syncDropdownSelection(el.filterAnglerDropdown, 'angler');
   syncDropdownSelection(el.filterSpeciesDropdown, 'species');
   syncDropdownSelection(el.filterWaterDropdown, 'water');
+  syncDropdownSelection(el.filterGroupDropdown, 'group');
 }
 
 function syncDropdownSelection(dropdownEl, filterKey) {
@@ -391,6 +403,7 @@ function applyFilters() {
     if (activeFilters.waterId != null) {
       if (c.bodyOfWaterId !== activeFilters.waterId) return false;
     } else if (activeFilters.water && c.bodyOfWaterName !== activeFilters.water) return false;
+    if (activeFilters.group && !(groupsByAnglerId[c.anglerId] || []).includes(activeFilters.group)) return false;
     if (activeFilters.pendingOnly && c.verifiedAt) return false;
     return true;
   });
@@ -404,9 +417,10 @@ function updateFilterUI() {
   updateChip('angler', el.filterAnglerChip, el.filterAnglerValue);
   updateChip('species', el.filterSpeciesChip, el.filterSpeciesValue);
   updateChip('water', el.filterWaterChip, el.filterWaterValue);
+  updateChip('group', el.filterGroupChip, el.filterGroupValue);
   updatePendingChip();
   syncDropdownSelections();
-  const hasFilter = activeFilters.angler || activeFilters.species || activeFilters.water || activeFilters.pendingOnly;
+  const hasFilter = activeFilters.angler || activeFilters.species || activeFilters.water || activeFilters.group || activeFilters.pendingOnly;
   if (hasFilter && allCatches.length) {
     el.filterSummary.classList.add('visible');
     el.filterSummaryText.textContent = `🎣 Showing ${filteredCatches.length} of ${allCatches.length} catches`;
@@ -439,7 +453,7 @@ function closeDropdowns() {
   document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('open'));
 }
 
-['filterAnglerChip', 'filterSpeciesChip', 'filterWaterChip'].forEach(chipId => {
+['filterAnglerChip', 'filterSpeciesChip', 'filterWaterChip', 'filterGroupChip'].forEach(chipId => {
   const chip = document.getElementById(chipId);
   const dropdownId = chipId.replace('Chip', 'Dropdown');
   const dropdown = document.getElementById(dropdownId);
@@ -474,7 +488,7 @@ function closeDropdowns() {
 document.addEventListener('click', closeDropdowns);
 
 el.filterClearAll.addEventListener('click', () => {
-  activeFilters = { angler: '', species: '', water: '', waterId: null, pendingOnly: false };
+  activeFilters = { angler: '', species: '', water: '', waterId: null, group: '', pendingOnly: false };
   sessionStorage.removeItem('gillbert_filters');
   applyFilters();
 });

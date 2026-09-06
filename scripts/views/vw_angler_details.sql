@@ -23,7 +23,8 @@ CREATE OR REPLACE VIEW vw_angler_details AS
             -- lesson learned the hard way).
             a.profile_photo_blob_path AS profile_photo_blob_path,
             a.profile_photo_read_url AS profile_photo_read_url,
-            a.profile_photo_uploaded_at AS profile_photo_uploaded_at
+            a.profile_photo_uploaded_at AS profile_photo_uploaded_at,
+            a.groups AS groups
     FROM anglers a
     LEFT JOIN catches c ON a.id = c.angler_id
     LEFT JOIN LATERAL (

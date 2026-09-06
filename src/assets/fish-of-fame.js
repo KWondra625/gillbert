@@ -4,10 +4,17 @@ const el = {
   status: document.getElementById('status'),
   loadingIndicator: document.getElementById('loadingIndicator'),
   content: document.getElementById('content'),
+  groupFilter: document.getElementById('groupFilter'),
   topCatchesList: document.getElementById('topCatchesList'),
   fishSpeciesRecordsList: document.getElementById('fishSpeciesRecordsList'),
   topAnglersList: document.getElementById('topAnglersList'),
 };
+
+// Populated once on load, then re-filtered in-memory on every pill click —
+// no need to re-fetch anything to change which group is highlighted.
+let allCatches = [];
+let groupsByAnglerId = {};
+let activeGroup = '';
 
 function setStatus(msg) {
   el.status.textContent = msg;
@@ -223,20 +230,61 @@ function renderTopAnglers(list, photosById) {
   });
 }
 
+// ── Group filter ─────────────────────────────────────────────────────────────────────────
+function renderGroupPills(allGroups) {
+  if (!allGroups.length) {
+    el.groupFilter.classList.add('hidden');
+    return;
+  }
+
+  const pills = [{ label: 'All', value: '' }, ...allGroups.map(g => ({ label: g, value: g }))];
+  el.groupFilter.innerHTML = pills.map(p =>
+    `<button type="button" class="group-filter-btn${p.value === activeGroup ? ' active' : ''}" data-group="${escapeHtml(p.value)}">${escapeHtml(p.label)}</button>`
+  ).join('');
+  el.groupFilter.classList.remove('hidden');
+
+  el.groupFilter.querySelectorAll('.group-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeGroup = btn.dataset.group;
+      el.groupFilter.querySelectorAll('.group-filter-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.group === activeGroup)
+      );
+      renderLeaderboards();
+    });
+  });
+}
+
+function catchesForActiveGroup() {
+  if (!activeGroup) return allCatches;
+  return allCatches.filter(c => (groupsByAnglerId[c.anglerId] || []).includes(activeGroup));
+}
+
+function renderLeaderboards() {
+  const catches = catchesForActiveGroup();
+  renderTopCatches(computeTopCatches(catches));
+  renderFishSpeciesRecords(computeFishSpeciesRecords(catches));
+  renderTopAnglers(computeTopAnglers(catches), photosByAnglerId);
+}
+
 // ── Load ─────────────────────────────────────────────────────────────────────────────────
-async function loadAnglerPhotos() {
+let photosByAnglerId = {};
+
+async function loadAnglerLookup() {
   try {
     const res = await fetch(API_BASE + 'get-lookup-data', { headers: { 'X-API-Key': API_KEY } });
-    if (!res.ok) return {};
+    if (!res.ok) return { photosById: {}, groupsById: {}, allGroups: [] };
     const raw = await res.json();
     const data = Array.isArray(raw) ? raw[0] : raw;
     const anglers = data.anglers || [];
-    return Object.fromEntries(
+    const photosById = Object.fromEntries(
       anglers.filter(a => a.profilePhotoReadUrl).map(a => [a.id, a.profilePhotoReadUrl])
     );
+    const groupsById = Object.fromEntries(anglers.map(a => [a.id, a.groups || []]));
+    const allGroups = Array.from(new Set(anglers.flatMap(a => a.groups || []))).sort((a, b) => a.localeCompare(b));
+    return { photosById, groupsById, allGroups };
   } catch (err) {
-    console.error('Failed to load angler photos:', err);
-    return {};
+    console.error('Failed to load angler lookup data:', err);
+    return { photosById: {}, groupsById: {}, allGroups: [] };
   }
 }
 
@@ -245,15 +293,17 @@ async function loadFishOfFame() {
     showLoading();
     setStatus('');
 
-    const [res, photosById] = await Promise.all([
+    const [res, anglerLookup] = await Promise.all([
       fetch(CATCHES_GET_URL, { headers: { 'X-API-Key': API_KEY } }),
-      loadAnglerPhotos(),
+      loadAnglerLookup(),
     ]);
 
     if (!res.ok) throw new Error(`GET failed: ${res.status}`);
 
     const data = await res.json();
-    const allCatches = Array.isArray(data) ? data : (data.catches || []);
+    allCatches = Array.isArray(data) ? data : (data.catches || []);
+    photosByAnglerId = anglerLookup.photosById;
+    groupsByAnglerId = anglerLookup.groupsById;
 
     hideLoading();
 
@@ -262,9 +312,8 @@ async function loadFishOfFame() {
       return;
     }
 
-    renderTopCatches(computeTopCatches(allCatches));
-    renderFishSpeciesRecords(computeFishSpeciesRecords(allCatches));
-    renderTopAnglers(computeTopAnglers(allCatches), photosById);
+    renderGroupPills(anglerLookup.allGroups);
+    renderLeaderboards();
     el.content.classList.remove('hidden');
   } catch (err) {
     console.error(err);

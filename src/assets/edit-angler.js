@@ -18,6 +18,9 @@ const el = {
   nameError:         document.getElementById('nameError'),
   statusPills:       document.getElementById('statusPills'),
   aliases:           document.getElementById('aliases'),
+  groupsWrapper:     document.getElementById('groupsWrapper'),
+  groupsInput:       document.getElementById('groupsInput'),
+  groupsSuggestions: document.getElementById('groupsSuggestions'),
   loginEmails:       document.getElementById('loginEmails'),
   loginEmailsError:  document.getElementById('loginEmailsError'),
   statsPanel:        document.getElementById('statsPanel'),
@@ -60,6 +63,17 @@ const photoWidget = createProfilePhotoWidget({
     cropperImage: el.cropperImage,
     cropperSelection: el.cropperSelection,
   },
+});
+
+// Populated once all anglers load, so the tag input can suggest existing
+// group values instead of everyone typing slightly different spellings.
+let allKnownGroups = [];
+
+const groupsTagInput = createTagInput({
+  wrapper: el.groupsWrapper,
+  input: el.groupsInput,
+  suggestionsBox: el.groupsSuggestions,
+  getSuggestionPool: () => allKnownGroups,
 });
 
 function parseLoginEmails() {
@@ -183,6 +197,7 @@ async function load() {
     const all = Array.isArray(raw) && Array.isArray(raw[0]) ? raw[0] : (Array.isArray(raw) ? raw : []);
     originalData = all.find(a => String(a.id) === String(anglerId));
     if (!originalData) throw new Error('Angler not found.');
+    allKnownGroups = Array.from(new Set(all.flatMap(a => a.groups || [])));
 
     const anglerStats = stats[originalData.id] || null;
     prefillForm(originalData);
@@ -209,6 +224,7 @@ function prefillForm(a) {
   el.name.value = a.name || '';
   setStatus(a.status === 'Inactive' ? 'Inactive' : 'Active');
   el.aliases.value = (a.aliases || []).join(', ');
+  groupsTagInput.setTags(a.groups || []);
   el.loginEmails.value = (a.loginEmails || []).join(', ');
 }
 
@@ -246,6 +262,7 @@ async function submit() {
     name: el.name.value.trim(),
     status: selectedStatus,
     aliases: aliasesArr,
+    groups: groupsTagInput.getTags(),
     loginEmails: loginEmailsArr,
   };
 
