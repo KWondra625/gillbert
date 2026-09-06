@@ -99,6 +99,7 @@
       cursor: pointer;
     }
     .exit-admin-btn:active { transform: scale(0.98); }
+    .hidden { display: none !important; }
 
     /* ── Profile photo widget ─────────────────────────────────────── */
     .profile-photo-preview {
@@ -237,13 +238,8 @@
     <p class="subtitle">Update your profile photo, and see how Gillbert recognizes your Cloudflare Access login.</p>
 
     <div class="card">
-      <p class="card-label">Angler Mapping</p>
-      <div id="anglerContent"><p class="muted">Checking…</p></div>
-    </div>
-
-    <div class="card">
-      <p class="card-label">My Profile Photo</p>
-      <div id="photoCardContent"><p class="muted">Checking…</p></div>
+      <p class="card-label">My Angler Profile</p>
+      <div id="anglerProfileContent"><p class="muted">Checking…</p></div>
     </div>
 
     <div class="card">
@@ -308,8 +304,8 @@
       await (window.adminIdentityCheck || Promise.resolve());
       const identity = window.cloudflareIdentity || null;
 
-      // Resolve the angler mapping once, up front — reused by both the Identity
-      // card (display name) and the Angler Mapping card below (single lookup fetch).
+      // Resolve the angler mapping once, up front — used by the My Angler
+      // Profile card below (single lookup fetch).
       let myAngler = null;
       let anglerLookupError = false;
       if (identity && identity.email) {
@@ -346,12 +342,12 @@
           '<div class="row"><span class="row-value" style="color:#c0392b">⚠️ No identity detected — are you on the live site and logged in via Cloudflare Access?</span></div>';
       }
 
-      // ── My Profile Photo card ─────────────────────────────────
-      const photoCardEl = document.getElementById('photoCardContent');
+      // ── My Angler Profile card (photo + ID/name mapping, together) ──
+      const anglerProfileEl = document.getElementById('anglerProfileContent');
       if (anglerLookupError) {
-        photoCardEl.innerHTML = '<p class="muted" style="color:#c0392b">⚠️ Unable to load angler lookup data</p>';
+        anglerProfileEl.innerHTML = '<p class="muted" style="color:#c0392b">⚠️ Unable to load angler lookup data</p>';
       } else if (myAngler) {
-        photoCardEl.innerHTML = `
+        anglerProfileEl.innerHTML = `
           <div class="profile-photo-preview">
             <img id="profilePhotoImg" class="profile-photo-img hidden" alt="Profile photo" />
             <div id="profilePhotoPlaceholder" class="profile-photo-placeholder">🎣</div>
@@ -362,6 +358,14 @@
             <button type="button" id="profilePhotoRemoveBtn" class="profile-photo-btn profile-photo-btn--remove hidden">🗑️ Remove Photo</button>
           </div>
           <p id="profilePhotoStatus" class="field-hint"></p>
+          <div class="row" style="margin-top:12px">
+            <span class="row-label">Angler ID</span>
+            <span class="row-value"><span class="pill pill-green">✅ ${myAngler.id}</span></span>
+          </div>
+          <div class="row">
+            <span class="row-label">Angler Name</span>
+            <span class="row-value">${myAngler.name}</span>
+          </div>
         `;
         const photoWidget = createProfilePhotoWidget({
           getAnglerId: () => myAngler.id,
@@ -382,27 +386,9 @@
         });
         photoWidget.setPhoto(myAngler.profilePhotoReadUrl || null);
       } else if (identity && identity.email) {
-        photoCardEl.innerHTML = '<p class="muted">No angler matches this email — nothing to attach a photo to.</p>';
+        anglerProfileEl.innerHTML = '<div class="row"><span class="row-value"><span class="pill pill-amber">⚠️ No angler matches this email</span></span></div>';
       } else {
-        photoCardEl.innerHTML = '<p class="muted">Log in via Cloudflare Access to manage your photo.</p>';
-      }
-
-      // ── Angler mapping card ───────────────────────────────────
-      const anglerEl = document.getElementById('anglerContent');
-      if (identity && identity.email) {
-        if (anglerLookupError) {
-          anglerEl.innerHTML = `<div class="row"><span class="row-value" style="color:#c0392b">⚠️ Unable to load angler lookup data</span></div>`;
-        } else {
-          const photoHtml = myAngler && myAngler.profilePhotoReadUrl
-            ? `<img src="${myAngler.profilePhotoReadUrl}" alt="" style="width:48px;height:48px;border-radius:50%;object-fit:cover;display:block;margin-bottom:10px;">`
-            : '';
-          anglerEl.innerHTML = myAngler
-            ? `${photoHtml}<div class="row"><span class="row-label">Angler ID</span><span class="row-value"><span class="pill pill-green">✅ ${myAngler.id}</span></span></div>
-               <div class="row"><span class="row-label">Angler Name</span><span class="row-value">${myAngler.name}</span></div>`
-            : `<div class="row"><span class="row-value"><span class="pill pill-amber">⚠️ No angler matches this email</span></span></div>`;
-        }
-      } else {
-        anglerEl.innerHTML = '<div class="row"><span class="row-value muted">No identity to map</span></div>';
+        anglerProfileEl.innerHTML = '<div class="row"><span class="row-value muted">No identity to map</span></div>';
       }
 
       // ── Admin card ─────────────────────────────────────────────
