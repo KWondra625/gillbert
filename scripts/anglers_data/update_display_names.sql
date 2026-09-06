@@ -11,8 +11,9 @@
 -- the alias backfill only appends first_name_alias if it's not already
 -- present, and re-running with the same new_name values is a no-op.
 --
--- Row for id 10 (ZZZ_TEST_DELETE_ME) intentionally excluded -- that's the
--- leftover anglers/save throwaway test row, delete it separately.
+-- Rows for id 10 (ZZZ_TEST_DELETE_ME) and id 11 (JOseph) intentionally
+-- excluded -- both were throwaway test rows, deleted directly rather than
+-- renamed.
 
 CREATE TEMP TABLE angler_name_updates (
     id integer PRIMARY KEY,
@@ -29,8 +30,7 @@ INSERT INTO angler_name_updates (id, new_name, first_name_alias) VALUES
     (6,  'Kent S', 'Kent'),    -- currently: Kent   | aliases: {}
     (7,  'Lori K', 'Lori'),    -- currently: Lori   | aliases: {}
     (8,  'Layton K', 'Layton'),  -- currently: Layton | aliases: {}
-    (9,  'Brett S', 'Brett'),   -- currently: Brett  | aliases: {}
-    (11, 'Joseph Z', 'Joseph');  -- currently: JOseph | aliases: {Joe} -- also fixing the capitalization typo here
+    (9,  'Brett S', 'Brett');   -- currently: Brett  | aliases: {}
 
 -- ── Preview: what would change ──────────────────────────────────────────
 SELECT
