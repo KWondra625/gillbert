@@ -32,9 +32,15 @@ async function runDnrSearch() {
   const q = input.value.trim();
   resultsEl.classList.add('hidden');
   resultsEl.innerHTML = '';
-  if (!q) return;
-
+  // Bump unconditionally, even on an empty query — otherwise clearing the
+  // box and re-searching doesn't invalidate a still-in-flight earlier
+  // request, which can land after this point and repopulate results the
+  // admin already cleared.
   const seq = ++dnrSearchSeq;
+  if (!q) {
+    statusEl.classList.add('hidden');
+    return;
+  }
 
   statusEl.textContent = 'Searching WI DNR…';
   statusEl.classList.remove('hidden');

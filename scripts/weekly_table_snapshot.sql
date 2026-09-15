@@ -16,6 +16,13 @@
 -- Trigger, Sundays 4am) — see that workflow for the automated schedule, or
 -- run this directly for an on-demand snapshot.
 
+-- REPEATABLE READ: under the default READ COMMITTED, each CREATE TABLE AS
+-- below would take its own fresh snapshot, so a write committed mid-loop
+-- could show up in some copied tables but not others — not a true
+-- point-in-time snapshot. REPEATABLE READ takes one snapshot for the whole
+-- transaction instead.
+BEGIN ISOLATION LEVEL REPEATABLE READ;
+
 DO $$
 DECLARE
     snapshot_schema text := 'gillbert_snapshot_' || to_char(now(), 'YYYYMMDD');
@@ -50,3 +57,5 @@ BEGIN
         EXECUTE format('DROP SCHEMA %I CASCADE', old_schema.schema_name);
     END LOOP;
 END $$;
+
+COMMIT;

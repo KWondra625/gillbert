@@ -91,7 +91,7 @@ function render() {
       : `<span class="catch-count-zero">0</span>`;
     return `
     <tr class="data-row" data-id="${s.id}">
-      <td class="name-cell">${escapeHtml(displayName)}${s.displayNameOverride ? `<span class="name-info-icon" title="DNR name: ${escapeHtml(s.name)}">ⓘ</span>` : ''}</td>
+      <td class="name-cell"><a class="row-edit-link" href="./edit-fish-species.html?id=${encodeURIComponent(s.id)}">${escapeHtml(displayName)}</a>${s.displayNameOverride ? `<span class="name-info-icon" title="DNR name: ${escapeHtml(s.name)}">ⓘ</span>` : ''}</td>
       <td>${escapeHtml((s.aliases || []).join(', ') || '—')}</td>
       <td><span class="pill ${pillClass(s.status)}">${escapeHtml(s.status)}</span></td>
       <td>${countCell}</td>
@@ -103,6 +103,14 @@ function render() {
     row.addEventListener('click', () => {
       window.location.href = `./edit-fish-species.html?id=${encodeURIComponent(row.dataset.id)}`;
     });
+  });
+
+  // Stop the row-level click above from double-handling activation of the
+  // real link (and, more importantly, from hijacking a modifier-click —
+  // ctrl/cmd-click to open in a new tab would otherwise still navigate the
+  // current tab via the row handler).
+  el.tbody.querySelectorAll('.row-edit-link').forEach(link => {
+    link.addEventListener('click', e => e.stopPropagation());
   });
 
   el.tbody.querySelectorAll('.catch-count-link').forEach(link => {

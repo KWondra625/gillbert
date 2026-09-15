@@ -95,7 +95,7 @@ function render() {
     <div class="angler-card" data-id="${a.id}">
       <div class="angler-card-photo">${photo}</div>
       <div class="angler-card-body">
-        <div class="angler-card-name">${escapeHtml(a.name)}</div>
+        <div class="angler-card-name"><a class="row-edit-link" href="./edit-angler.html?id=${encodeURIComponent(a.id)}">${escapeHtml(a.name)}</a></div>
         <div class="angler-card-aliases">${escapeHtml((a.aliases || []).join(', ') || '—')}</div>
         <div class="angler-card-meta">
           <span class="pill ${pillClass(a.status)}">${escapeHtml(a.status)}</span>
@@ -110,6 +110,14 @@ function render() {
     card.addEventListener('click', () => {
       window.location.href = `./edit-angler.html?id=${encodeURIComponent(card.dataset.id)}`;
     });
+  });
+
+  // Stop the card-level click above from double-handling activation of the
+  // real link (and, more importantly, from hijacking a modifier-click —
+  // ctrl/cmd-click to open in a new tab would otherwise still navigate the
+  // current tab via the card handler).
+  el.grid.querySelectorAll('.row-edit-link').forEach(link => {
+    link.addEventListener('click', e => e.stopPropagation());
   });
 
   el.grid.querySelectorAll('.catch-count-link').forEach(link => {

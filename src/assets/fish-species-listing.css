@@ -151,6 +151,15 @@ body {
   font-weight: 700;
 }
 
+.row-edit-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.row-edit-link:hover {
+  text-decoration: underline;
+}
+
 .name-info-icon {
   display: inline-block;
   margin-left: 6px;

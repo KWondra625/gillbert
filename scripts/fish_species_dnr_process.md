@@ -80,18 +80,14 @@ a real use for it ever comes up.
    species, updated bag-limit groupings, dead DNR links).
 2. Hand-edit the `VALUES` list in `scripts/fish_species_data/upsert_fish_species_roster.sql`
    — there's no automated diffing against the DNR site, this is manual.
-3. Re-run only Step 2 of the script — Step 1 is **not** safe to re-run:
-   - **Step 1** (the handful of identity-fixing `UPDATE`s for the
-     originally-messy legacy rows) is a one-time historical correction,
-     not part of the ongoing refresh. It writes directly to `aliases` and
-     `display_name_override` with no guard, so re-running it will stomp
-     any admin-UI edits made to those fields on the rows it touches.
-     **Skip it on every refresh after the first run.**
-   - **Step 2** (the main upsert) only refreshes `family_display_name`,
-     `family_scientific_name`, and `dnr_url` on conflict — it **never**
-     touches `status`, `aliases`, `notes`, or `display_name_override` on
-     an existing row. Anything hand-curated through the admin UI survives
-     a refresh untouched.
+3. Re-run the script. It's safe to run repeatedly — keyed on `name`, and on
+   conflict only refreshes `family_display_name`, `family_scientific_name`,
+   and `dnr_url`. It never touches `status`, `aliases`, `notes`, or
+   `display_name_override` on an existing row, so anything hand-curated
+   through the admin UI survives a refresh untouched. (The one-time
+   identity-fixing corrections for the original messy legacy rows were a
+   separate, already-applied historical migration — not part of this
+   script or the ongoing refresh process.)
 
 Day-to-day status changes (turning a species on/off) don't need this
 script at all — that's what the admin UI (`fish-species-listing.html` /

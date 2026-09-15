@@ -10,7 +10,6 @@ CREATE OR REPLACE VIEW vw_catch_details AS
         
         fs.id AS fish_species_id,
         COALESCE(fs.display_name_override, fs.name) AS fish_species_name,
-        fs.dnr_url AS fish_species_dnr_url,
 
         bow.id AS body_of_water_id,
         bow.name AS body_of_water_name,
@@ -58,11 +57,12 @@ CREATE OR REPLACE VIEW vw_catch_details AS
 
         (SELECT COUNT(*) FROM catch_media cm WHERE cm.catch_id = c.id) AS catch_media_count,
 
-        -- Appended after the view's other columns (not grouped with the
-        -- rest of body_of_water_* above): CREATE OR REPLACE VIEW can only
-        -- add columns at the end, not insert them mid-list, or Postgres
-        -- errors on the shifted existing columns. Consumers read these by
-        -- name, not position, so the non-adjacent placement is harmless.
+        -- Appended after the view's other columns (not grouped with their
+        -- related fields above): CREATE OR REPLACE VIEW can only add columns
+        -- at the end, not insert them mid-list, or Postgres errors on the
+        -- shifted existing columns. Consumers read these by name, not
+        -- position, so the non-adjacent placement is harmless.
+        fs.dnr_url AS fish_species_dnr_url,
         bow.wbic AS body_of_water_wbic,
         bow.dnr_url_verified AS body_of_water_dnr_url_verified
 

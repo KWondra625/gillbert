@@ -46,16 +46,24 @@ Optional (Gate 2):
 
 SPECIES NORMALIZATION
 
-Walleye        → walleye, walley, waleye
-Northern Pike  → pike, northern, n. pike
-Bass           → bass, largemouth, lmb, large mouth, smallmouth, smb, smallie
-Bluegill       → bluegill, blue gill, gill
-Crappie        → crappie
-Perch          → perch
-Catfish        → catfish
-Muskie         → musky, muskie
+Walleye           → walleye, walley, waleye
+Northern Pike     → pike, northern, n. pike
+Muskellunge       → musky, muskie
+Bluegill          → bluegill, blue gill, gill
+Yellow Perch      → perch
+Largemouth Bass   → largemouth, lmb, large mouth
+Smallmouth Bass   → smallmouth, smb, smallie
+White Bass        → white bass
+Yellow Bass       → yellow bass
+Black Crappie     → black crappie
+White Crappie     → white crappie
+Channel Catfish   → channel cat, channel catfish
+Flathead Catfish  → flathead, flathead catfish
 
-If "Largemouth" or "Smallmouth" is mentioned: set fish_species_raw = "Bass" and note the clarifier in notes_raw (e.g., "Smallmouth noted.").
+The roster has no generic "Bass," "Crappie," or "Catfish" entry — only the
+specific subtypes above. If the angler says one of those umbrella terms with
+no subtype ("caught a bass"), ask which kind before logging rather than
+guessing; recording the wrong subtype is worse than one extra question.
 Uncommon species: Title Case, store as-is (e.g., "Rainbow Trout").
 If unsure: ask — never guess.
 

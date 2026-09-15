@@ -137,6 +137,7 @@ function createProfilePhotoWidget({ getAnglerId, elements: el }) {
     cropObjectUrl = URL.createObjectURL(file);
     el.cropperImage.src = cropObjectUrl;
     el.cropModal.classList.add('open');
+    el.cropConfirmBtn.disabled = false;
     // Setting .src via a JS property (rather than a parse-time HTML
     // attribute) doesn't auto-trigger the selection's initial sizing — has
     // to be done explicitly once the new image has actually loaded.
@@ -156,6 +157,9 @@ function createProfilePhotoWidget({ getAnglerId, elements: el }) {
 
   async function confirmCrop() {
     const originalFile = pendingOriginalFile;
+    // $toCanvas() below is async, so without this a fast double-click could
+    // start two upload pipelines before either reaches uploadProfilePhoto.
+    el.cropConfirmBtn.disabled = true;
     try {
       const canvas = await el.cropperSelection.$toCanvas();
       const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));

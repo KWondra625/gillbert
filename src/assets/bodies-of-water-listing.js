@@ -90,7 +90,7 @@ function render() {
     const linkedIcon = w.wbic ? `<span class="wbic-linked-icon" title="Linked to WI DNR (WBIC ${escapeHtml(String(w.wbic))})">🔗</span>` : '';
     return `
     <tr class="data-row" data-id="${w.id}">
-      <td class="name-cell">${escapeHtml(w.name)}${linkedIcon}</td>
+      <td class="name-cell"><a class="row-edit-link" href="./edit-body-of-water.html?id=${encodeURIComponent(w.id)}">${escapeHtml(w.name)}</a>${linkedIcon}</td>
       <td><span class="pill ${pillClass(w.status)}">${escapeHtml(w.status)}</span></td>
       <td>${countCell}</td>
     </tr>
@@ -101,6 +101,14 @@ function render() {
     row.addEventListener('click', () => {
       window.location.href = `./edit-body-of-water.html?id=${encodeURIComponent(row.dataset.id)}`;
     });
+  });
+
+  // Stop the row-level click above from double-handling activation of the
+  // real link (and, more importantly, from hijacking a modifier-click —
+  // ctrl/cmd-click to open in a new tab would otherwise still navigate the
+  // current tab via the row handler).
+  el.tbody.querySelectorAll('.row-edit-link').forEach(link => {
+    link.addEventListener('click', e => e.stopPropagation());
   });
 
   el.tbody.querySelectorAll('.catch-count-link').forEach(link => {
