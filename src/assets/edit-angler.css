@@ -635,6 +635,12 @@ textarea {
 }
 
 .tag-suggestion {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  font: inherit;
   padding: 9px 14px;
   font-size: 14px;
   color: #1a1a1a;

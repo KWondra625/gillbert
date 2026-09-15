@@ -1,5 +1,6 @@
 -- Weekly point-in-time snapshot of every table in the public schema, into a
--- dated schema named "YYYYMMDD" (e.g. "20260806"). Data-only — no
+-- dated schema named "gillbert_snapshot_YYYYMMDD" (e.g.
+-- "gillbert_snapshot_20260806"). Data-only — no
 -- constraints, indexes, defaults, or triggers carried over — this is a quick
 -- look-back tool ("what did this look like a few weeks ago"), not a restore
 -- mechanism or disaster-recovery backup; the pg_dump-to-Azure-Blob job
@@ -17,7 +18,7 @@
 
 DO $$
 DECLARE
-    snapshot_schema text := to_char(now(), 'YYYYMMDD');
+    snapshot_schema text := 'gillbert_snapshot_' || to_char(now(), 'YYYYMMDD');
     tbl record;
     old_schema record;
     retention_count int := 8;
@@ -42,7 +43,7 @@ BEGIN
     FOR old_schema IN
         SELECT schema_name
         FROM information_schema.schemata
-        WHERE schema_name ~ '^\d{8}$'
+        WHERE schema_name ~ '^gillbert_snapshot_\d{8}$'
         ORDER BY schema_name DESC
         OFFSET retention_count
     LOOP

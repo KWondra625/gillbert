@@ -45,6 +45,9 @@ let groupsByAnglerId = {};
 // Guards against loadLookups() rendering an empty-state flash if it resolves
 // before loadCatches() has populated allCatches for the first time.
 let catchesLoaded = false;
+// Guards against loadCatches() filtering on a Group value before
+// groupsByAnglerId is populated — see applyFilters() call site below.
+let lookupsLoaded = false;
 // Species names with at least one catch — narrows the species filter dropdown
 // below the full roster. Fetched independently of allCatches so it always
 // reflects every catch, not just whatever the current search term matched.
@@ -121,11 +124,14 @@ async function loadCatches() {
     setStatus("");
     currentPage = 1;
     sessionStorage.setItem('gillbert_search', el.searchInput.value.trim());
-    applyFilters();
+    // If a Group filter is active but lookups haven't populated
+    // groupsByAnglerId yet, hold off — loadLookups() will call applyFilters()
+    // itself once it finishes (see its own guard above), avoiding a false
+    // "no results" flash from filtering against an empty groupsByAnglerId.
+    if (!activeFilters.group || lookupsLoaded) applyFilters();
     hideLoading();
   } catch (err) {
     console.error(err);
-    catchesLoaded = true;
     setStatus("Failed to load catches ❌");
     el.catchesContainer.innerHTML = `<div class="empty-state"><p>Error loading catches.</p></div>`;
     el.paginationContainer.style.display = 'none';
@@ -308,6 +314,7 @@ async function loadLookups() {
     lookups.species = (data.fishSpecies || []).map(s => ({ id: s.id, name: s.displayNameOverride || s.name }));
     lookups.bodiesOfWater = data.bodiesOfWater || [];
     groupsByAnglerId = Object.fromEntries(lookups.anglers.map(a => [a.id, a.groups || []]));
+    lookupsLoaded = true;
     buildDropdowns();
     // Only re-filter here if catches have already loaded — otherwise this would
     // run against an empty allCatches and flash a false "no results" state.

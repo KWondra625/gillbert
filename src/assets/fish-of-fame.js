@@ -239,16 +239,18 @@ function renderGroupPills(allGroups) {
 
   const pills = [{ label: 'All', value: '' }, ...allGroups.map(g => ({ label: g, value: g }))];
   el.groupFilter.innerHTML = pills.map(p =>
-    `<button type="button" class="group-filter-btn${p.value === activeGroup ? ' active' : ''}" data-group="${escapeHtml(p.value)}">${escapeHtml(p.label)}</button>`
+    `<button type="button" class="group-filter-btn${p.value === activeGroup ? ' active' : ''}" data-group="${escapeHtml(p.value)}" aria-pressed="${p.value === activeGroup}">${escapeHtml(p.label)}</button>`
   ).join('');
   el.groupFilter.classList.remove('hidden');
 
   el.groupFilter.querySelectorAll('.group-filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       activeGroup = btn.dataset.group;
-      el.groupFilter.querySelectorAll('.group-filter-btn').forEach(b =>
-        b.classList.toggle('active', b.dataset.group === activeGroup)
-      );
+      el.groupFilter.querySelectorAll('.group-filter-btn').forEach(b => {
+        const isActive = b.dataset.group === activeGroup;
+        b.classList.toggle('active', isActive);
+        b.setAttribute('aria-pressed', isActive);
+      });
       renderLeaderboards();
     });
   });

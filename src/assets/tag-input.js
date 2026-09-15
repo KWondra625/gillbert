@@ -59,9 +59,16 @@ function createTagInput({ wrapper, input, suggestionsBox, getSuggestionPool }) {
       .slice(0, 8);
     if (!options.length) { hideSuggestions(); return; }
     suggestionsBox.innerHTML = options.map(t =>
-      `<div class="tag-suggestion" data-value="${escapeHtml(t)}">${escapeHtml(t)}</div>`
+      `<button type="button" class="tag-suggestion" data-value="${escapeHtml(t)}">${escapeHtml(t)}</button>`
     ).join('');
     suggestionsBox.classList.remove('hidden');
+  }
+
+  function selectSuggestion(value) {
+    addTag(value);
+    input.value = '';
+    hideSuggestions();
+    input.focus();
   }
 
   input.addEventListener('input', () => showSuggestions(input.value));
@@ -78,8 +85,10 @@ function createTagInput({ wrapper, input, suggestionsBox, getSuggestionPool }) {
     }
   });
 
-  input.addEventListener('blur', () => {
-    // Delay so a mousedown on a suggestion still registers before it hides.
+  input.addEventListener('blur', (e) => {
+    // Don't hide if focus is moving to a suggestion button (Tab) — only the
+    // mousedown-before-click case below needs the timeout fallback.
+    if (e.relatedTarget && suggestionsBox.contains(e.relatedTarget)) return;
     setTimeout(hideSuggestions, 150);
   });
 
@@ -87,10 +96,16 @@ function createTagInput({ wrapper, input, suggestionsBox, getSuggestionPool }) {
     const opt = e.target.closest('.tag-suggestion');
     if (!opt) return;
     e.preventDefault();
-    addTag(opt.dataset.value);
-    input.value = '';
-    hideSuggestions();
-    input.focus();
+    selectSuggestion(opt.dataset.value);
+  });
+
+  // Keyboard activation (Tab to a suggestion, then Enter/Space) fires a
+  // native click with no preceding mousedown — handled separately so mouse
+  // selection (above) isn't double-triggered.
+  suggestionsBox.addEventListener('click', (e) => {
+    const opt = e.target.closest('.tag-suggestion');
+    if (!opt) return;
+    selectSuggestion(opt.dataset.value);
   });
 
   wrapper.addEventListener('click', (e) => {

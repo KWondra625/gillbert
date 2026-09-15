@@ -12,7 +12,13 @@ function linkifyCatchNumbers(html) {
 }
 
 function renderGillbertReply(text) {
-  return linkifyCatchNumbers(DOMPurify.sanitize(marked.parse(text)));
+  // Sanitize LAST: linkifyCatchNumbers does a naive regex replace over the
+  // whole HTML string (including inside tag attributes), which can produce
+  // malformed markup if a catch number appears somewhere other than plain
+  // text. Running DOMPurify after linkification, not before, guarantees the
+  // final output is still safe even if that replace corrupts intermediate
+  // structure.
+  return DOMPurify.sanitize(linkifyCatchNumbers(marked.parse(text)));
 }
 
 initChatShell({

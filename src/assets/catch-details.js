@@ -480,7 +480,7 @@ window.addEventListener("DOMContentLoaded", () => {
       recordInfoModal.classList.remove('open');
       closeDeleteModal();
     }
-    if (el.lightbox.classList.contains('open')) {
+    if (el.lightbox.classList.contains('open') && e.target.tagName !== 'VIDEO') {
       if (e.key === 'ArrowLeft') navigateLightbox(-1);
       if (e.key === 'ArrowRight') navigateLightbox(1);
     }
@@ -567,17 +567,11 @@ async function handleMediaDelete() {
       throw new Error(`Delete failed: ${res.status} ${text}`);
     }
 
-    if (pendingDeleteTile) {
-      const grid    = pendingDeleteTile.closest('.media-grid');
-      const section = grid?.closest('.media-section');
-      pendingDeleteTile.remove();
-      if (grid && !grid.children.length) {
-        section?.remove();
-      } else if (section) {
-        const title = section.querySelector('.media-section-title');
-        if (title) title.textContent = title.textContent.replace(/\(\d+\)/, `(${grid.children.length})`);
-      }
-    }
+    // Re-fetch and re-render rather than just removing the tile from the DOM:
+    // lightboxSequence and each tile's click-bound index are only rebuilt by
+    // renderMedia(), so a DOM-only removal would leave them stale (the
+    // deleted item still reachable via lightbox nav, counts off by one).
+    await loadCatchMedia(getCatchNumberFromUrl());
     closeDeleteModal();
   } catch (err) {
     console.error('Media delete failed:', err);
