@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Add Fish Species · Gillbert</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/top-home-link.css" />
+  <link rel="stylesheet" href="./assets/create-fish-species.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="top-nav">
+      <a href="./fish-species-listing.html" class="top-home-link top-home-link--on-light" aria-label="Back to Fish Species">← Fish Species</a>
+    </div>
+
+    <!-- ── Loading state ────────────────────────────────────────────── -->
+    <div id="loadingState">
+      <div class="header">
+        <h1>➕ Add Fish Species</h1>
+        <p>Preparing form…</p>
+      </div>
+      <div class="loading-indicator">
+        <div class="fishing-animation">🎣<span class="bobber">●</span></div>
+        <p>Just a moment…</p>
+      </div>
+    </div>
+
+    <!-- ── Error state ──────────────────────────────────────────────── -->
+    <div id="errorState" class="hidden">
+      <div class="header">
+        <h1>➕ Add Fish Species</h1>
+      </div>
+      <div class="error-card">
+        <p class="error-icon">⚠️</p>
+        <p id="errorMsg">Unable to load this page. Please check your connection and try again.</p>
+        <button id="retryBtn" class="primary-button">🔄 Try Again</button>
+      </div>
+      <a href="./fish-species-listing.html" class="back-button">← Back to Listing</a>
+    </div>
+
+    <!-- ── Form state ───────────────────────────────────────────────── -->
+    <div id="formState" class="hidden">
+      <div class="header">
+        <h1>➕ Add Fish Species</h1>
+        <p>Create a new species record</p>
+      </div>
+
+      <form id="speciesForm" novalidate>
+
+        <!-- Name -->
+        <div class="field-group">
+          <label for="name">🐟 Name <span class="required-mark">*</span></label>
+          <input type="text" id="name" placeholder="e.g. Largemouth Bass" />
+          <p class="field-error hidden" id="nameError">Please enter a name.</p>
+          <div id="duplicateWarning" class="duplicate-warning hidden"></div>
+        </div>
+
+        <!-- Display Name Override -->
+        <div class="field-group">
+          <label for="displayNameOverride">🏷️ Display Name Override <span class="optional-mark">(optional)</span></label>
+          <input type="text" id="displayNameOverride" placeholder="e.g. Musky" />
+          <p class="field-hint">Shown throughout the app in place of the name above, when set.</p>
+        </div>
+
+        <!-- Status -->
+        <div class="field-group">
+          <label>🔘 Status <span class="required-mark">*</span></label>
+          <div class="status-pills" id="statusPills">
+            <button type="button" class="status-pill" data-status="Active">Active</button>
+            <button type="button" class="status-pill" data-status="Inactive">Inactive</button>
+          </div>
+        </div>
+
+        <!-- Aliases -->
+        <div class="field-group">
+          <label for="aliases">🔤 Aliases <span class="optional-mark">(comma-separated, optional)</span></label>
+          <input type="text" id="aliases" placeholder="e.g. Muskie, Musky" />
+        </div>
+
+        <!-- Family Display Name -->
+        <div class="field-group">
+          <label for="familyDisplayName">👪 Family <span class="optional-mark">(optional)</span></label>
+          <input type="text" id="familyDisplayName" placeholder="e.g. Pike" />
+        </div>
+
+        <!-- Family Scientific Name -->
+        <div class="field-group">
+          <label for="familyScientificName">🔬 Family (Scientific) <span class="optional-mark">(optional)</span></label>
+          <input type="text" id="familyScientificName" placeholder="e.g. Esocidae" />
+        </div>
+
+        <!-- DNR URL -->
+        <div class="field-group">
+          <label for="dnrUrl">🔗 DNR URL <span class="optional-mark">(optional)</span></label>
+          <input type="text" id="dnrUrl" placeholder="https://dnr.wisconsin.gov/..." />
+        </div>
+
+        <!-- Notes -->
+        <div class="field-group">
+          <label for="notes">📝 Notes <span class="optional-mark">(optional)</span></label>
+          <textarea id="notes" rows="3" placeholder="Any details worth remembering…"></textarea>
+        </div>
+
+        <!-- Form-level error -->
+        <div id="formError" class="form-error hidden"></div>
+
+        <!-- Actions -->
+        <div class="actions">
+          <button type="button" id="createBtn" class="primary-button">➕ Create Species</button>
+          <a href="./fish-species-listing.html" id="cancelLink" class="back-button">← Cancel</a>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- ── Submitting state ─────────────────────────────────────────── -->
+    <div id="submittingState" class="hidden">
+      <div class="header">
+        <h1>➕ Add Fish Species</h1>
+        <p>Creating this species…</p>
+      </div>
+      <div class="loading-indicator">
+        <div class="fishing-animation">🎣<span class="bobber">●</span></div>
+        <p>Updating Gillbert's records…</p>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="./assets/config.js"></script>
+  <script src="./assets/admin.js"></script>
+  <script src="./assets/create-fish-species.js"></script>
+</body>
+</html>

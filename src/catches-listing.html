@@ -11,7 +11,7 @@
 <body>
   <div class="container">
     <div class="top-nav">
-      <a href="./index.html" class="top-home-link" aria-label="Go back to Home">← Home</a>
+      <a href="./index.html" id="topBackLink" class="top-home-link" aria-label="Go back to Home">← Home</a>
     </div>
 
     <div class="header">
@@ -59,6 +59,22 @@
           </button>
           <div class="filter-chip-dropdown" id="filterWaterDropdown"></div>
         </div>
+        <div class="filter-chip-wrapper">
+          <button class="filter-chip" id="filterGroupChip">
+            <span>🏷️</span>
+            <span class="filter-chip-label">Group</span>
+            <span class="filter-chip-value" id="filterGroupValue"></span>
+            <span class="filter-chip-arrow">▾</span>
+          </button>
+          <div class="filter-chip-dropdown" id="filterGroupDropdown"></div>
+        </div>
+        <div class="filter-chip-wrapper" id="filterPendingWrapper" hidden>
+          <button class="filter-chip" id="filterPendingChip">
+            <span>⏳</span>
+            <span class="filter-chip-label">Pending Review</span>
+            <span class="filter-chip-value" id="filterPendingValue"></span>
+          </button>
+        </div>
       </div>
 
       <div class="filter-summary" id="filterSummary">
@@ -85,7 +101,7 @@
       <button id="nextBtn" class="pagination-button">Next →</button>
     </div>
 
-    <a href="./index.html" class="back-button">← Back to Home</a>
+    <a href="./index.html" id="bottomBackLink" class="back-button">← Back to Home</a>
   </div>
 
   <script src="./assets/config.js"></script>

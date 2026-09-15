@@ -5,6 +5,12 @@ SELECT setval('bodies_of_water_id_seq', COALESCE((SELECT MAX(id) FROM bodies_of_
 SELECT setval('catches_id_seq', COALESCE((SELECT MAX(id) FROM catches), 1), (SELECT MAX(id) FROM catches) IS NOT NULL);
 SELECT setval('catch_media_id_seq', COALESCE((SELECT MAX(id) FROM catch_media), 1), (SELECT MAX(id) FROM catch_media) IS NOT NULL);
 --chat_messages is created/owned by the n8n chat workflow (Postgres Chat Memory node), not by this repo's scripts/tables/*.sql.
-SELECT setval('chat_messages_id_seq', COALESCE((SELECT MAX(id) FROM chat_messages), 1), (SELECT MAX(id) FROM chat_messages) IS NOT NULL);
+--Guarded separately since it may not exist yet on a truly fresh DB, unlike the tables above (which this repo creates together).
+DO $$
+BEGIN
+  IF to_regclass('chat_messages') IS NOT NULL THEN
+    PERFORM setval('chat_messages_id_seq', COALESCE((SELECT MAX(id) FROM chat_messages), 1), (SELECT MAX(id) FROM chat_messages) IS NOT NULL);
+  END IF;
+END $$;
 SELECT setval('conversations_id_seq', COALESCE((SELECT MAX(id) FROM conversations), 1), (SELECT MAX(id) FROM conversations) IS NOT NULL);
 SELECT setval('fish_species_id_seq', COALESCE((SELECT MAX(id) FROM fish_species), 1), (SELECT MAX(id) FROM fish_species) IS NOT NULL);

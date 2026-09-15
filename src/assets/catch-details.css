@@ -152,6 +152,39 @@ body {
   word-break: break-word;
 }
 
+.detail-value:has(.dnr-link) {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dnr-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: #f0f8ff;
+  color: #1a75d1;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1px solid #d0eaff;
+  white-space: nowrap;
+  vertical-align: middle;
+  transition: transform 0.15s, background 0.15s;
+}
+
+.dnr-link:hover {
+  background: #e0f0ff;
+}
+
+.dnr-link:active {
+  transform: scale(0.96);
+}
+
 /* Summary block */
 .detail-summary {
   margin-top: 0;
@@ -174,6 +207,28 @@ body {
 
 .detail-summary p {
   margin: 0;
+}
+
+.detail-summary-byline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.detail-summary-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.detail-angler-avatar {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: white;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
 /* ─── Card Footer (Edit + Record Info triggers) ─── */
@@ -519,12 +574,18 @@ body {
   display: flex;
 }
 
-.lightbox-img {
+.lightbox-img,
+.lightbox-video {
   max-width: 94vw;
   max-height: 90vh;
   border-radius: 6px;
   object-fit: contain;
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+}
+
+.lightbox-img.hidden,
+.lightbox-video.hidden {
+  display: none;
 }
 
 .lightbox-close {
@@ -539,10 +600,74 @@ body {
   cursor: pointer;
   opacity: 0.8;
   padding: 0;
+  z-index: 1;
 }
 
 .lightbox-close:hover {
   opacity: 1;
+}
+
+.lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+.lightbox-nav:hover {
+  background: rgba(255, 255, 255, 0.22);
+  opacity: 1;
+}
+
+.lightbox-nav.hidden {
+  display: none;
+}
+
+.lightbox-nav--prev {
+  left: 12px;
+}
+
+.lightbox-nav--next {
+  right: 12px;
+}
+
+.lightbox-counter {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 480px) {
+  .lightbox-nav {
+    width: 40px;
+    height: 40px;
+    font-size: 15px;
+  }
+
+  .lightbox-nav--prev {
+    left: 6px;
+  }
+
+  .lightbox-nav--next {
+    right: 6px;
+  }
 }
 
 /* ─── Card Section Label (shared by Catch Details & Catch Media) ─── */

@@ -4,10 +4,17 @@ const el = {
   status: document.getElementById('status'),
   loadingIndicator: document.getElementById('loadingIndicator'),
   content: document.getElementById('content'),
+  groupFilter: document.getElementById('groupFilter'),
   topCatchesList: document.getElementById('topCatchesList'),
   fishSpeciesRecordsList: document.getElementById('fishSpeciesRecordsList'),
   topAnglersList: document.getElementById('topAnglersList'),
 };
+
+// Populated once on load, then re-filtered in-memory on every pill click —
+// no need to re-fetch anything to change which group is highlighted.
+let allCatches = [];
+let groupsByAnglerId = {};
+let activeGroup = '';
 
 function setStatus(msg) {
   el.status.textContent = msg;
@@ -119,10 +126,11 @@ function computeTopAnglers(catches) {
 
   catches.forEach(c => {
     const name = c.anglerName || 'Unknown';
-    if (!byAngler.has(name)) {
-      byAngler.set(name, { name, count: 0, biggestCatch: null, speciesCounts: new Map() });
+    const key = c.anglerId ?? name;
+    if (!byAngler.has(key)) {
+      byAngler.set(key, { id: c.anglerId ?? null, name, count: 0, biggestCatch: null, speciesCounts: new Map() });
     }
-    const entry = byAngler.get(name);
+    const entry = byAngler.get(key);
     entry.count += 1;
 
     const length = (c.length != null && c.length !== '') ? Number(c.length) : null;
@@ -186,7 +194,7 @@ function renderFishSpeciesRecords(list) {
   }).join('');
 }
 
-function renderTopAnglers(list) {
+function renderTopAnglers(list, photosById) {
   if (!list.length) {
     el.topAnglersList.innerHTML = `<div class="rank-empty">No anglers on the board yet.</div>`;
     return;
@@ -194,11 +202,16 @@ function renderTopAnglers(list) {
 
   el.topAnglersList.innerHTML = list.map((a, i) => {
     const meta = [`${a.count} catch${a.count === 1 ? '' : 'es'}`, buildSpeciesBreakdown(a.speciesCounts)].filter(Boolean).join(' · ');
+    const photoUrl = photosById && a.id != null ? photosById[a.id] : null;
+    const avatarHtml = photoUrl
+      ? `<img class="rank-avatar" src="${escapeHtml(photoUrl)}" alt="">`
+      : `<div class="rank-avatar rank-avatar--placeholder">🎣</div>`;
     return `
       <a class="rank-row${rankClass(i)}" href="./catches-listing.html" data-angler="${escapeHtml(a.name)}">
         <div class="rank-badge">${rankBadge(i)}</div>
+        ${avatarHtml}
         <div class="rank-content">
-          <div class="rank-main">${escapeHtml(a.name)}${pendingBadge(a.biggestCatch?.verifiedAt)}</div>
+          <div class="rank-main">${escapeHtml(a.name)}${a.biggestCatch ? pendingBadge(a.biggestCatch.verifiedAt) : ''}</div>
           <div class="rank-meta">${escapeHtml(meta)}</div>
         </div>
         <span class="rank-link">View →</span>
@@ -212,24 +225,87 @@ function renderTopAnglers(list) {
         angler: row.dataset.angler, species: '', water: '',
       }));
       sessionStorage.removeItem('gillbert_search');
+      sessionStorage.setItem('gillbert_return_to', JSON.stringify({ href: './fish-of-fame.html', label: 'Fish of Fame' }));
     });
   });
 }
 
+// ── Group filter ─────────────────────────────────────────────────────────────────────────
+function renderGroupPills(allGroups) {
+  if (!allGroups.length) {
+    el.groupFilter.classList.add('hidden');
+    return;
+  }
+
+  const pills = [{ label: 'All', value: '' }, ...allGroups.map(g => ({ label: g, value: g }))];
+  el.groupFilter.innerHTML = pills.map(p =>
+    `<button type="button" class="group-filter-btn${p.value === activeGroup ? ' active' : ''}" data-group="${escapeHtml(p.value)}" aria-pressed="${p.value === activeGroup}">${escapeHtml(p.label)}</button>`
+  ).join('');
+  el.groupFilter.classList.remove('hidden');
+
+  el.groupFilter.querySelectorAll('.group-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeGroup = btn.dataset.group;
+      el.groupFilter.querySelectorAll('.group-filter-btn').forEach(b => {
+        const isActive = b.dataset.group === activeGroup;
+        b.classList.toggle('active', isActive);
+        b.setAttribute('aria-pressed', isActive);
+      });
+      renderLeaderboards();
+    });
+  });
+}
+
+function catchesForActiveGroup() {
+  if (!activeGroup) return allCatches;
+  return allCatches.filter(c => (groupsByAnglerId[c.anglerId] || []).includes(activeGroup));
+}
+
+function renderLeaderboards() {
+  const catches = catchesForActiveGroup();
+  renderTopCatches(computeTopCatches(catches));
+  renderFishSpeciesRecords(computeFishSpeciesRecords(catches));
+  renderTopAnglers(computeTopAnglers(catches), photosByAnglerId);
+}
+
 // ── Load ─────────────────────────────────────────────────────────────────────────────────
+let photosByAnglerId = {};
+
+async function loadAnglerLookup() {
+  try {
+    const res = await fetch(API_BASE + 'get-lookup-data', { headers: { 'X-API-Key': API_KEY } });
+    if (!res.ok) return { photosById: {}, groupsById: {}, allGroups: [] };
+    const raw = await res.json();
+    const data = Array.isArray(raw) ? raw[0] : raw;
+    const anglers = data.anglers || [];
+    const photosById = Object.fromEntries(
+      anglers.filter(a => a.profilePhotoReadUrl).map(a => [a.id, a.profilePhotoReadUrl])
+    );
+    const groupsById = Object.fromEntries(anglers.map(a => [a.id, a.groups || []]));
+    const allGroups = Array.from(new Set(anglers.flatMap(a => a.groups || []))).sort((a, b) => a.localeCompare(b));
+    return { photosById, groupsById, allGroups };
+  } catch (err) {
+    console.error('Failed to load angler lookup data:', err);
+    return { photosById: {}, groupsById: {}, allGroups: [] };
+  }
+}
+
 async function loadFishOfFame() {
   try {
     showLoading();
     setStatus('');
 
-    const res = await fetch(CATCHES_GET_URL, {
-      headers: { 'X-API-Key': API_KEY },
-    });
+    const [res, anglerLookup] = await Promise.all([
+      fetch(CATCHES_GET_URL, { headers: { 'X-API-Key': API_KEY } }),
+      loadAnglerLookup(),
+    ]);
 
     if (!res.ok) throw new Error(`GET failed: ${res.status}`);
 
     const data = await res.json();
-    const allCatches = Array.isArray(data) ? data : (data.catches || []);
+    allCatches = Array.isArray(data) ? data : (data.catches || []);
+    photosByAnglerId = anglerLookup.photosById;
+    groupsByAnglerId = anglerLookup.groupsById;
 
     hideLoading();
 
@@ -238,9 +314,8 @@ async function loadFishOfFame() {
       return;
     }
 
-    renderTopCatches(computeTopCatches(allCatches));
-    renderFishSpeciesRecords(computeFishSpeciesRecords(allCatches));
-    renderTopAnglers(computeTopAnglers(allCatches));
+    renderGroupPills(anglerLookup.allGroups);
+    renderLeaderboards();
     el.content.classList.remove('hidden');
   } catch (err) {
     console.error(err);

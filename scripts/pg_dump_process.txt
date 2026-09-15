@@ -1,3 +1,5 @@
+This is a manual, one-off snapshot of a single database — reach for it before a risky change (a schema migration, a Legacy Data Load reset) when you want a quick, targeted backup to restore from if something goes wrong. It supplements, not replaces, the automated nightly pg_dumpall backup (daily-backup-script_backup.sh), which already captures every database on the Pi and is the real day-to-day safety net.
+
 First, open PowerShell and navigate to a folder where you have permissions.
 cd C:\Users\kurtw\source\repos\KWondra625\Gillbert\scripts
 
@@ -8,4 +10,4 @@ Third, configure and run the below command to create the file:
 docker exec -t -e PGPASSWORD="<password>" <container_name> pg_dump -U <db_user> <db_name> > backup.sql
 
 Example:
-docker exec -t -e PGPASSWORD="password" data-postgres pg_dump -U postgres_db_user ParkingLot > pg_dump_backup01.sql
+docker exec -t -e PGPASSWORD="password" data-postgres pg_dump -U postgres_db_user Gillbert > pg_dump_backup01.sql

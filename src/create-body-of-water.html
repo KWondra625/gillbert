@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Add Body of Water · Gillbert</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/top-home-link.css" />
+  <link rel="stylesheet" href="./assets/create-body-of-water.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="top-nav">
+      <a href="./bodies-of-water-listing.html" class="top-home-link top-home-link--on-light" aria-label="Back to Bodies of Water">← Bodies of Water</a>
+    </div>
+
+    <!-- ── Loading state ────────────────────────────────────────────── -->
+    <div id="loadingState">
+      <div class="header">
+        <h1>➕ Add Body of Water</h1>
+        <p>Preparing form…</p>
+      </div>
+      <div class="loading-indicator">
+        <div class="fishing-animation">🎣<span class="bobber">●</span></div>
+        <p>Just a moment…</p>
+      </div>
+    </div>
+
+    <!-- ── Error state ──────────────────────────────────────────────── -->
+    <div id="errorState" class="hidden">
+      <div class="header">
+        <h1>➕ Add Body of Water</h1>
+      </div>
+      <div class="error-card">
+        <p class="error-icon">⚠️</p>
+        <p id="errorMsg">Unable to load this page. Please check your connection and try again.</p>
+        <button id="retryBtn" class="primary-button">🔄 Try Again</button>
+      </div>
+      <a href="./bodies-of-water-listing.html" class="back-button">← Back to Listing</a>
+    </div>
+
+    <!-- ── Form state ───────────────────────────────────────────────── -->
+    <div id="formState" class="hidden">
+      <div class="header">
+        <h1>➕ Add Body of Water</h1>
+        <p>Create a new body of water record</p>
+      </div>
+
+      <form id="waterForm" novalidate>
+
+        <!-- DNR search widget -->
+        <div class="dnr-search-group">
+          <label for="dnrSearchInput">🔍 Search WI DNR <span class="optional-mark">(by name or WBIC, optional)</span></label>
+          <div class="dnr-search-row">
+            <input type="text" id="dnrSearchInput" placeholder="e.g. Pine Lake or 299100" />
+            <button type="button" id="dnrSearchBtn" class="dnr-search-btn">Search</button>
+          </div>
+          <p class="field-hint">Find the official DNR record to pull in its details — or skip this and enter everything manually below.</p>
+          <div id="dnrSearchStatus" class="dnr-search-status hidden"></div>
+          <div id="dnrSearchResults" class="dnr-search-results hidden"></div>
+          <div id="dnrLinkedChip" class="dnr-linked-chip hidden">
+            <span id="dnrLinkedText"></span>
+            <button type="button" id="dnrLinkedClear" class="dnr-linked-clear">Change</button>
+          </div>
+        </div>
+
+        <!-- Name -->
+        <div class="field-group">
+          <label for="name">💧 Name <span class="required-mark">*</span></label>
+          <input type="text" id="name" placeholder="e.g. Pine Lake" />
+          <p class="field-error hidden" id="nameError">Please enter a name.</p>
+        </div>
+
+        <!-- Status -->
+        <div class="field-group">
+          <label>🔘 Status <span class="required-mark">*</span></label>
+          <div class="status-pills" id="statusPills">
+            <button type="button" class="status-pill" data-status="Active">Active</button>
+            <button type="button" class="status-pill" data-status="Inactive">Inactive</button>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="field-group">
+          <label for="notes">📝 Notes <span class="optional-mark">(optional)</span></label>
+          <textarea id="notes" rows="3" placeholder="Any details worth remembering…"></textarea>
+        </div>
+
+        <!-- Form-level error -->
+        <div id="formError" class="form-error hidden"></div>
+
+        <!-- Actions -->
+        <div class="actions">
+          <button type="button" id="createBtn" class="primary-button">➕ Create Body of Water</button>
+          <a href="./bodies-of-water-listing.html" id="cancelLink" class="back-button">← Cancel</a>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- ── Submitting state ─────────────────────────────────────────── -->
+    <div id="submittingState" class="hidden">
+      <div class="header">
+        <h1>➕ Add Body of Water</h1>
+        <p>Creating this record…</p>
+      </div>
+      <div class="loading-indicator">
+        <div class="fishing-animation">🎣<span class="bobber">●</span></div>
+        <p>Updating Gillbert's records…</p>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="./assets/config.js"></script>
+  <script src="./assets/admin.js"></script>
+  <script src="./assets/dnr-search.js"></script>
+  <script src="./assets/create-body-of-water.js"></script>
+</body>
+</html>

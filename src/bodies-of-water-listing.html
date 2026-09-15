@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gillbert - Bodies of Water</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/bodies-of-water-listing.css" />
+  <link rel="stylesheet" href="./assets/top-home-link.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="top-nav">
+      <a href="./index.html" class="top-home-link" aria-label="Go back to Home">← Home</a>
+    </div>
+
+    <!-- ── Loading state ────────────────────────────────────────────── -->
+    <div id="loadingState">
+      <div class="header">
+        <h1>💧 Bodies of Water</h1>
+        <p>Loading bodies of water…</p>
+      </div>
+      <div class="loading-indicator">
+        <div class="fishing-animation">🎣<span class="bobber">●</span></div>
+        <p>Loading bodies of water…</p>
+      </div>
+    </div>
+
+    <!-- ── Error state ──────────────────────────────────────────────── -->
+    <div id="errorState" class="hidden">
+      <div class="header">
+        <h1>💧 Bodies of Water</h1>
+      </div>
+      <div class="error-card">
+        <p class="error-icon">⚠️</p>
+        <p id="errorMsg">Unable to load bodies of water. Please check your connection and try again.</p>
+        <button id="retryBtn" class="primary-button">🔄 Try Again</button>
+      </div>
+      <a href="./index.html" class="back-button">← Back to Home</a>
+    </div>
+
+    <!-- ── List state ───────────────────────────────────────────────── -->
+    <div id="listState" class="hidden">
+      <div class="header">
+        <h1>💧 Bodies of Water</h1>
+        <p>Manage the bodies of water data</p>
+      </div>
+
+      <div class="controls">
+        <input
+          type="text"
+          id="searchInput"
+          class="search-input"
+          placeholder="Search bodies of water..."
+          title="Search by name"
+        />
+        <div class="filter-row">
+          <div class="status-filter" id="statusFilter">
+            <button class="status-filter-btn active" data-status="">All</button>
+            <button class="status-filter-btn" data-status="Active">Active</button>
+            <button class="status-filter-btn" data-status="Inactive">Inactive</button>
+          </div>
+          <a href="./create-body-of-water.html" class="add-species-btn">➕ Add Body of Water</a>
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Status</th>
+              <th>Catches</th>
+            </tr>
+          </thead>
+          <tbody id="waterTableBody"></tbody>
+        </table>
+      </div>
+
+      <p id="emptyState" class="empty-state hidden">No bodies of water match your search.</p>
+
+      <a href="./index.html" class="back-button">← Back to Home</a>
+    </div>
+  </div>
+
+  <script src="./assets/config.js"></script>
+  <script src="./assets/admin.js"></script>
+  <script src="./assets/water-catches.js"></script>
+  <script src="./assets/bodies-of-water-listing.js"></script>
+</body>
+</html>

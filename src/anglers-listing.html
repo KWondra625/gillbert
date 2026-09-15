@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gillbert - Anglers</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/anglers-listing.css" />
+  <link rel="stylesheet" href="./assets/top-home-link.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="top-nav">
+      <a href="./index.html" class="top-home-link" aria-label="Go back to Home">← Home</a>
+    </div>
+
+    <!-- ── Loading state ────────────────────────────────────────────── -->
+    <div id="loadingState">
+      <div class="header">
+        <h1>🎣 Anglers</h1>
+        <p>Loading anglers…</p>
+      </div>
+      <div class="loading-indicator">
+        <div class="fishing-animation">🎣<span class="bobber">●</span></div>
+        <p>Loading anglers…</p>
+      </div>
+    </div>
+
+    <!-- ── Error state ──────────────────────────────────────────────── -->
+    <div id="errorState" class="hidden">
+      <div class="header">
+        <h1>🎣 Anglers</h1>
+      </div>
+      <div class="error-card">
+        <p class="error-icon">⚠️</p>
+        <p id="errorMsg">Unable to load anglers. Please check your connection and try again.</p>
+        <button id="retryBtn" class="primary-button">🔄 Try Again</button>
+      </div>
+      <a href="./index.html" class="back-button">← Back to Home</a>
+    </div>
+
+    <!-- ── List state ───────────────────────────────────────────────── -->
+    <div id="listState" class="hidden">
+      <div class="header">
+        <h1>🎣 Anglers</h1>
+        <p>Manage angler records</p>
+      </div>
+
+      <div class="controls">
+        <input
+          type="text"
+          id="searchInput"
+          class="search-input"
+          placeholder="Search anglers..."
+          title="Search by name or alias"
+        />
+        <div class="filter-row">
+          <div class="status-filter" id="statusFilter">
+            <button class="status-filter-btn active" data-status="">All</button>
+            <button class="status-filter-btn" data-status="Active">Active</button>
+            <button class="status-filter-btn" data-status="Inactive">Inactive</button>
+          </div>
+          <a href="./create-angler.html" class="add-species-btn">➕ Add Angler</a>
+        </div>
+      </div>
+
+      <div class="angler-card-grid" id="anglerCardGrid"></div>
+
+      <p id="emptyState" class="empty-state hidden">No anglers match your search.</p>
+
+      <a href="./index.html" class="back-button">← Back to Home</a>
+    </div>
+  </div>
+
+  <script src="./assets/config.js"></script>
+  <script src="./assets/admin.js"></script>
+  <script src="./assets/angler-catches.js"></script>
+  <script src="./assets/anglers-listing.js"></script>
+</body>
+</html>

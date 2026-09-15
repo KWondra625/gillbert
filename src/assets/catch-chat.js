@@ -1,24 +1,6 @@
 // Catch Chat — page-specific reply rendering. Shared send/scroll/focus
-// behavior lives in chat-shell.js via initChatShell().
-
-// ── Identity ──────────────────────────────────────────────────────────────────
-
-const LOOKUP_URL = API_BASE + 'get-lookup-data';
-
-// Fired immediately so it's resolved (or in flight) by the time the user sends
-// their first message. Distinct from the "anglerId" the AI extracts from the
-// conversation (who caught the fish) — this is who's holding the phone.
-const loggedInAnglerIdPromise = (async () => {
-  try {
-    const res = await fetch(LOOKUP_URL, { headers: { 'X-API-Key': API_KEY } });
-    if (!res.ok) return null;
-    const raw = await res.json();
-    const data = Array.isArray(raw) ? raw[0] : raw;
-    return await resolveMyAnglerId(data.anglers || []);
-  } catch {
-    return null;
-  }
-})();
+// behavior lives in chat-shell.js via initChatShell(); identity resolution
+// (loggedInAnglerIdPromise) comes from chat-identity.js.
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, m => ({
