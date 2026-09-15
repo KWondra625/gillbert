@@ -11,6 +11,9 @@ const el = {
   nameError:       document.getElementById('nameError'),
   statusPills:     document.getElementById('statusPills'),
   aliases:         document.getElementById('aliases'),
+  groupsWrapper:     document.getElementById('groupsWrapper'),
+  groupsInput:       document.getElementById('groupsInput'),
+  groupsSuggestions: document.getElementById('groupsSuggestions'),
   loginEmails:     document.getElementById('loginEmails'),
   loginEmailsError: document.getElementById('loginEmailsError'),
   formError:       document.getElementById('formError'),
@@ -19,8 +22,16 @@ const el = {
 
 let selectedStatus = 'Active';
 let hasAttemptedSubmit = false;
+let allKnownGroups = [];
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const groupsTagInput = createTagInput({
+  wrapper: el.groupsWrapper,
+  input: el.groupsInput,
+  suggestionsBox: el.groupsSuggestions,
+  getSuggestionPool: () => allKnownGroups,
+});
 
 function parseLoginEmails() {
   return el.loginEmails.value.split(',').map(e => e.trim()).filter(Boolean);
@@ -54,6 +65,18 @@ async function load() {
 
   setStatus('Active');
   showState('formState');
+
+  // Best-effort — suggestions are a nicety, not worth failing the page over.
+  try {
+    const res = await fetch(ANGLERS_GET_URL, { headers: { 'X-API-Key': API_KEY } });
+    if (res.ok) {
+      const raw = await res.json();
+      const all = Array.isArray(raw) && Array.isArray(raw[0]) ? raw[0] : (Array.isArray(raw) ? raw : []);
+      allKnownGroups = Array.from(new Set(all.flatMap(a => a.groups || [])));
+    }
+  } catch (err) {
+    console.error('Failed to load existing groups for suggestions:', err);
+  }
 }
 
 // ── Submit ────────────────────────────────────────────────────────────────
@@ -90,6 +113,7 @@ async function submit() {
     name: el.name.value.trim(),
     status: selectedStatus,
     aliases: aliasesArr,
+    groups: groupsTagInput.getTags(),
     loginEmails: loginEmailsArr,
   };
 

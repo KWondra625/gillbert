@@ -1,5 +1,6 @@
 // Ask Gillbert — page-specific reply rendering. Shared send/scroll/focus
-// behavior lives in chat-shell.js via initChatShell().
+// behavior lives in chat-shell.js via initChatShell(); identity resolution
+// (loggedInAnglerIdPromise) comes from chat-identity.js.
 
 marked.use({ breaks: true });
 
@@ -11,7 +12,13 @@ function linkifyCatchNumbers(html) {
 }
 
 function renderGillbertReply(text) {
-  return linkifyCatchNumbers(marked.parse(text));
+  // Sanitize LAST: linkifyCatchNumbers does a naive regex replace over the
+  // whole HTML string (including inside tag attributes), which can produce
+  // malformed markup if a catch number appears somewhere other than plain
+  // text. Running DOMPurify after linkification, not before, guarantees the
+  // final output is still safe even if that replace corrupts intermediate
+  // structure.
+  return DOMPurify.sanitize(linkifyCatchNumbers(marked.parse(text)));
 }
 
 initChatShell({
@@ -19,4 +26,5 @@ initChatShell({
   sessionKey: 'gillbert_ask_session',
   renderGillbertReply,
   logLabel: 'Ask',
+  getExtraBody: async () => ({ loggedInAnglerId: await loggedInAnglerIdPromise }),
 });

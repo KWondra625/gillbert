@@ -97,6 +97,37 @@ body {
   color: #4FACFE;
 }
 
+/* Group filter — pills, one active at a time, "All" resets it */
+.group-filter {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  grid-column: 1 / -1;
+}
+
+.group-filter-btn {
+  padding: 8px 14px;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.group-filter-btn:active {
+  transform: scale(0.96);
+}
+
+.group-filter-btn.active {
+  background: white;
+  color: #1a75d1;
+  border-color: white;
+}
+
 /* Section dividers */
 .section-divider {
   display: flex;

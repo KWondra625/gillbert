@@ -49,16 +49,17 @@ const FIELD_LABELS = {
   
 };
 
-// Fields excluded from all loops (handled explicitly)
-const EXCLUDE_FIELDS = new Set(['catchNumber', 'fullSummary', 'headline', 'catchMediaCount', 'anglerId', 'bodyOfWaterId', 'fishSpeciesId', 'fishSpeciesDnrUrl', 'bodyOfWaterWbic', 'bodyOfWaterDnrUrlVerified', 'createdByAnglerId', 'createdByAnglerName', 'updatedByAnglerId','updatedByAnglerName', ...FIELD_ORDER, ...AUDIT_FIELDS]);
-
 const el = {
   status:           document.getElementById('status'),
   loadingIndicator: document.getElementById('loadingIndicator'),
   detailsContainer: document.getElementById('detailsContainer'),
   lightbox:         document.getElementById('lightbox'),
   lightboxImg:      document.getElementById('lightboxImg'),
+  lightboxVideo:    document.getElementById('lightboxVideo'),
   lightboxClose:    document.getElementById('lightboxClose'),
+  lightboxPrev:     document.getElementById('lightboxPrev'),
+  lightboxNext:     document.getElementById('lightboxNext'),
+  lightboxCounter:  document.getElementById('lightboxCounter'),
   topHomeLink:      document.querySelector('.top-home-link'),
   backButton:       document.getElementById('backButton'),
 };
@@ -247,9 +248,13 @@ async function loadCatchDetails(catchNumber) {
       const anglers = lookupData.anglers || [];
       myAnglerId = await resolveMyAnglerId(anglers);
       anglersById = Object.fromEntries(anglers.map(a => [a.id, a]));
+      setStatus("");
+    } else {
+      // Owner-edit permission can't be resolved without this — fail closed (no
+      // Edit button) same as before, but tell the owner why instead of staying silent.
+      setStatus("Couldn't verify edit permissions — try reloading ⚠️", true);
     }
 
-    setStatus("");
     renderDetails(catchData);
     hideLoading();
   } catch (err) {
@@ -263,10 +268,7 @@ function renderDetails(catchData) {
   const catchNumber = catchData.catchNumber || "Unknown";
   const isVerified = !!catchData.verifiedAt;
 
-  // Owner-edit: either the angler who caught the fish or whoever logged it, until verified.
-  // Admin PIN always overrides.
-  const isOwner = myAnglerId != null && (myAnglerId === catchData.anglerId || myAnglerId === catchData.createdByAnglerId);
-  const canEdit = isAdminUnlocked() || (isOwner && !isVerified);
+  const canEdit = canEditCatch(catchData, myAnglerId);
 
   document.title = `${catchNumber} · Gillbert`;
 
@@ -325,13 +327,7 @@ function renderDetails(catchData) {
     })
     .join('');
 
-  // 2. Any extra fields the API returned that aren't in our known lists
-  const extraRows = Object.keys(catchData)
-    .filter(key => !EXCLUDE_FIELDS.has(key) && !AUDIT_FIELDS.includes(key) && hasValue(key))
-    .map(key => buildRow(key, catchData[key]))
-    .join('');
-
-  // 3. Audit data — stored for the modal, not rendered inline
+  // 2. Audit data — stored for the modal, not rendered inline
   const auditRows = AUDIT_FIELDS
     .filter(hasValue)
     .map(key => {
@@ -358,7 +354,6 @@ function renderDetails(catchData) {
       <div class="detail-card-body">
         ${headlineHtml}
         ${primaryRows}
-        ${extraRows}
       </div>
       <div id="mediaContainer" class="detail-media-section">
         <div class="detail-section-label">Catch Media</div>
@@ -368,7 +363,7 @@ function renderDetails(catchData) {
         <div class="detail-card-footer-admin">
           <a href="./edit-catch.html?catchNumber=${encodeURIComponent(catchNumber)}" id="editCatchLink" class="edit-catch-trigger hidden">✏️ Edit</a>
           <button id="verifyToggle" class="verify-toggle-trigger hidden ${isVerified ? 'verify-toggle-trigger--verified' : 'verify-toggle-trigger--pending'}">${isVerified ? '🔓 ↩️ Unverify' : '🔓 ✅ Verify'}</button>
-          <button id="manageMediaBtn" class="manage-media-trigger hidden">🔓 🗑️ Manage Media</button>
+          <button id="manageMediaBtn" class="manage-media-trigger hidden${isMediaEditMode ? ' manage-media-trigger--active' : ''}">${isMediaEditMode ? '✖ Done' : '🔓 🗑️ Manage Media'}</button>
         </div>
         <button class="record-info-trigger" id="recordInfoTrigger">ⓘ Record Info</button>
       </div>
@@ -444,11 +439,27 @@ window.addEventListener("DOMContentLoaded", () => {
   // Render catch details first (card must exist for media container), then fetch media
   loadCatchDetails(catchNumber).then(() => loadCatchMedia(catchNumber));
 
-  // Lightbox close handlers
+  // Lightbox close/navigate handlers
   el.lightboxClose.addEventListener('click', closeLightbox);
   el.lightbox.addEventListener('click', (e) => {
     if (e.target === el.lightbox) closeLightbox();
   });
+  el.lightboxPrev.addEventListener('click', () => navigateLightbox(-1));
+  el.lightboxNext.addEventListener('click', () => navigateLightbox(1));
+
+  // Swipe left/right to navigate on touch devices
+  let touchStartX = null;
+  el.lightbox.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].clientX;
+  }, { passive: true });
+  el.lightbox.addEventListener('touchend', (e) => {
+    if (touchStartX == null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX;
+    touchStartX = null;
+    const SWIPE_THRESHOLD = 50;
+    if (deltaX > SWIPE_THRESHOLD) navigateLightbox(-1);
+    else if (deltaX < -SWIPE_THRESHOLD) navigateLightbox(1);
+  }, { passive: true });
 
   const recordInfoModal = document.getElementById('recordInfoModal');
   const recordInfoClose = document.getElementById('recordInfoClose');
@@ -468,6 +479,10 @@ window.addEventListener("DOMContentLoaded", () => {
       closeLightbox();
       recordInfoModal.classList.remove('open');
       closeDeleteModal();
+    }
+    if (el.lightbox.classList.contains('open') && e.target.tagName !== 'VIDEO') {
+      if (e.key === 'ArrowLeft') navigateLightbox(-1);
+      if (e.key === 'ArrowRight') navigateLightbox(1);
     }
   });
 });
@@ -552,17 +567,11 @@ async function handleMediaDelete() {
       throw new Error(`Delete failed: ${res.status} ${text}`);
     }
 
-    if (pendingDeleteTile) {
-      const grid    = pendingDeleteTile.closest('.media-grid');
-      const section = grid?.closest('.media-section');
-      pendingDeleteTile.remove();
-      if (grid && !grid.children.length) {
-        section?.remove();
-      } else if (section) {
-        const title = section.querySelector('.media-section-title');
-        if (title) title.textContent = title.textContent.replace(/\(\d+\)/, `(${grid.children.length})`);
-      }
-    }
+    // Re-fetch and re-render rather than just removing the tile from the DOM:
+    // lightboxSequence and each tile's click-bound index are only rebuilt by
+    // renderMedia(), so a DOM-only removal would leave them stale (the
+    // deleted item still reachable via lightbox nav, counts off by one).
+    await loadCatchMedia(getCatchNumberFromUrl());
     closeDeleteModal();
   } catch (err) {
     console.error('Media delete failed:', err);
@@ -651,7 +660,7 @@ function buildMediaTile(item) {
 
   // Photo (jpeg, png, etc.)
   return `
-    <div class="media-tile media-tile--photo" data-url="${encodeURI(readUrl)}" data-media-id="${item.id || ''}">
+    <div class="media-tile media-tile--photo" data-media-id="${item.id || ''}">
       <img
         src="${encodeURI(readUrl)}"
         alt="Catch photo"
@@ -682,6 +691,11 @@ function renderMedia(items) {
 
   const photos = items.filter(m => m.mediaType === 'Photo');
   const videos = items.filter(m => m.mediaType === 'Video');
+
+  // Matches DOM order below (photos section, then videos section). HEIC
+  // items have no inline preview to swipe to, so they're excluded — their
+  // tiles keep their own "Open / Download" link and never join the lightbox.
+  lightboxSequence = [...photos, ...videos].filter(m => m.contentType !== 'image/heic');
 
   if (!photos.length && !videos.length) {
     container.innerHTML = `
@@ -722,27 +736,11 @@ function renderMedia(items) {
     container.querySelector('.media-content')?.classList.add('media-content--edit-mode');
   }
 
-  // Wire up photo lightbox clicks
-  container.querySelectorAll('.media-tile--photo').forEach(tile => {
-    tile.addEventListener('click', () => openLightbox(tile.dataset.url));
-  });
-
-  // Wire up video play overlay clicks
-  container.querySelectorAll('.media-tile--video').forEach(tile => {
-    const overlay = tile.querySelector('.media-play-overlay');
-    const video   = tile.querySelector('video');
-    overlay.addEventListener('click', () => {
-      overlay.style.display = 'none';
-      video.controls = true;
-      video.play();
-    });
-    // Re-show overlay when video ends or is paused externally
-    video.addEventListener('pause', () => {
-      if (video.ended || video.paused) {
-        overlay.style.display = '';
-        video.controls = false;
-      }
-    });
+  // Wire up lightbox clicks — photo and video tiles both open the same
+  // swipeable viewer, at this tile's position in lightboxSequence (DOM
+  // order here matches that array's order, see above).
+  container.querySelectorAll('.media-tile--photo, .media-tile--video').forEach((tile, i) => {
+    tile.addEventListener('click', () => openLightbox(i));
   });
 
   // Wire up admin delete buttons
@@ -766,15 +764,57 @@ function renderMedia(items) {
 }
 
 // ─── Lightbox ────────────────────────────────────────────────────
+// A single swipeable/arrow-navigable viewer shared by photos and videos —
+// lightboxSequence is rebuilt on every renderMedia() call (see above),
+// lightboxIndex tracks the currently-shown item's position in it.
 
-function openLightbox(url) {
-  el.lightboxImg.src = url;
+let lightboxSequence = [];
+let lightboxIndex = -1;
+
+function openLightbox(index) {
+  lightboxIndex = index;
   el.lightbox.classList.add('open');
   document.body.style.overflow = 'hidden';
+  showLightboxItem(lightboxIndex);
+}
+
+function showLightboxItem(index) {
+  const item = lightboxSequence[index];
+  if (!item) return;
+
+  if (item.mediaType === 'Video') {
+    el.lightboxVideo.src = item.readUrl;
+    el.lightboxVideo.classList.remove('hidden');
+    el.lightboxImg.classList.add('hidden');
+    el.lightboxImg.src = '';
+  } else {
+    el.lightboxImg.src = item.readUrl;
+    el.lightboxImg.classList.remove('hidden');
+    el.lightboxVideo.classList.add('hidden');
+    el.lightboxVideo.pause();
+    el.lightboxVideo.removeAttribute('src');
+    el.lightboxVideo.load();
+  }
+
+  const multiple = lightboxSequence.length > 1;
+  el.lightboxPrev.classList.toggle('hidden', !multiple || index === 0);
+  el.lightboxNext.classList.toggle('hidden', !multiple || index === lightboxSequence.length - 1);
+  el.lightboxCounter.textContent = multiple ? `${index + 1} / ${lightboxSequence.length}` : '';
+}
+
+function navigateLightbox(delta) {
+  const next = lightboxIndex + delta;
+  if (next < 0 || next >= lightboxSequence.length) return;
+  lightboxIndex = next;
+  showLightboxItem(lightboxIndex);
 }
 
 function closeLightbox() {
   el.lightbox.classList.remove('open');
   el.lightboxImg.src = '';
+  el.lightboxVideo.pause();
+  el.lightboxVideo.removeAttribute('src');
+  el.lightboxVideo.load();
   document.body.style.overflow = '';
+  lightboxIndex = -1;
 }

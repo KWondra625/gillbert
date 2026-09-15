@@ -86,6 +86,16 @@
           <div class="field-info">ℹ️ Catch Chat matches a spoken/typed name against this list too, so a nickname here lets it recognize this angler without an exact database match.</div>
         </div>
 
+        <!-- Groups -->
+        <div class="field-group">
+          <label for="groupsInput">🏷️ Groups <span class="optional-mark">(optional)</span></label>
+          <div class="tag-input-wrapper" id="groupsWrapper">
+            <input type="text" id="groupsInput" class="tag-input-field" placeholder="Add a group…" autocomplete="off" />
+          </div>
+          <div class="tag-suggestions hidden" id="groupsSuggestions"></div>
+          <div class="field-hint">Press Enter or comma to add. Used to filter Fish of Fame and Catches Listing by crew/family — e.g. "Kaufman Family", "Ice Fishing Crew".</div>
+        </div>
+
         <!-- Login Emails -->
         <div class="field-group">
           <label for="loginEmails">📧 Login Emails <span class="optional-mark">(comma-separated, optional)</span></label>
@@ -180,6 +190,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/2.2.0/cropper.min.js"></script>
   <script src="./assets/config.js"></script>
   <script src="./assets/profile-photo-widget.js"></script>
+  <script src="./assets/tag-input.js"></script>
   <script src="./assets/admin.js"></script>
   <script src="./assets/angler-catches.js"></script>
   <script src="./assets/edit-angler.js"></script>

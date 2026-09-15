@@ -11,7 +11,9 @@ window.ADMIN_EMAILS = ADMIN_EMAILS;
 
 function isAdminUnlocked() {
   const expires = Number(localStorage.getItem(ADMIN_UNLOCK_STORAGE_KEY) || 0);
-  if (Date.now() > expires) {
+  // Fail closed on a corrupted/non-numeric value — NaN > x is always false,
+  // which would otherwise leave admin unlocked forever.
+  if (!Number.isFinite(expires) || Date.now() > expires) {
     localStorage.removeItem(ADMIN_UNLOCK_STORAGE_KEY);
     return false;
   }
@@ -87,6 +89,14 @@ async function resolveMyAnglerId(anglers) {
   return match ? match.id : null;
 }
 window.resolveMyAnglerId = resolveMyAnglerId;
+
+// Owner-edit: either the angler who caught the fish or whoever logged it, until verified.
+// Admin PIN always overrides.
+function canEditCatch(catchData, myAnglerId) {
+  const isOwner = myAnglerId != null && (myAnglerId === catchData.anglerId || myAnglerId === catchData.createdByAnglerId);
+  return isAdminUnlocked() || (isOwner && !catchData.verifiedAt);
+}
+window.canEditCatch = canEditCatch;
 
 // Wires up the tap-to-reveal PIN modal. No-op on pages that don't have
 // the trigger element and modal markup (currently index.html only).

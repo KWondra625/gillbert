@@ -20,6 +20,12 @@ const el = {
   filterWaterChip: document.getElementById('filterWaterChip'),
   filterWaterValue: document.getElementById('filterWaterValue'),
   filterWaterDropdown: document.getElementById('filterWaterDropdown'),
+  filterGroupChip: document.getElementById('filterGroupChip'),
+  filterGroupValue: document.getElementById('filterGroupValue'),
+  filterGroupDropdown: document.getElementById('filterGroupDropdown'),
+  filterPendingWrapper: document.getElementById('filterPendingWrapper'),
+  filterPendingChip: document.getElementById('filterPendingChip'),
+  filterPendingValue: document.getElementById('filterPendingValue'),
   filterSummary: document.getElementById('filterSummary'),
   filterSummaryText: document.getElementById('filterSummaryText'),
   filterClearAll: document.getElementById('filterClearAll'),
@@ -31,7 +37,17 @@ let allCatches = [];
 let filteredCatches = [];
 let currentPage = 1;
 let lookups = { anglers: [], species: [], bodiesOfWater: [] };
-let activeFilters = { angler: '', species: '', water: '', waterId: null };
+let activeFilters = { angler: '', species: '', water: '', waterId: null, group: '', pendingOnly: false };
+// anglerId -> groups[] — built once lookups.anglers loads, so the Group
+// filter can check a catch's angler without re-deriving this per catch.
+let groupsByAnglerId = {};
+
+// Guards against loadLookups() rendering an empty-state flash if it resolves
+// before loadCatches() has populated allCatches for the first time.
+let catchesLoaded = false;
+// Guards against loadCatches() filtering on a Group value before
+// groupsByAnglerId is populated — see applyFilters() call site below.
+let lookupsLoaded = false;
 // Species names with at least one catch — narrows the species filter dropdown
 // below the full roster. Fetched independently of allCatches so it always
 // reflects every catch, not just whatever the current search term matched.
@@ -80,6 +96,7 @@ async function loadCatches() {
     // Accept either [{...}] OR { catches: [...] }; filter out null-placeholder rows the API returns on no-results
     allCatches = (Array.isArray(data) ? data : (data.catches || []))
       .filter(c => c && c.catchNumber);
+    catchesLoaded = true;
 
     if (!allCatches.length) {
       const hasTerm = !!el.searchInput.value.trim();
@@ -107,7 +124,11 @@ async function loadCatches() {
     setStatus("");
     currentPage = 1;
     sessionStorage.setItem('gillbert_search', el.searchInput.value.trim());
-    applyFilters();
+    // If a Group filter is active but lookups haven't populated
+    // groupsByAnglerId yet, hold off — loadLookups() will call applyFilters()
+    // itself once it finishes (see its own guard above), avoiding a false
+    // "no results" flash from filtering against an empty groupsByAnglerId.
+    if (!activeFilters.group || lookupsLoaded) applyFilters();
     hideLoading();
   } catch (err) {
     console.error(err);
@@ -292,8 +313,13 @@ async function loadLookups() {
     lookups.anglers = data.anglers || [];
     lookups.species = (data.fishSpecies || []).map(s => ({ id: s.id, name: s.displayNameOverride || s.name }));
     lookups.bodiesOfWater = data.bodiesOfWater || [];
+    groupsByAnglerId = Object.fromEntries(lookups.anglers.map(a => [a.id, a.groups || []]));
+    lookupsLoaded = true;
     buildDropdowns();
-    applyFilters();
+    // Only re-filter here if catches have already loaded — otherwise this would
+    // run against an empty allCatches and flash a false "no results" state.
+    // loadCatches() will call applyFilters() itself once it finishes.
+    if (catchesLoaded) applyFilters();
   } catch (e) {
     console.error('Lookup fetch failed', e);
   }
@@ -316,6 +342,10 @@ async function loadSpeciesWithCatches() {
   }
 }
 
+// Builds each dropdown's markup and click listeners once, when the lookup
+// lists first arrive — the angler/species/water lists never change within a
+// page session, so there's no need to redo this on every filter interaction
+// (see syncDropdownSelections, called instead on each applyFilters()).
 function buildDropdowns() {
   buildDropdown('angler', el.filterAnglerDropdown, lookups.anglers, 'All Anglers');
   // Until speciesWithCatches has loaded, fall back to the full roster rather than showing nothing.
@@ -325,6 +355,11 @@ function buildDropdowns() {
   ).slice().sort((a, b) => a.name.localeCompare(b.name));
   buildDropdown('species', el.filterSpeciesDropdown, caughtSpecies, 'All Species');
   buildDropdown('water', el.filterWaterDropdown, lookups.bodiesOfWater, 'All Waters');
+  const allGroups = Array.from(new Set(lookups.anglers.flatMap(a => a.groups || [])))
+    .sort((a, b) => a.localeCompare(b))
+    .map(name => ({ name }));
+  buildDropdown('group', el.filterGroupDropdown, allGroups, 'All Groups');
+  syncDropdownSelections();
 }
 
 function buildDropdown(filterKey, dropdownEl, items, allLabel) {
@@ -333,9 +368,8 @@ function buildDropdown(filterKey, dropdownEl, items, allLabel) {
     ...items.map(i => ({ label: i.name || String(i), value: i.name || String(i) }))
   ];
   dropdownEl.innerHTML = options.map(opt => `
-    <div class="filter-option ${activeFilters[filterKey] === opt.value ? 'selected' : ''}"
-         data-filter="${filterKey}" data-value="${escapeHtml(opt.value)}">
-      <span class="filter-option-check">${activeFilters[filterKey] === opt.value ? '✓' : ''}</span>
+    <div class="filter-option" data-filter="${filterKey}" data-value="${escapeHtml(opt.value)}">
+      <span class="filter-option-check"></span>
       <span>${escapeHtml(opt.label)}</span>
     </div>
   `).join('');
@@ -352,6 +386,23 @@ function buildDropdown(filterKey, dropdownEl, items, allLabel) {
   });
 }
 
+// Cheap per-filter-change update: just toggles which existing option is
+// marked selected, no markup rebuild or listener re-attachment.
+function syncDropdownSelections() {
+  syncDropdownSelection(el.filterAnglerDropdown, 'angler');
+  syncDropdownSelection(el.filterSpeciesDropdown, 'species');
+  syncDropdownSelection(el.filterWaterDropdown, 'water');
+  syncDropdownSelection(el.filterGroupDropdown, 'group');
+}
+
+function syncDropdownSelection(dropdownEl, filterKey) {
+  dropdownEl.querySelectorAll('.filter-option').forEach(optEl => {
+    const isSelected = optEl.dataset.value === activeFilters[filterKey];
+    optEl.classList.toggle('selected', isSelected);
+    optEl.querySelector('.filter-option-check').textContent = isSelected ? '✓' : '';
+  });
+}
+
 function applyFilters() {
   filteredCatches = allCatches.filter(c => {
     if (activeFilters.angler && c.anglerName !== activeFilters.angler) return false;
@@ -359,6 +410,8 @@ function applyFilters() {
     if (activeFilters.waterId != null) {
       if (c.bodyOfWaterId !== activeFilters.waterId) return false;
     } else if (activeFilters.water && c.bodyOfWaterName !== activeFilters.water) return false;
+    if (activeFilters.group && !(groupsByAnglerId[c.anglerId] || []).includes(activeFilters.group)) return false;
+    if (activeFilters.pendingOnly && c.verifiedAt) return false;
     return true;
   });
   currentPage = 1;
@@ -371,14 +424,23 @@ function updateFilterUI() {
   updateChip('angler', el.filterAnglerChip, el.filterAnglerValue);
   updateChip('species', el.filterSpeciesChip, el.filterSpeciesValue);
   updateChip('water', el.filterWaterChip, el.filterWaterValue);
-  buildDropdowns();
-  const hasFilter = activeFilters.angler || activeFilters.species || activeFilters.water;
+  updateChip('group', el.filterGroupChip, el.filterGroupValue);
+  updatePendingChip();
+  syncDropdownSelections();
+  const hasFilter = activeFilters.angler || activeFilters.species || activeFilters.water || activeFilters.group || activeFilters.pendingOnly;
   if (hasFilter && allCatches.length) {
     el.filterSummary.classList.add('visible');
     el.filterSummaryText.textContent = `🎣 Showing ${filteredCatches.length} of ${allCatches.length} catches`;
   } else {
     el.filterSummary.classList.remove('visible');
   }
+}
+
+// Toggle chip (not a dropdown picker) — label always shows a live pending count.
+function updatePendingChip() {
+  const pendingCount = allCatches.filter(c => !c.verifiedAt).length;
+  el.filterPendingValue.textContent = ` (${pendingCount})`;
+  el.filterPendingChip.classList.toggle('active', activeFilters.pendingOnly);
 }
 
 function updateChip(filterKey, chipEl, valueEl) {
@@ -398,7 +460,7 @@ function closeDropdowns() {
   document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('open'));
 }
 
-['filterAnglerChip', 'filterSpeciesChip', 'filterWaterChip'].forEach(chipId => {
+['filterAnglerChip', 'filterSpeciesChip', 'filterWaterChip', 'filterGroupChip'].forEach(chipId => {
   const chip = document.getElementById(chipId);
   const dropdownId = chipId.replace('Chip', 'Dropdown');
   const dropdown = document.getElementById(dropdownId);
@@ -433,10 +495,22 @@ function closeDropdowns() {
 document.addEventListener('click', closeDropdowns);
 
 el.filterClearAll.addEventListener('click', () => {
-  activeFilters = { angler: '', species: '', water: '', waterId: null };
+  activeFilters = { angler: '', species: '', water: '', waterId: null, group: '', pendingOnly: false };
   sessionStorage.removeItem('gillbert_filters');
   applyFilters();
 });
+
+el.filterPendingChip.addEventListener('click', () => {
+  activeFilters.pendingOnly = !activeFilters.pendingOnly;
+  applyFilters();
+});
+
+// Admin-only: reveal the "Pending Review" toggle once identity/PIN unlock resolves.
+// Runs independently of the page's data loads so it never delays them.
+async function setupPendingFilterGate() {
+  await (window.adminIdentityCheck || Promise.resolve());
+  if (isAdminUnlocked()) el.filterPendingWrapper.hidden = false;
+}
 
 // One-shot: whoever links here sets gillbert_return_to right before
 // navigating; we apply it once and clear it so a later plain/default visit
@@ -471,6 +545,7 @@ window.addEventListener("DOMContentLoaded", () => {
   if (savedFilters) {
     try { activeFilters = { ...activeFilters, ...JSON.parse(savedFilters) }; } catch (e) {}
   }
+  setupPendingFilterGate();
   loadLookups();
   loadCatches();
   loadSpeciesWithCatches();
