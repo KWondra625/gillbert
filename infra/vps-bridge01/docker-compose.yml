@@ -1,0 +1,81 @@
+# Production stack for vps-bridge01 (Hostinger VPS).
+# Adapted from the Pi's ~/docker-stack/docker-compose.yml; see the VPS Setup Runbook.
+#
+# Rules for this box:
+#   - No public port publishing. Docker bypasses UFW, so a plain "5432:5432" would face the internet.
+#     cloudflared reaches n8n over the compose network; data-postgres binds to 127.0.0.1 only (SSH tunnel access).
+#   - Secrets live in .env (never committed). See env.template for the list.
+#   - Logs go to journald via /etc/docker/daemon.json, so no per-service logging config here.
+
+services:
+  n8n-postgres:
+    image: postgres:16
+    container_name: n8n-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: n8n
+      POSTGRES_USER: n8n_db_user
+      POSTGRES_PASSWORD: ${N8N_POSTGRES_PASSWORD}
+      TZ: ${TZ}
+    volumes:
+      - n8n-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8n_db_user -d n8n"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  n8n:
+    build: .
+    image: n8n-custom
+    container_name: n8n
+    restart: unless-stopped
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=n8n-postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=n8n_db_user
+      - DB_POSTGRESDB_PASSWORD=${N8N_POSTGRES_PASSWORD}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - N8N_HOST=${N8N_HOST}
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=https://${N8N_HOST}/
+      - GENERIC_TIMEZONE=${TZ}
+      - TZ=${TZ}
+      - N8N_NODE_FUNCTION_ALLOW_BUILTIN=crypto,child_process
+      - NODE_FUNCTION_ALLOW_BUILTIN=crypto,child_process
+      # Keep 90 days of execution history (default is 14 days / 10,000 runs; ~485 runs/day measured on the Pi)
+      - EXECUTIONS_DATA_MAX_AGE=2160
+      - EXECUTIONS_DATA_PRUNE_MAX_COUNT=60000
+    volumes:
+      - n8n-data:/home/node/.n8n
+    depends_on:
+      n8n-postgres:
+        condition: service_healthy
+
+  data-postgres:
+    image: postgres:16
+    container_name: data-postgres
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"   # loopback only: reach it via SSH tunnel (DBeaver), never publicly
+    environment:
+      POSTGRES_DB: postgres      # app databases (gillbert, commons) are created by hand, each with its own role
+      POSTGRES_USER: postgres_admin
+      POSTGRES_PASSWORD: ${DATA_POSTGRES_PASSWORD}
+      TZ: ${TZ}
+    volumes:
+      - data-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres_admin -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # cloudflared is added at the Cloudflare Tunnel step (it will reach n8n at http://n8n:5678).
+
+volumes:
+  n8n-data:
+  n8n-postgres-data:
+  data-postgres-data:
