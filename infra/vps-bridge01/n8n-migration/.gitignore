@@ -1,0 +1,9 @@
+# Pi workflow exports contain embedded secrets (X-API-Key value, Azure signing key). Never commit them.
+pi_workflows.json
+payloads/
+run_log.jsonl
+import_results.jsonl
+check*_results.json
+idmap.md
+idtable.md
+__pycache__/
