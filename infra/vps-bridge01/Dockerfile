@@ -7,6 +7,8 @@ USER root
 COPY --from=ffmpeg-builder /usr/bin/ffmpeg /usr/bin/ffmpeg
 COPY --from=ffmpeg-builder /usr/bin/curl /usr/bin/curl
 COPY --from=ffmpeg-builder /usr/bin/convert /usr/bin/convert
+# IM7's real binary; the workflows move from the deprecated `convert` to `magick` before cutover
+COPY --from=ffmpeg-builder /usr/bin/magick /usr/bin/magick
 COPY --from=ffmpeg-builder /usr/lib /usr/lib
 COPY --from=ffmpeg-builder /lib /lib
 USER node
