@@ -99,6 +99,35 @@
       cursor: pointer;
     }
     .exit-admin-btn:active { transform: scale(0.98); }
+
+    /* ── Server switch (admin) ────────────────────────────────────── */
+    .server-options { display: flex; flex-direction: column; gap: 8px; }
+    .server-option {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 12px 14px;
+      background: #f0f8ff;
+      border: 2px solid #d0eaff;
+      border-radius: 10px;
+      color: #333;
+      font-family: inherit;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .server-option strong { display: block; font-size: 15px; }
+    .server-option span { color: #888; font-size: 12px; }
+    .server-option--current {
+      background: #e6fff2;
+      border-color: #7bd8a8;
+      cursor: default;
+    }
+    .server-option--current.server-option--test {
+      background: #fff3d6;
+      border-color: #ffb020;
+    }
+    .server-option:not(.server-option--current):active { transform: scale(0.98); }
+    .profile-photo-btn:disabled { opacity: 0.45; cursor: not-allowed; }
     .hidden { display: none !important; }
 
     /* ── Profile photo widget ─────────────────────────────────────── */
@@ -250,6 +279,11 @@
     <div class="card">
       <p class="card-label">Admin Status</p>
       <div id="adminContent"><p class="muted">Checking…</p></div>
+    </div>
+
+    <div class="card hidden" id="serverCard">
+      <p class="card-label">Server (Admin)</p>
+      <div id="serverContent"></div>
     </div>
 
     <div class="card">
@@ -428,6 +462,46 @@
           localStorage.removeItem(ADMIN_UNLOCK_STORAGE_KEY);
           location.reload();
         });
+      }
+
+      // ── Server card ────────────────────────────────────────────
+      // Per-device switch between production (the Pi) and vps-bridge01 (test
+      // data). Admins only — but always shown while on vps-bridge01, so a
+      // device can get back to production even after admin mode expires.
+      if (isAdminEmail || unlocked || IS_BRIDGE01) {
+        const servers = [
+          { key: 'pi',       name: '🏠 Home Pi5',     note: 'Production. Where everyone else is.' },
+          { key: 'bridge01', name: '🧪 vps-bridge01', note: "Test data. Media changes are paused here." },
+        ];
+        document.getElementById('serverContent').innerHTML = `
+          <div class="server-options">
+            ${servers.map(s => {
+              const current = s.key === API_TARGET;
+              return `<button type="button" class="server-option${current ? ' server-option--current' : ''}${s.key === 'bridge01' ? ' server-option--test' : ''}" data-server="${s.key}"${current ? ' aria-current="true"' : ''}>
+                <strong>${s.name}${current ? ' ✓' : ''}</strong>
+                <span>${s.note}</span>
+              </button>`;
+            }).join('')}
+          </div>
+          <p class="field-hint" id="serverHint">Applies to this device only.</p>
+        `;
+        document.querySelectorAll('.server-option').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const target = btn.dataset.server;
+            if (target === API_TARGET) return;
+            try {
+              if (target === 'bridge01') localStorage.setItem(API_TARGET_STORAGE_KEY, 'bridge01');
+              else localStorage.removeItem(API_TARGET_STORAGE_KEY);
+            } catch {
+              document.getElementById('serverHint').textContent = '⚠️ Unable to save the server choice on this device.';
+              return;
+            }
+            location.reload();
+          });
+        });
+        const serverCard = document.getElementById('serverCard');
+        serverCard.classList.remove('hidden');
+        if (location.hash === '#serverCard') serverCard.scrollIntoView({ block: 'center' });
       }
 
       // ── Raw response ───────────────────────────────────────────

@@ -197,5 +197,11 @@ function createProfilePhotoWidget({ getAnglerId, elements: el }) {
     if (e.key === 'Escape' && el.cropModal.classList.contains('open')) closeCropModal();
   });
 
+  if (IS_BRIDGE01) {
+    el.uploadBtn.disabled = true;
+    el.removeBtn.disabled = true;
+    el.status.textContent = MEDIA_PAUSED_MESSAGE;
+  }
+
   return { setPhoto };
 }

@@ -383,7 +383,7 @@ function renderDetails(catchData) {
   }
 
   const manageMediaBtn = document.getElementById('manageMediaBtn');
-  if (isAdminUnlocked()) {
+  if (isAdminUnlocked() && !IS_BRIDGE01) {
     manageMediaBtn.classList.remove('hidden');
     manageMediaBtn.addEventListener('click', handleManageMediaToggle);
   }
@@ -687,7 +687,10 @@ function renderMedia(items) {
   if (!container) return;
 
   const catchNumber = getCatchNumberFromUrl();
-  const uploadBtn = `<a href="./media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}" class="detail-upload-btn">⬆️ Upload Media</a>`;
+  const uploadBtn = IS_BRIDGE01
+    ? `<span class="detail-upload-btn detail-upload-btn--paused" aria-disabled="true">⬆️ Upload Media</span>
+       <p class="detail-media-paused-note">${MEDIA_PAUSED_MESSAGE}</p>`
+    : `<a href="./media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}" class="detail-upload-btn">⬆️ Upload Media</a>`;
 
   const photos = items.filter(m => m.mediaType === 'Photo');
   const videos = items.filter(m => m.mediaType === 'Video');

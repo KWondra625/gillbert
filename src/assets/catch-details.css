@@ -763,6 +763,23 @@ body {
   transform: scale(0.98);
 }
 
+.detail-upload-btn--paused {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.detail-upload-btn--paused:active {
+  transform: none;
+}
+
+.detail-media-paused-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+}
+
 /* ─── Admin Media Delete Button ──────────────────── */
 .media-delete-btn {
   position: absolute;

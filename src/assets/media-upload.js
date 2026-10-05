@@ -252,5 +252,13 @@ window.addEventListener("DOMContentLoaded", () => {
   el.backToCatch.href = detailsUrl;
 
   loadCatchDetails(catchNumber);
+
+  if (IS_BRIDGE01) {
+    el.files.disabled = true;
+    el.uploadBtn.disabled = true;
+    setStatus(MEDIA_PAUSED_MESSAGE);
+    return;
+  }
+
   setStatus("Ready to upload.");
 });
