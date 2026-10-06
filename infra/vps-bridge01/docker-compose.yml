@@ -48,6 +48,15 @@ services:
       # Keep 90 days of execution history (default is 14 days / 10,000 runs; ~485 runs/day measured on the Pi)
       - EXECUTIONS_DATA_MAX_AGE=2160
       - EXECUTIONS_DATA_PRUNE_MAX_COUNT=60000
+      # n8n 2.x blocks $env in expressions and Code nodes by default. Opened so workflows can read the
+      # per-server settings below. Code nodes can already run shell commands (child_process), so this
+      # adds no real exposure; the guard is that only Kurt edits workflows.
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      # Gillbert per-server settings (values in .env). Each environment has its own storage account,
+      # so a production DB copied to Staging can never write to production media.
+      - GILLBERT_AZURE_STORAGE_ACCOUNT=${GILLBERT_AZURE_STORAGE_ACCOUNT}
+      - GILLBERT_AZURE_STORAGE_KEY=${GILLBERT_AZURE_STORAGE_KEY}
+      - GILLBERT_API_KEYS=${GILLBERT_API_KEYS}
     volumes:
       - n8n-data:/home/node/.n8n
     depends_on:
