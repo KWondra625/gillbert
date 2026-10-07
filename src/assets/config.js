@@ -21,14 +21,18 @@ function readApiTarget() {
 const API_TARGET  = readApiTarget();
 const IS_BRIDGE01 = API_TARGET === 'bridge01';
 
-// Bridge01 shares production's Azure storage until media is separated per
-// environment, so every media write is off there: its media-write workflows
-// stay inactive, and the UI greys out the buttons with this note.
-const MEDIA_PAUSED_MESSAGE = "Media changes are paused while connected to vps-bridge01.";
-
 const N8N_BASE_URL = API_TARGETS[API_TARGET];
 const WEBHOOK_PATH = "/webhook/";
-const API_KEY      = 'ac89c77eaa95002649c596434b2e63eac8cc6694f97cefed6d91f7e0354eabe4';
+// Each server has its own API keys. Bridge01 tells callers apart by key: the live
+// site vs. everything else (Pages previews, local dev). Its third key, direct_connect,
+// is for scripts and never ships here.
+const API_KEYS = {
+  pi:       'ac89c77eaa95002649c596434b2e63eac8cc6694f97cefed6d91f7e0354eabe4',
+  bridge01: location.hostname === 'gillbert.builtbykw.net'
+    ? '9c1e708d989f0ca31c6a0dbd7da0d7243b61a21ce8fc428b'   // deployed_app
+    : '0407ff4ae29ae63255ef397f861d6bc367774262803d968f',  // preview_app
+};
+const API_KEY = API_KEYS[API_TARGET];
 
 const API_BASE        = N8N_BASE_URL + WEBHOOK_PATH + "gillbert/";
 const CATCHES_GET_URL = API_BASE + "get-catches";
