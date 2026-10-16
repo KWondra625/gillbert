@@ -9,4 +9,6 @@ Never commit the Pi export or the logs: they contain secrets (see `.gitignore`).
 - `check1_structural.py`, `check2_references.py`, `check3_live.py`: the three parity checks. `check3` temporarily activates GET workflows, so run it only with Kurt's approval.
 - `wf_map.json`, `tag_map.json`, `datatable_map.json`: Pi → Bridge01 ID maps (not secret).
 
+- `reverse_sync.py`: dry run of cutover step 6 (copy Bridge01's Gillbert-tagged workflows onto the Pi as Staging). GET-only by construction (wraps `api.call` to refuse anything else). Reverses the credential, sub-workflow and Data Table IDs, checks for production storage / Bridge01 hostnames / keys, lists the `$env` settings the Pi needs, flags Pi edits since 2026-10-03, and prints the activation order. Full diffs and PUT payloads go to the gitignored `reverse_dryrun/` (they can contain Pi secrets). It has no write mode; that gets added (with approval) for the night.
+
 Before re-use (e.g. a cutover re-sync), re-pull a fresh `pi_workflows.json` into this folder (it's gitignored because it contains secrets). For changed workflows, update them on Bridge01 rather than re-importing. That needs a small `PUT /workflows/{id}` path, which isn't written yet.
