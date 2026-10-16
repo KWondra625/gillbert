@@ -38,12 +38,15 @@ session.
 - Purely subjective/stylistic preferences.
 - Anything that requires a design or scoping conversation before it could be
   implemented.
-- Anything already known and currently deferred/held/declined per this
-  project's own memory — check current session memory (project/feedback
-  entries) for items already marked "don't raise unprompted," "on hold," or
-  "deliberately deferred" before finalizing the list, and drop those. If
-  memory isn't available in this context, note that the list hasn't been
-  cross-checked against known exceptions.
+- Anything already known and currently deferred/held/declined. The backlog
+  lives on the private GitHub Project boards (Gillbert = project 2, KW
+  Solutions = project 3, owner `KWondra625`), not in memory: list both with
+  `gh project item-list <n> --owner KWondra625 --limit 200 --format json`
+  (this includes private drafts, which `gh issue list` misses) and drop
+  anything already tracked there, in any column. Also check session memory
+  (project/feedback entries) for explicitly declined ideas. If neither is
+  available in this context, note that the list hasn't been cross-checked
+  against known exceptions.
 
 ## Process
 
@@ -57,9 +60,11 @@ session.
    description, and why each is low-risk/self-contained — it should not
    filter for relevance against project history, since it won't have that
    context.
-2. Once the fork reports back, filter its candidates yourself against
-   current project memory (deferred items, already-fixed items, explicitly
-   declined items) and drop anything already known and excluded.
+2. Once the fork reports back, filter its candidates yourself against both
+   backlog boards and current project memory (already tracked, already
+   fixed, explicitly declined) and drop anything already known. Offer to
+   file the survivors the user wants to keep onto the Gillbert board's
+   Inbox.
 3. Present the surviving candidates as a short prioritized list (3-6 items
    max) — file:line, the issue, and why it's a quick hitter. This is a
    survey, not an auto-fix: report findings and let the user decide what (if
