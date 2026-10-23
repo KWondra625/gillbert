@@ -142,3 +142,7 @@ vite.config.ts.timestamp-*
 
 # Local n8n files
 .n8n
+
+# Backup secrets (server-only; templates are committed)
+infra/backup/backup.env
+infra/backup/passphrase

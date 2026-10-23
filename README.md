@@ -16,7 +16,7 @@ Gillbert started as a single n8n chat window and a Raspberry Pi, and has slowly 
 
 ## How it's built
 
-Deliberately simple — no framework, no build step, no bundler. Just HTML, CSS, and vanilla JS, one self-contained page per feature.
+Deliberately simple — no framework, no bundler. Just HTML, CSS, and vanilla JS, one self-contained page per feature. The only build step is a one-line script that stamps the version and commit into the deployed site.
 
 - **Frontend**: static pages hosted on Cloudflare Pages
 - **Backend**: n8n workflows, self-hosted on a Raspberry Pi

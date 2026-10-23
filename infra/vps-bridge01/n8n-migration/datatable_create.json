@@ -1,0 +1,121 @@
+{
+ "name": "fish_catch_conversations",
+ "columns": [
+  {
+   "name": "import_id",
+   "type": "number"
+  },
+  {
+   "name": "conversation_id",
+   "type": "string"
+  },
+  {
+   "name": "channel",
+   "type": "string"
+  },
+  {
+   "name": "logged_in_angler_id",
+   "type": "number"
+  },
+  {
+   "name": "logged_in_angler_name",
+   "type": "string"
+  },
+  {
+   "name": "user_id",
+   "type": "string"
+  },
+  {
+   "name": "session_id",
+   "type": "string"
+  },
+  {
+   "name": "mode",
+   "type": "string"
+  },
+  {
+   "name": "at_catch_table_id",
+   "type": "string"
+  },
+  {
+   "name": "recent_context_note",
+   "type": "string"
+  },
+  {
+   "name": "date_of_catch_raw",
+   "type": "string"
+  },
+  {
+   "name": "time_of_catch_raw",
+   "type": "string"
+  },
+  {
+   "name": "timezone",
+   "type": "string"
+  },
+  {
+   "name": "caught_when_utc",
+   "type": "string"
+  },
+  {
+   "name": "caught_by_raw",
+   "type": "string"
+  },
+  {
+   "name": "fish_species_raw",
+   "type": "string"
+  },
+  {
+   "name": "body_of_water_raw",
+   "type": "string"
+  },
+  {
+   "name": "length_in_raw",
+   "type": "number"
+  },
+  {
+   "name": "water_depth_ft_raw",
+   "type": "number"
+  },
+  {
+   "name": "notes_raw",
+   "type": "string"
+  },
+  {
+   "name": "at_conversation_id",
+   "type": "string"
+  },
+  {
+   "name": "pg_conversation_id",
+   "type": "number"
+  },
+  {
+   "name": "at_catch_id",
+   "type": "string"
+  },
+  {
+   "name": "pg_catch_id",
+   "type": "number"
+  },
+  {
+   "name": "conversation_status",
+   "type": "string"
+  },
+  {
+   "name": "started_at",
+   "type": "string"
+  },
+  {
+   "name": "ended_at",
+   "type": "string"
+  },
+  {
+   "name": "import_createdAt",
+   "type": "string"
+  },
+  {
+   "name": "import_updatedAt",
+   "type": "string"
+  }
+ ]
+}

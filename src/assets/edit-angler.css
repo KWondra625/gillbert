@@ -348,6 +348,11 @@ textarea {
   box-shadow: 0 2px 8px rgba(79, 172, 254, 0.2);
 }
 
+.profile-photo-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .primary-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
