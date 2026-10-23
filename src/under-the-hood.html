@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Under the Hood · Gillbert</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/top-home-link.css" />
+  <link rel="stylesheet" href="./assets/under-the-hood.css" />
+</head>
+<body>
+  <!-- Admin-only and deliberately not linked from any menu: reached by typing the URL. -->
+  <div class="container">
+    <div class="top-nav">
+      <a href="./index.html" class="top-home-link top-home-link--on-light" aria-label="Go back to Home">← Home</a>
+    </div>
+
+    <div class="header">
+      <h1>🔧 Under the Hood</h1>
+      <p>Which environment, server, database and code you're on right now</p>
+    </div>
+
+    <!-- ── Loading state ────────────────────────────────────────────── -->
+    <div id="loadingState">
+      <div class="loading-indicator">
+        <div class="fishing-animation">🎣<span class="bobber">●</span></div>
+        <p>Asking the server about itself…</p>
+      </div>
+    </div>
+
+    <!-- ── Error state ──────────────────────────────────────────────── -->
+    <div id="errorState" class="hidden">
+      <div class="error-card">
+        <p class="error-icon">⚠️</p>
+        <p id="errorMsg">Unable to reach the server.</p>
+        <button id="retryBtn" class="primary-button">🔄 Try Again</button>
+      </div>
+    </div>
+
+    <!-- ── Server switch: admins, or any device currently on Bridge01 ─ -->
+    <section class="info-card hidden" id="serverSwitchCard">
+      <h2>🔀 Server Switch</h2>
+      <div id="serverSwitchContent"></div>
+    </section>
+
+    <!-- ── Verdict (shown with or without a server answer) ──────────── -->
+    <div id="verdict" class="verdict hidden"></div>
+
+    <!-- ── Details ──────────────────────────────────────────────────── -->
+    <div id="detailsState" class="hidden">
+      <section class="info-card">
+        <h2>✅ Checks</h2>
+        <dl id="checksList"></dl>
+      </section>
+
+      <section class="info-card">
+        <h2>🌐 This Site</h2>
+        <dl id="siteList"></dl>
+      </section>
+
+      <section class="info-card" id="serverInfoCard">
+        <h2>⚙️ Server</h2>
+        <dl id="serverList"></dl>
+      </section>
+
+      <section class="info-card" id="databaseCard">
+        <h2>🗄️ Database</h2>
+        <dl id="databaseList"></dl>
+      </section>
+
+      <section class="info-card">
+        <h2>🪪 Raw Identity Response</h2>
+        <pre id="rawIdentity">—</pre>
+      </section>
+
+      <button id="refreshBtn" class="primary-button">🔄 Check Again</button>
+    </div>
+  </div>
+
+  <script src="./assets/config.js"></script>
+  <script src="./assets/version.js"></script>
+  <script src="./assets/admin.js"></script>
+  <script src="./assets/under-the-hood.js"></script>
+</body>
+</html>

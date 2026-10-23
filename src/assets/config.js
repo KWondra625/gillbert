@@ -2,7 +2,7 @@
 // Shared across all pages — load this script before any page-specific scripts.
 
 // Which n8n server this browser talks to. A per-device test switch, set from
-// the admin-only "Server" card on me.html. Anything other than "bridge01"
+// the "Server Switch" card on under-the-hood.html. Anything other than "bridge01"
 // (including nothing saved) means the Pi, which is production.
 const API_TARGET_STORAGE_KEY = 'gillbert_api_target';
 const API_TARGETS = {
@@ -33,6 +33,11 @@ const API_KEYS = {
     : '0407ff4ae29ae63255ef397f861d6bc367774262803d968f',  // preview_app
 };
 const API_KEY = API_KEYS[API_TARGET];
+// The name the server knows this key by, for the admin Under the Hood page. The Pi's
+// keys predate key names, so it has none.
+const API_KEY_NAME = IS_BRIDGE01
+  ? (location.hostname === 'gillbert.builtbykw.net' ? 'deployed_app' : 'preview_app')
+  : null;
 
 const API_BASE        = N8N_BASE_URL + WEBHOOK_PATH + "gillbert/";
 const CATCHES_GET_URL = API_BASE + "get-catches";
@@ -48,7 +53,7 @@ const ANGLERS_GET_URL  = API_BASE + "anglers/get";
 const ANGLERS_SAVE_URL = API_BASE + "anglers/save";
 
 // Banner on every page while this device is pointed at vps-bridge01, so it's
-// never mistaken for production. Tapping it opens the Server card on me.html.
+// never mistaken for production. Tapping it opens the server switch on under-the-hood.html.
 // It's a fixed strip with space reserved above the page, so it works the same
 // whatever layout the page's <body> uses (many centre their content with flex).
 function showBridge01Banner() {
@@ -95,7 +100,7 @@ function showBridge01Banner() {
   const banner = document.createElement('a');
   banner.id = 'bridge01Banner';
   banner.className = 'bridge01-banner';
-  banner.href = './me.html#serverCard';
+  banner.href = './under-the-hood.html#serverSwitchCard';
   banner.textContent = "⚠️ Connected to vps-bridge01. Production data doesn't live here, yet.";
   document.body.prepend(banner);
 
