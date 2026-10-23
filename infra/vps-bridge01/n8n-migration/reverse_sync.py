@@ -94,6 +94,7 @@ PI_HOST = "lab01.builtbykw.net"
 PI_SSH = "kwondra@pi-greenville01"
 SSH = r"C:\Windows\System32\OpenSSH\ssh.exe"
 PI_CONTAINER = "n8n"
+PI_STORAGE = "gillbertmediastaging"  # never production media from the Pi
 
 # ---- the --test rehearsal ----
 SYSTEM_INFO_B01 = "NemuHvdhra9QqY8V"
@@ -175,11 +176,13 @@ def compare(pi_wf, payload):
         elif a.get("position") != b.get("position"):
             d["moved_only"] += 1
     d["connections_differ"] = pi_wf["connections"] != payload["connections"]
+    d["settings_differ"] = sorted(k for k in ALLOWED_SETTINGS
+                                  if (pi_wf.get("settings") or {}).get(k) != (payload.get("settings") or {}).get(k))
     return d
 
 
 def identical(d):
-    return not (d["added"] or d["removed"] or d["changed"] or d["connections_differ"])
+    return not (d["added"] or d["removed"] or d["changed"] or d["connections_differ"] or d["settings_differ"])
 
 
 def activation_order(payloads):
@@ -315,6 +318,8 @@ def dry_run(save=True):
                 say(f"     changed '{name}': {', '.join(paths[:6])}{' …' if len(paths) > 6 else ''}")
             if diff["connections_differ"]:
                 say("     connections differ")
+            if diff["settings_differ"]:
+                say(f"     settings differ: {', '.join(diff['settings_differ'])}")
         if diff["moved_only"]:
             say(f"     ({diff['moved_only']} node(s) only moved on the canvas)")
 
@@ -373,7 +378,9 @@ def fingerprint(plan):
 
 def check_pi_container(env_names):
     """Names only, never values: the settings the copied workflows need must be live in the Pi's n8n."""
-    tests = [f'[ -n "$(printenv {n})" ] && echo "{n} ok" || echo "{n} MISSING"' for n in sorted(env_names)]
+    tests = [f'[ "$(printenv {n})" = "{PI_STORAGE}" ] && echo "{n} ok" || echo "{n} is not {PI_STORAGE}"'
+             if n == "GILLBERT_AZURE_STORAGE_ACCOUNT" else
+             f'[ -n "$(printenv {n})" ] && echo "{n} ok" || echo "{n} MISSING"' for n in sorted(env_names)]
     tests += ['[ "$(printenv N8N_BLOCK_ENV_ACCESS_IN_NODE)" = "false" ] && echo "N8N_BLOCK_ENV_ACCESS_IN_NODE ok" '
               '|| echo "N8N_BLOCK_ENV_ACCESS_IN_NODE NOT false"',
               f'[ "$(printenv N8N_HOST)" = "{PI_HOST}" ] && echo "N8N_HOST ok" || echo "N8N_HOST is not {PI_HOST}"']

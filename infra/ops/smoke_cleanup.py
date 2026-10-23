@@ -42,7 +42,7 @@ if __name__ == "__main__":
     ap.add_argument("server", choices=SERVERS)
     ap.add_argument("--baseline", required=True, metavar="CATCH,MEDIA,CONV,MSG", help="the 4 numbers from STEP 0")
     ap.add_argument("--expect-catches", type=int, default=2)
-    ap.add_argument("--max-age-hours", type=float, default=12,
+    ap.add_argument("--max-age-hours", type=int, default=12,
                     help="every test catch must be this new (a mistyped baseline would otherwise target real catches)")
     ap.add_argument("--delete", action="store_true", help="actually delete the media (otherwise a dry run)")
     a = ap.parse_args()
@@ -77,7 +77,7 @@ if __name__ == "__main__":
     old = [c["catchNumber"] for c in tests
            if datetime.datetime.fromisoformat(str(c.get("createdAt")).replace("Z", "+00:00")) < cutoff]
     if old:
-        sys.exit(f"STOP: {', '.join(old)} {'is' if len(old) == 1 else 'are'} older than {a.max_age_hours:g} hours, so not "
+        sys.exit(f"STOP: {', '.join(old)} {'is' if len(old) == 1 else 'are'} older than {a.max_age_hours} hours, so not "
                  f"tonight's smoke test; check the baseline")
 
     if not a.delete:
@@ -107,6 +107,8 @@ if __name__ == "__main__":
     sql = sql.replace("AS (VALUES (0, 0, 0, 0))", "AS (VALUES ({}, {}, {}, {}))".format(*base))
     for name, n in zip(("b_catches ", "b_media   ", "b_convs   ", "b_messages"), base):
         sql = sql.replace(f"{name} int := 0;", f"{name} int := {n};")
+    sql = sql.replace("expect_catches int := 2;", f"expect_catches int := {a.expect_catches};")
+    sql = sql.replace("max_age_hours  int := 12;", f"max_age_hours  int := {a.max_age_hours};")
     if sql.count(" int := 0;") or "VALUES (0, 0, 0, 0)" in sql:
         sys.exit("STOP: couldn't fill in the baseline; use smoke_cleanup.sql by hand")
     out = os.path.join(here, "smoke_cleanup.ready.sql")

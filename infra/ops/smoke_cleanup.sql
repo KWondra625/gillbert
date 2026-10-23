@@ -33,7 +33,8 @@ DECLARE
   b_media    int := 0;   -- STEP 0 catch_media
   b_convs    int := 0;   -- STEP 0 conversations
   b_messages int := 0;   -- STEP 0 chat_messages
-  expect_catches int := 2;
+  expect_catches int := 2;    -- smoke_cleanup.py --expect-catches
+  max_age_hours  int := 12;   -- smoke_cleanup.py --max-age-hours
   n int;
 BEGIN
   -- A 0 would wipe the whole table (e.g. all chat history), so every baseline must be filled in
@@ -45,8 +46,8 @@ BEGIN
     RAISE EXCEPTION 'expected % test catch(es) newer than %, found %: look before deleting', expect_catches, b_catches, n;
   END IF;
   -- A mistyped baseline would otherwise reach real catches
-  IF EXISTS (SELECT 1 FROM catches WHERE id > b_catches AND created_at < now() - interval '12 hours') THEN
-    RAISE EXCEPTION 'a catch newer than % is older than 12 hours, so not tonight''s smoke test: check the baseline', b_catches;
+  IF EXISTS (SELECT 1 FROM catches WHERE id > b_catches AND created_at < now() - make_interval(hours => max_age_hours)) THEN
+    RAISE EXCEPTION 'a catch newer than % is older than % hours, so not tonight''s smoke test: check the baseline', b_catches, max_age_hours;
   END IF;
   IF EXISTS (SELECT 1 FROM catch_media WHERE catch_id > b_catches) THEN
     RAISE EXCEPTION 'the test catches still have media: run smoke_cleanup.py --delete first';
@@ -62,13 +63,15 @@ BEGIN
   DELETE FROM chat_messages WHERE id > b_messages;   GET DIAGNOSTICS n = ROW_COUNT; RAISE NOTICE 'chat messages deleted: %', n;
   DELETE FROM conversations WHERE id > b_convs;      GET DIAGNOSTICS n = ROW_COUNT; RAISE NOTICE 'conversations deleted: %', n;
 
-  -- Counters back to the baseline (same pattern as scripts/reset_table_ids.sql)
+  IF (SELECT max(id) FROM catches) IS DISTINCT FROM b_catches THEN
+    RAISE EXCEPTION 'newest catch is not the baseline after the clean-up';
+  END IF;
+
+  -- Counters back to the baseline (same pattern as scripts/reset_table_ids.sql). Last on purpose:
+  -- setval() isn't undone when a later error rolls back the deletes, so every check comes first.
   PERFORM setval('catches_id_seq',       COALESCE((SELECT max(id) FROM catches), 1),       (SELECT max(id) FROM catches) IS NOT NULL);
   PERFORM setval('catch_media_id_seq',   COALESCE((SELECT max(id) FROM catch_media), 1),   (SELECT max(id) FROM catch_media) IS NOT NULL);
   PERFORM setval('conversations_id_seq', COALESCE((SELECT max(id) FROM conversations), 1), (SELECT max(id) FROM conversations) IS NOT NULL);
   PERFORM setval('chat_messages_id_seq', COALESCE((SELECT max(id) FROM chat_messages), 1), (SELECT max(id) FROM chat_messages) IS NOT NULL);
-  IF (SELECT max(id) FROM catches) <> b_catches THEN
-    RAISE EXCEPTION 'newest catch is not the baseline after the clean-up';
-  END IF;
   RAISE NOTICE 'done: the next real catch will be number %', b_catches + 1;
 END $$;

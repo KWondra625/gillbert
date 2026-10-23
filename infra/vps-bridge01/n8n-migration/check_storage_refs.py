@@ -12,7 +12,8 @@ import json, re, sys
 import api
 
 PATTERNS = {
-    "storage account name": re.compile(r"gillbertmedia"),
+    # (a "=== 'gillbertmedia'" comparison is fine: System Info uses it to tell production from staging)
+    "storage account name": re.compile(r"(?<!=== ')gillbertmedia"),
     "literal blob host": re.compile(r"https://[a-z0-9]{3,24}\.blob\.core\.windows\.net"),
     "Azure account key": re.compile(r"[A-Za-z0-9+/]{86}=="),
 }
