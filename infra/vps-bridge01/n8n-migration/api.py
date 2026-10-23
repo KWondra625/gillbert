@@ -1,7 +1,7 @@
 """Tiny n8n API helper for the overnight Bridge01 migration.
 
 Guardrails (enforced in code):
-  - Pi: GET only.
+  - Pi: GET only, except PI_WRITE_ALLOW and a time-boxed grant_pi_writes() (reverse_sync.py).
   - Bridge01: DELETE is refused outright.
 Every call is appended to run_log.jsonl (method, path, status, short response) - never secrets.
 """
@@ -31,11 +31,33 @@ PI_WRITE_ALLOW = {
 
 ENVS = {"pi": _env(".env.n8n-api"), "bridge01": _env(".env.n8n-api-bridge01")}
 
+# Time-boxed Pi writes for reverse_sync.py --write/--test/--restore: each (method, path) may be used
+# only as many times as granted, and only until the deadline. Lives in this process only.
+_grant = {"until": 0.0, "ops": {}}
+
+
+def grant_pi_writes(ops, until):
+    """ops: {(method, path): uses}. until: epoch seconds. Adds to any existing grant; never extends the deadline."""
+    if _grant["until"] and until > _grant["until"]:
+        until = _grant["until"]
+    _grant["until"] = until
+    for k, n in ops.items():
+        _grant["ops"][k] = _grant["ops"].get(k, 0) + n
+
+
+def _pi_write_allowed(method, path):
+    if (method, path) in PI_WRITE_ALLOW:
+        return True
+    if time.time() < _grant["until"] and _grant["ops"].get((method, path), 0) > 0:
+        _grant["ops"][(method, path)] -= 1
+        return True
+    return False
+
 
 def call(host, method, path, body=None, raw_url=None, extra_headers=None):
     e = ENVS[host]
-    if host == "pi" and method != "GET" and (method, path) not in PI_WRITE_ALLOW:
-        raise RuntimeError("GUARDRAIL: only GET is allowed against the Pi")
+    if host == "pi" and method != "GET" and not _pi_write_allowed(method, path):
+        raise RuntimeError(f"GUARDRAIL: {method} {path} is not allowed against the Pi")
     if method == "DELETE":
         raise RuntimeError("GUARDRAIL: DELETE is not allowed tonight")
     url = raw_url or (e["N8N_API_BASE_URL"].rstrip("/") + path)
