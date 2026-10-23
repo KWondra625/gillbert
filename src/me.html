@@ -57,18 +57,6 @@
     .pill-green { background: #e6fff2; color: #0d5c3f; }
     .pill-red   { background: #fff0f0; color: #c0392b; }
     .pill-amber { background: #fff8e6; color: #d98c00; }
-    pre {
-      background: #f7f7f7;
-      border-radius: 8px;
-      padding: 12px;
-      font-size: 11px;
-      overflow-x: auto;
-      margin: 0;
-      color: #555;
-      line-height: 1.5;
-      white-space: pre-wrap;
-      word-break: break-all;
-    }
     .back {
       display: block;
       text-align: center;
@@ -99,6 +87,9 @@
       cursor: pointer;
     }
     .exit-admin-btn:active { transform: scale(0.98); }
+
+    /* ── Server switch (admin) ────────────────────────────────────── */
+    .profile-photo-btn:disabled { opacity: 0.45; cursor: not-allowed; }
     .hidden { display: none !important; }
 
     /* ── Profile photo widget ─────────────────────────────────────── */
@@ -250,11 +241,6 @@
     <div class="card">
       <p class="card-label">Admin Status</p>
       <div id="adminContent"><p class="muted">Checking…</p></div>
-    </div>
-
-    <div class="card">
-      <p class="card-label">Raw Identity Response</p>
-      <pre id="rawContent">—</pre>
     </div>
 
   </div>
@@ -429,11 +415,6 @@
           location.reload();
         });
       }
-
-      // ── Raw response ───────────────────────────────────────────
-      document.getElementById('rawContent').textContent = identity
-        ? JSON.stringify(identity, null, 2)
-        : 'No response (local dev, or not logged in via Cloudflare Access)';
     })();
   </script>
 </body>

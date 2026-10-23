@@ -1,0 +1,3 @@
+# generated with real baseline numbers by smoke_cleanup.py
+smoke_cleanup.ready.sql
+__pycache__/

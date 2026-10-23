@@ -1,0 +1,2 @@
+# Server config files must keep Linux line endings (CRLF breaks .env values and shell scripts on the VPS)
+infra/** text eol=lf

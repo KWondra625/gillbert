@@ -252,5 +252,6 @@ window.addEventListener("DOMContentLoaded", () => {
   el.backToCatch.href = detailsUrl;
 
   loadCatchDetails(catchNumber);
+
   setStatus("Ready to upload.");
 });
