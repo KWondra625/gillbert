@@ -36,10 +36,17 @@ DECLARE
   expect_catches int := 2;
   n int;
 BEGIN
-  IF b_catches = 0 THEN RAISE EXCEPTION 'fill in the baseline first'; END IF;
+  -- A 0 would wipe the whole table (e.g. all chat history), so every baseline must be filled in
+  IF least(b_catches, b_media, b_convs, b_messages) <= 0 THEN
+    RAISE EXCEPTION 'fill in all 4 baseline numbers first (none may be 0)';
+  END IF;
   SELECT count(*) INTO n FROM catches WHERE id > b_catches;
   IF n <> expect_catches THEN
     RAISE EXCEPTION 'expected % test catch(es) newer than %, found %: look before deleting', expect_catches, b_catches, n;
+  END IF;
+  -- A mistyped baseline would otherwise reach real catches
+  IF EXISTS (SELECT 1 FROM catches WHERE id > b_catches AND created_at < now() - interval '12 hours') THEN
+    RAISE EXCEPTION 'a catch newer than % is older than 12 hours, so not tonight''s smoke test: check the baseline', b_catches;
   END IF;
   IF EXISTS (SELECT 1 FROM catch_media WHERE catch_id > b_catches) THEN
     RAISE EXCEPTION 'the test catches still have media: run smoke_cleanup.py --delete first';
