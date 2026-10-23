@@ -55,11 +55,15 @@ const ANGLERS_SAVE_URL = API_BASE + "anglers/save";
 // the admin Under the Hood page. It's a fixed strip with space reserved above the
 // page, so it works the same whatever layout the page's <body> uses (many centre
 // their content with flex).
-const ENV_BANNER_TEXT = {
-  develop: "🧪 Staging site. Test data, not the real catch log.",
-  preview: "🧪 Preview build on Staging. Test data, not the real catch log.",
-  local:   "💻 Local copy on Staging. Test data, not the real catch log.",
+// Names the site first, then whose data it uses. The server name comes from the
+// address this page actually calls, so the two can't disagree.
+const ENV_BANNER_SITE = {
+  develop: "🧪 Develop site",
+  preview: "🧪 Preview build",
+  local:   "💻 Local copy",
 };
+const ENV_BANNER_TEXT = Object.fromEntries(Object.entries(ENV_BANNER_SITE).map(([kind, site]) =>
+  [kind, `${site} · Staging data (${new URL(N8N_BASE_URL).hostname.split('.')[0]})`]));
 
 function showEnvironmentBanner() {
   if (IS_PRODUCTION || document.getElementById('envBanner')) return;
