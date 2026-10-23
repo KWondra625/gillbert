@@ -3,7 +3,6 @@
 // that the two agree.
 
 const SYSTEM_INFO_URL = API_BASE + "system-info";
-const PRODUCTION_HOSTNAME = 'gillbert.builtbykw.net';
 const REPO_COMMIT_URL = 'https://github.com/KWondra625/Gillbert/commit/';
 
 const STATE_IDS = ['loadingState', 'errorState', 'detailsState'];
@@ -59,7 +58,7 @@ const code = value => text(value) && `<code>${text(value)}</code>`;
 // ── What this site expects ─────────────────────────────────────────────
 
 function expectedEnvironment() {
-  return location.hostname === PRODUCTION_HOSTNAME ? 'production' : 'staging';
+  return IS_PRODUCTION ? 'production' : 'staging';
 }
 
 function versionLabel(b) {
@@ -88,7 +87,7 @@ function renderSite() {
     ['Expects', text(expectedEnvironment())],
     ...versionRows,
     ['API server', code(new URL(N8N_BASE_URL).hostname)],
-    ['API key', API_KEY_NAME ? code(API_KEY_NAME) : '<span class="muted">unnamed (Pi)</span>'],
+    ['API key', code(API_KEY_NAME)],
   ]);
 }
 
@@ -139,15 +138,12 @@ function runChecks(server) {
       pass: server.host === apiHost,
       detail: `site calls ${apiHost}, server is ${server.host || 'unknown'}`,
     },
-  ];
-  // The Pi's keys have no names, so there's nothing to compare there.
-  if (API_KEY_NAME) {
-    checks.push({
+    {
       label: 'API key',
       pass: server.apiClient === API_KEY_NAME,
       detail: `site sends ${API_KEY_NAME}, server saw ${server.apiClient || 'unknown'}`,
-    });
-  }
+    },
+  ];
   return checks;
 }
 
@@ -164,47 +160,6 @@ function renderChecks(checks, server) {
     : `❌ Mismatch: check the details below before logging anything`;
 }
 
-// ── Server switch ──────────────────────────────────────────────────────
-// Per-device switch between production (the Pi) and vps-bridge01 (test data).
-// Admins only, but always shown while on vps-bridge01, so a device can get back
-// to production even after admin mode expires.
-
-function renderServerSwitch() {
-  const servers = [
-    { key: 'pi',       name: '🏠 Home Pi5',     note: 'Production. Where everyone else is.' },
-    { key: 'bridge01', name: '🧪 vps-bridge01', note: "Test data and staging media." },
-  ];
-  document.getElementById('serverSwitchContent').innerHTML = `
-    <div class="server-options">
-      ${servers.map(s => {
-        const current = s.key === API_TARGET;
-        return `<button type="button" class="server-option${current ? ' server-option--current' : ''}${s.key === 'bridge01' ? ' server-option--test' : ''}" data-server="${s.key}"${current ? ' aria-current="true"' : ''}>
-          <strong>${s.name}${current ? ' ✓' : ''}</strong>
-          <span>${s.note}</span>
-        </button>`;
-      }).join('')}
-    </div>
-    <p class="field-hint" id="serverHint">Applies to this device only.</p>
-  `;
-  document.querySelectorAll('.server-option').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const target = btn.dataset.server;
-      if (target === API_TARGET) return;
-      try {
-        if (target === 'bridge01') localStorage.setItem(API_TARGET_STORAGE_KEY, 'bridge01');
-        else localStorage.removeItem(API_TARGET_STORAGE_KEY);
-      } catch {
-        document.getElementById('serverHint').textContent = '⚠️ Unable to save the server choice on this device.';
-        return;
-      }
-      location.reload();
-    });
-  });
-  const card = document.getElementById('serverSwitchCard');
-  card.classList.remove('hidden');
-  if (location.hash === '#serverSwitchCard') card.scrollIntoView({ block: 'center' });
-}
-
 // ── Load ───────────────────────────────────────────────────────────────
 
 async function load() {
@@ -212,7 +167,6 @@ async function load() {
   el.verdict.classList.add('hidden');
 
   await window.adminIdentityCheck;
-  if (isAdminUnlocked() || IS_BRIDGE01) renderServerSwitch();
   if (!isAdminUnlocked()) {
     el.errorMsg.textContent = "You don't have permission to access this page.";
     el.retryBtn.classList.add('hidden');
