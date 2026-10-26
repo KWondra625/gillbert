@@ -42,4 +42,9 @@ subprocess.run([ffmpeg, '-y', '-loglevel', 'error', *source, *encode, '-f', 'mov
 # Like a phone held upright: landscape pixels plus a rotation flag the player must honor.
 subprocess.run([ffmpeg, '-y', '-loglevel', 'error', '-display_rotation', '90', '-i', HERE / 'video.mov',
                 '-c', 'copy', HERE / 'video-portrait.mov'], check=True)
+
+
+# Not an image at all, just text with a .heic name: conversion must fail on it.
+(HERE / 'broken.heic').write_text('This is not a real HEIC image. The upload tests use it to check what '
+                                  'happens when conversion fails.\n')
 print('done')

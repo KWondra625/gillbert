@@ -103,3 +103,33 @@ test('the catch detail page shows every uploaded file', async ({ page }) => {
   await expect(page.locator('.media-tile')).toHaveCount(all.length);
   await expect(page.locator('.media-tile--video')).toHaveCount(all.filter(m => m.mediaType === 'Video').length);
 });
+
+// Known bug #11: for HEIC/MOV the page reports success before conversion has run, so a
+// file that fails to convert still shows "success" and never attaches. test.fail()
+// means this test is expected to fail until that's fixed; once the page reports the
+// failure, it passes, Playwright flags it as "unexpectedly passed", and test.fail()
+// should be removed. The broken file's raw upload may be left in Staging storage; the
+// test notes whether it was.
+test('a HEIC that fails to convert is not reported as a success (#11)', async ({ page }) => {
+  test.fail(true, 'known bug #11: the upload page reports success before conversion finishes');
+  test.setTimeout(CONVERSION_TIMEOUT + 90_000);
+  const before = await mediaFor(target.catchNumber);
+  const slots = page.waitForResponse(r => r.url().includes('catch-media/get-sas'));
+
+  await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(target.catchNumber)}`);
+  await page.locator('#files').setInputFiles(path.join(MEDIA, 'broken.heic'));
+  await page.locator('#uploadBtn').click();
+  const rawUrl = ((await (await slots).json()).uploads || [])[0]?.uploadUrl?.split('?')[0];
+
+  // What the page claims, then what actually happened.
+  const claimedSuccess = await page.locator('#successState')
+    .waitFor({ state: 'visible', timeout: 60_000 }).then(() => true, () => false);
+  // Give the background conversion time to finish (or fail), then confirm nothing attached.
+  await page.waitForTimeout(45_000);
+  expect((await mediaFor(target.catchNumber)).length, 'nothing should attach from a broken file').toBe(before.length);
+  if (rawUrl) {
+    const leftOver = (await fetch(rawUrl)).status === 200;
+    test.info().annotations.push({ type: 'note', description: `raw upload ${leftOver ? 'left in' : 'not in'} Staging storage: ${rawUrl}` });
+  }
+  expect(claimedSuccess, 'the page should not report success for a file that failed to convert').toBe(false);
+});
