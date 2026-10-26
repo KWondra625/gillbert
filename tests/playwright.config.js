@@ -2,7 +2,9 @@
 // support/fixtures.js blocks every request to the production server and fails the test.
 const { defineConfig, devices } = require('@playwright/test');
 
-const PORT = Number(process.env.PORT || 4173);
+// 5500 is an origin the Staging storage account already allows uploads from (CORS),
+// the same port VS Code's Live Server uses. Its CORS rules are full, so keep this.
+const PORT = Number(process.env.PORT || 5500);
 
 // One ID per run, shared by every worker, so test records made in one test can be
 // found by the next (test-data.js names them with it).
@@ -32,7 +34,9 @@ module.exports = defineConfig({
   webServer: {
     command: 'node support/static-server.js',
     url: `http://127.0.0.1:${PORT}/index.html`,
-    reuseExistingServer: true,
+    // Fail clearly if something else (e.g. Live Server) already holds the port, rather
+    // than testing whatever that server happens to serve.
+    reuseExistingServer: false,
     env: { PORT: String(PORT) },
   },
 });
