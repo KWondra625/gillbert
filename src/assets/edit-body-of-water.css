@@ -357,11 +357,11 @@ textarea {
   gap: 8px;
 }
 
-.dnr-verified-group {
+.dnr-url-verified-group {
   margin: 12px 0 0 0;
 }
 
-.dnr-verified-label {
+.dnr-url-verified-label {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -371,7 +371,7 @@ textarea {
   cursor: pointer;
 }
 
-.dnr-verified-label input[type="checkbox"] {
+.dnr-url-verified-label input[type="checkbox"] {
   width: 16px;
   height: 16px;
   cursor: pointer;

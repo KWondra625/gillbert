@@ -34,7 +34,10 @@ for (const s of SECTIONS) {
     // A successful create lands on the new record's edit page.
     await expect(page).toHaveURL(new RegExp(`${s.edit}\\?id=\\d+`));
     await expect(page.locator('#formHeading')).toContainText(name);
-    expect(await findByName(s.endpoint, name), 'saved on Staging').toBeTruthy();
+    const saved = await findByName(s.endpoint, name);
+    expect(saved, 'saved on Staging').toBeTruthy();
+    // Created without a DNR link, so "is the DNR link working?" has no answer.
+    if (s.kind === 'Lake') expect(saved.dnrUrlVerified).toBeNull();
 
     await page.goto(s.listing);
     await page.locator('#searchInput').fill(name);
