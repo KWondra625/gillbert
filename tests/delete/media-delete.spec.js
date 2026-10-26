@@ -4,9 +4,10 @@
 // catches carrying the [E2E Test] marker.
 const { test, expect, unlockAdmin } = require('../support/fixtures');
 const { getCatchMedia } = require('../support/staging-api');
-const { requireStagingWrites, findTestCatches } = require('../support/test-data');
+const { requireStagingWrites, requireMediaTests, findTestCatches } = require('../support/test-data');
 
 requireStagingWrites();
+requireMediaTests();
 test.describe.configure({ mode: 'serial' });
 
 const mediaFor = getCatchMedia;

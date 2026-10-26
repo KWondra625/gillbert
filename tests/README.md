@@ -23,6 +23,8 @@ npx playwright install chromium webkit
 | `npm run cleanup -- --apply` | Removes all test data from Staging | Yes, Staging only |
 | `npm run report` | Opens the HTML report from the last run | No |
 
+Catch media uploads (every photo and video type) and media deletes only run with `MEDIA_TESTS=1`, since conversions are heavy for the Staging Pi. Real phone files in `media/phone/` are a further opt-in: `PHONE_MEDIA=1`.
+
 Set `SKIP_AI=1` to skip the Ask Gillbert test, which calls Claude and spends API tokens. It runs by default.
 
 A plain `npx playwright test` runs the write and delete tests as **skipped**. Only the `test:write`, `test:delete` and `test:all` scripts turn them on (they set `STAGING_WRITES=1`).

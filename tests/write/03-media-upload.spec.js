@@ -7,9 +7,10 @@ const fs = require('fs');
 const path = require('path');
 const { test, expect, STAGING_STORAGE_HOST } = require('../support/fixtures');
 const { getCatchMedia } = require('../support/staging-api');
-const { requireStagingWrites, ensureTestCatch } = require('../support/test-data');
+const { requireStagingWrites, requireMediaTests, ensureTestCatch } = require('../support/test-data');
 
 requireStagingWrites();
+requireMediaTests();
 test.describe.configure({ mode: 'serial' });
 
 const MEDIA = path.join(__dirname, '..', 'media');
@@ -28,8 +29,9 @@ const CASES = [
   { file: 'video.mp4',           type: 'video/mp4',       mediaType: 'Video' },
   { file: 'video.mov',           type: 'video/mp4',       mediaType: 'Video', converted: true },
   { file: 'video-portrait.mov',  type: 'video/mp4',       mediaType: 'Video', converted: true },
-  // Real iPhone files, when media/phone/ has them (git-ignored; see .gitignore).
-  ...listPhoneFiles().map(file => file.endsWith('.mov')
+  // Real iPhone files, when media/phone/ has them (git-ignored; see .gitignore) and
+  // PHONE_MEDIA=1 is set.
+  ...(process.env.PHONE_MEDIA === '1' ? listPhoneFiles() : []).map(file => file.endsWith('.mov')
     ? { file, type: 'video/mp4', mediaType: 'Video', converted: true }
     : { file, type: 'image/jpeg', mediaType: 'Photo', converted: true }),
 ];

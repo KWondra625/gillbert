@@ -18,6 +18,13 @@ function requireStagingWrites() {
   }
 }
 
+// Catch media uploads (and their deletes) are off unless MEDIA_TESTS=1: conversions are
+// heavy, and the Staging Pi can run out of memory under them. Real phone files are a
+// further opt-in (PHONE_MEDIA=1); a 24 MP iPhone HEIC has failed to convert there.
+function requireMediaTests() {
+  test.skip(process.env.MEDIA_TESTS !== '1', 'set MEDIA_TESTS=1 to run the catch media upload tests');
+}
+
 function testName(kind) {
   return `${NAME_PREFIX} ${kind} ${RUN_ID}`;
 }
@@ -62,4 +69,4 @@ async function ensureTestCatch() {
   return (await findTestCatches()).find(c => c.catchNumber === data.catch_number);
 }
 
-module.exports = { NAME_PREFIX, NOTES_MARKER, RUN_ID, requireStagingWrites, testName, apiPost, findTestCatches, ensureTestCatch };
+module.exports = { NAME_PREFIX, NOTES_MARKER, RUN_ID, requireStagingWrites, requireMediaTests, testName, apiPost, findTestCatches, ensureTestCatch };
