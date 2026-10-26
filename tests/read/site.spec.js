@@ -46,6 +46,17 @@ test.describe('log a catch form', () => {
     }
   });
 
+  test('lists each species by its override name if it has one, else its DNR name', async ({ page }) => {
+    const { fishSpecies } = await getLookups();
+    expect(fishSpecies.some(s => 'displayNameOverride' in s), 'lookup data has a displayNameOverride field').toBe(true);
+    await page.goto('log-catch.html');
+    await expect(page.locator('#catchForm')).toBeVisible();
+    for (const s of fishSpecies) {
+      await expect(page.locator(`#fishSpeciesId option[value="${s.id}"]`), s.name)
+        .toHaveText(s.displayNameOverride || s.name);
+    }
+  });
+
   test('an empty form shows what\'s missing and saves nothing', async ({ page }) => {
     await page.goto('log-catch.html');
     await expect(page.locator('#catchForm')).toBeVisible();

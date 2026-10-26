@@ -1,7 +1,7 @@
 // Layer 1, read-only: the catches listing and catch detail pages, checked against
 // what the Staging API says the data is.
 const { test, expect, unlockAdmin } = require('../support/fixtures');
-const { getCatches } = require('../support/staging-api');
+const { getCatches, getLookups } = require('../support/staging-api');
 
 const PER_PAGE = 24;
 let catches;
@@ -94,6 +94,33 @@ test.describe('catches listing', () => {
     await expect(cards).toHaveCount(Math.min(PER_PAGE, catches.length));
   });
 
+  test('the species filter offers every species that has catches, by its display name', async ({ page }) => {
+    // Catches carry a species' display name (e.g. an override like "Musky"), so the
+    // filter has to use the same names or those species can't be picked at all.
+    const expected = [...new Set(catches.map(c => c.fishSpeciesName))].sort();
+    await page.goto('catches-listing.html');
+    await expect(page.locator('#catchesContainer .catch-card').first()).toBeVisible();
+    const options = page.locator('#filterSpeciesDropdown .filter-option:not([data-value=""])');
+    await expect.poll(async () => (await options.evaluateAll(os => os.map(o => o.dataset.value))).sort())
+      .toEqual(expected);
+
+    // Picking a species shows exactly its catches: one with an override name and one
+    // without, when Staging's catches include both kinds.
+    const { fishSpecies } = await getLookups();
+    const caught = fishSpecies.filter(s => expected.includes(s.displayNameOverride || s.name));
+    const picks = [
+      caught.find(s => s.displayNameOverride)?.displayNameOverride,
+      caught.find(s => !s.displayNameOverride)?.name,
+    ];
+    if (!picks[0]) test.info().annotations.push({ type: 'note', description: 'no caught species has an override name' });
+    for (const name of picks.filter(Boolean)) {
+      await page.locator('#filterSpeciesChip').click();
+      await page.locator(`#filterSpeciesDropdown .filter-option[data-value="${name}"]`).click();
+      await expect(page.locator('#catchesContainer .catch-card'), name)
+        .toHaveCount(Math.min(PER_PAGE, catches.filter(c => c.fishSpeciesName === name).length));
+    }
+  });
+
   test('View Details opens that catch', async ({ page }) => {
     await page.goto('catches-listing.html');
     const first = page.locator('#catchesContainer .catch-card').first();
@@ -146,6 +173,17 @@ test.describe('catch detail', () => {
     await unlockAdmin(page);
     await page.goto(url);
     await expect(page.locator('#editCatchLink')).toBeVisible();
+  });
+
+  test('Edit Catch lists each species by its override name if it has one, else its DNR name', async ({ page }) => {
+    const { fishSpecies } = await getLookups();
+    await unlockAdmin(page);
+    await page.goto(`edit-catch.html?catchNumber=${encodeURIComponent(catches[0].catchNumber)}`);
+    await expect(page.locator('#catchForm')).toBeVisible();
+    for (const s of fishSpecies) {
+      await expect(page.locator(`#fishSpeciesId option[value="${s.id}"]`), s.name)
+        .toHaveText(s.displayNameOverride || s.name);
+    }
   });
 
   test('an unknown catch number shows an error, not a blank page', async ({ page }) => {
