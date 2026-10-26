@@ -60,7 +60,7 @@ for (const s of SECTIONS) {
       await unlockAdmin(page);
       await page.goto(s.listing);
       const record = records[0];
-      await page.locator(s.rows).locator(`a.row-edit-link[href*="id=${record.id}"]`).first().click();
+      await page.locator(s.rows).locator(`a.row-edit-link[href$="?id=${record.id}"]`).first().click();
 
       await expect(page).toHaveURL(new RegExp(`${s.edit}\\?id=${record.id}`));
       await expect(page.locator(s.form)).toBeVisible();
