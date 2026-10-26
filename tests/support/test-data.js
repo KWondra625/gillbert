@@ -9,6 +9,8 @@ const { config, getCatches } = require('./staging-api');
 
 const NAME_PREFIX = 'E2E Test';
 const NOTES_MARKER = '[E2E Test]';
+// Chat tests start their session with this id, so cleanup can find their chat rows.
+const SESSION_MARKER = 'e2e-test-';
 const RUN_ID = process.env.E2E_RUN_ID || String(Date.now()).slice(-6);
 
 function requireStagingWrites() {
@@ -23,6 +25,17 @@ function requireStagingWrites() {
 // further opt-in (PHONE_MEDIA=1); a 24 MP iPhone HEIC has failed to convert there.
 function requireMediaTests() {
   test.skip(process.env.MEDIA_TESTS !== '1', 'set MEDIA_TESTS=1 to run the catch media upload tests');
+}
+
+// Starts a chat page (Ask Gillbert or Catch Chat) on a test session id, set before the
+// page loads so its very first message uses it. The id carries SESSION_MARKER, so
+// cleanup can find the chat rows it leaves. Call before page.goto.
+async function useTestChatSession(page, sessionKey) {
+  const id = `${SESSION_MARKER}${RUN_ID}-${Math.random().toString(36).slice(2, 10)}`;
+  await page.addInitScript(([key, value]) => {
+    if (!sessionStorage.getItem(key)) sessionStorage.setItem(key, value);
+  }, [sessionKey, id]);
+  return id;
 }
 
 function testName(kind) {
@@ -69,4 +82,4 @@ async function ensureTestCatch() {
   return (await findTestCatches()).find(c => c.catchNumber === data.catch_number);
 }
 
-module.exports = { NAME_PREFIX, NOTES_MARKER, RUN_ID, requireStagingWrites, requireMediaTests, testName, apiPost, findTestCatches, ensureTestCatch };
+module.exports = { NAME_PREFIX, NOTES_MARKER, SESSION_MARKER, RUN_ID, requireStagingWrites, requireMediaTests, useTestChatSession, testName, apiPost, findTestCatches, ensureTestCatch };

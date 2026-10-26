@@ -11,14 +11,16 @@
 //      the Staging database over SSH, in one transaction, and the id sequences are reset
 //      so the next real catch number follows on with no gap (scripts/reset_table_ids.sql).
 //
-// "Test" means: catches whose notes contain [E2E Test]; anglers, species and bodies of
-// water named "E2E Test …" (see support/test-data.js). Nothing else is touched.
+// "Test" means (see support/test-data.js): anglers, species and bodies of water named
+// "E2E Test …"; chat sessions whose id contains "e2e-test-" (Ask Gillbert and Catch Chat
+// tests set it), with their conversations and chat memory; and catches whose notes carry
+// [E2E Test], that belong to a test angler, or that a test chat logged. Nothing else.
 //
 // Settings come from tests/.env (git-ignored; see .env.example): STAGING_SSH, STAGING_SSH_HOSTNAME,
 // PG_CONTAINER, PG_USER, PG_DB. It refuses to run without them.
 const { spawnSync } = require('child_process');
 const { config, apiGet, getCatches, getCatchMedia } = require('../support/staging-api');
-const { NAME_PREFIX, NOTES_MARKER, apiPost } = require('../support/test-data');
+const { NAME_PREFIX, NOTES_MARKER, SESSION_MARKER, apiPost } = require('../support/test-data');
 
 const APPLY = process.argv.includes('--apply');
 const SETTINGS = ['STAGING_SSH', 'STAGING_SSH_HOSTNAME', 'PG_CONTAINER', 'PG_USER', 'PG_DB'];
@@ -42,16 +44,22 @@ function psql(sql) {
   return ssh(`docker exec -i ${PG_CONTAINER} psql -U ${PG_USER} -d ${PG_DB} -v ON_ERROR_STOP=1 -q -At -F " | "`, sql);
 }
 
-const isTestCatch = c => (c.notes || '').includes(NOTES_MARKER);
 const isTestName = name => (name || '').startsWith(`${NAME_PREFIX} `);
+const isTestCatch = c => (c.notes || '').includes(NOTES_MARKER) || isTestName(c.anglerName);
 const sqlString = s => `'${s.replace(/'/g, "''")}'`;
 
 // Every table the row step touches, and how it recognizes a test row.
+const TEST_NAME = `name LIKE ${sqlString(`${NAME_PREFIX} %`)}`;
+const TEST_SESSION = `session_id LIKE ${sqlString(`%${SESSION_MARKER}%`)}`;
 const ROWS = {
-  catches: `position(${sqlString(NOTES_MARKER)} in coalesce(notes, '')) > 0`,
-  anglers: `name LIKE ${sqlString(`${NAME_PREFIX} %`)}`,
-  fish_species: `name LIKE ${sqlString(`${NAME_PREFIX} %`)}`,
-  bodies_of_water: `name LIKE ${sqlString(`${NAME_PREFIX} %`)}`,
+  catches: `position(${sqlString(NOTES_MARKER)} in coalesce(notes, '')) > 0
+    OR angler_id IN (SELECT id FROM anglers WHERE ${TEST_NAME})
+    OR conversation_id IN (SELECT id FROM conversations WHERE ${TEST_SESSION})`,
+  conversations: TEST_SESSION,
+  chat_messages: TEST_SESSION,
+  anglers: TEST_NAME,
+  fish_species: TEST_NAME,
+  bodies_of_water: TEST_NAME,
 };
 
 async function main() {
@@ -80,7 +88,7 @@ async function main() {
 
   // ── 2. Rows, with SQL ─────────────────────────────────────────────────
   // Leftover media rows go first (their files are handled above), then catches, then
-  // the lookups the catches pointed at. Any real catch still pointing at a test record
+  // test chats (catches point at conversations), then the lookups the catches pointed at. Any real catch still pointing at a test record
   // makes the delete fail, and the whole transaction rolls back.
   const report = Object.entries(ROWS)
     .map(([table, where]) => `SELECT '${table}', count(*), coalesce(string_agg(id::text, ',' ORDER BY id), '') FROM ${table} WHERE ${where};`)
@@ -88,10 +96,12 @@ async function main() {
   const deletes = `
     DELETE FROM catch_media WHERE catch_id IN (SELECT id FROM catches WHERE ${ROWS.catches});
     DELETE FROM catches WHERE ${ROWS.catches};
+    DELETE FROM conversations WHERE ${ROWS.conversations};
+    DELETE FROM chat_messages WHERE ${ROWS.chat_messages};
     DELETE FROM anglers WHERE ${ROWS.anglers};
     DELETE FROM fish_species WHERE ${ROWS.fish_species};
     DELETE FROM bodies_of_water WHERE ${ROWS.bodies_of_water};
-    ${['anglers', 'bodies_of_water', 'catches', 'catch_media', 'fish_species'].map(t =>
+    ${['anglers', 'bodies_of_water', 'catches', 'catch_media', 'fish_species', 'conversations', 'chat_messages'].map(t =>
       `SELECT setval('${t}_id_seq', COALESCE((SELECT MAX(id) FROM ${t}), 1), (SELECT MAX(id) FROM ${t}) IS NOT NULL);`).join('\n    ')}`;
 
   console.log('\nRows (table | count | ids):');
