@@ -1,7 +1,7 @@
 // Layer 1, read-only: the catches listing and catch detail pages, checked against
 // what the Staging API says the data is.
 const { test, expect, unlockAdmin } = require('../support/fixtures');
-const { getCatches, getLookups } = require('../support/staging-api');
+const { getCatches, getLookups, getCatchMedia } = require('../support/staging-api');
 
 const PER_PAGE = 24;
 let catches;
@@ -156,6 +156,29 @@ test.describe('catch detail', () => {
     test.skip(await photo.count() === 0, 'that catch only has videos');
     await photo.click();
     await expect(page.locator('#lightbox')).toBeVisible();
+    await page.locator('#lightboxClose').click();
+    await expect(page.locator('#lightbox')).toBeHidden();
+  });
+
+  test('a video opens in the lightbox and starts playing', async ({ page }) => {
+    // The smallest MP4 on Staging, so each run downloads as little as possible.
+    let best = null;
+    for (const c of catches.filter(c => Number(c.catchMediaCount) > 0)) {
+      for (const m of await getCatchMedia(c.catchNumber)) {
+        if (m.contentType === 'video/mp4' && (!best || m.fileSizeInBytes < best.m.fileSizeInBytes)) best = { c, m };
+      }
+    }
+    test.skip(!best, 'no Staging catch has an MP4 video');
+    await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(best.c.catchNumber)}`);
+    await page.locator(`.media-tile--video[data-media-id="${best.m.id}"]`).click();
+
+    const video = page.locator('#lightboxVideo');
+    await expect(video).toBeVisible();
+    await expect(video).toHaveAttribute('src', best.m.readUrl);
+    // Ready to play means the browser fetched and decoded it, not just showed the box.
+    await expect.poll(() => video.evaluate(v => v.error ? `error ${v.error.code}` : v.readyState), { timeout: 30_000 })
+      .toBeGreaterThanOrEqual(2);
+    expect(await video.evaluate(v => v.duration)).toBeGreaterThan(0);
     await page.locator('#lightboxClose').click();
     await expect(page.locator('#lightbox')).toBeHidden();
   });
