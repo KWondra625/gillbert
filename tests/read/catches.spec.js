@@ -1,0 +1,155 @@
+// Layer 1, read-only: the catches listing and catch detail pages, checked against
+// what the Staging API says the data is.
+const { test, expect, unlockAdmin } = require('../support/fixtures');
+const { getCatches } = require('../support/staging-api');
+
+const PER_PAGE = 24;
+let catches;
+
+test.beforeAll(async () => {
+  catches = await getCatches();
+  expect(catches.length, 'Staging should have catches to test with').toBeGreaterThan(0);
+});
+
+// Searches once the first page has rendered, and waits for the search's own response.
+// (Searching while the initial load is still in flight lets that slower, unfiltered
+// response land last and replace the search results.)
+async function search(page, term) {
+  const response = page.waitForResponse(r => r.url().includes('get-catches?search='));
+  await page.locator('#searchInput').fill(term);
+  await page.locator('#searchBtn').click();
+  await response;
+}
+
+test.describe('catches listing', () => {
+  test('shows the first page of catches and pages through them', async ({ page }) => {
+    await page.goto('catches-listing.html');
+    const cards = page.locator('#catchesContainer .catch-card');
+    await expect(cards).toHaveCount(Math.min(PER_PAGE, catches.length));
+
+    const pages = Math.ceil(catches.length / PER_PAGE);
+    test.skip(pages < 2, 'Staging has only one page of catches');
+    await expect(page.locator('#pageInfo')).toHaveText(`Page 1 of ${pages}`);
+    await expect(page.locator('#prevBtn')).toBeDisabled();
+
+    await page.locator('#nextBtn').click();
+    await expect(page.locator('#pageInfo')).toHaveText(`Page 2 of ${pages}`);
+    await expect(cards).toHaveCount(Math.min(PER_PAGE, catches.length - PER_PAGE));
+  });
+
+  test('search narrows the list to matching catches', async ({ page }) => {
+    // Search for an angler name with fewer catches than the whole set.
+    const counts = {};
+    for (const c of catches) counts[c.anglerName] = (counts[c.anglerName] || 0) + 1;
+    const [name] = Object.entries(counts).sort((a, b) => a[1] - b[1])[0];
+
+    await page.goto('catches-listing.html');
+    await expect(page.locator('#catchesContainer .catch-card').first()).toBeVisible();
+    await search(page, name);
+
+    const cards = page.locator('#catchesContainer .catch-card');
+    await expect(cards).toHaveCount(Math.min(PER_PAGE, counts[name]));
+    for (const card of await cards.all()) await expect(card).toContainText(name);
+  });
+
+  test('a search typed during the first load still shows its own results', async ({ page }) => {
+    // Hold back the first, unfiltered load so it lands after the search does.
+    await page.route(url => url.pathname.endsWith('/get-catches') && !url.search, async route => {
+      await new Promise(r => setTimeout(r, 3_000));
+      await route.continue();
+    });
+    const firstLoad = page.waitForResponse(r => /\/get-catches$/.test(r.url()), { timeout: 30_000 });
+    const searched = page.waitForResponse(r => r.url().includes('get-catches?search='), { timeout: 30_000 });
+    await page.goto('catches-listing.html');
+    await page.locator('#searchInput').fill('zzqx-no-such-catch');
+    await page.locator('#searchBtn').click();
+    await Promise.all([firstLoad, searched]);
+
+    await expect(page.locator('.no-results-banner')).toContainText('No catches match');
+    await expect(page.locator('#catchesContainer .catch-card')).toHaveCount(0);
+  });
+
+  test('a search with no matches says so', async ({ page }) => {
+    await page.goto('catches-listing.html');
+    await expect(page.locator('#catchesContainer .catch-card').first()).toBeVisible();
+    await search(page, 'zzqx-no-such-catch');
+    await expect(page.locator('.no-results-banner')).toContainText('No catches match');
+  });
+
+  test('the angler filter shows only that angler\'s catches', async ({ page }) => {
+    const name = catches[0].anglerName;
+    const expected = catches.filter(c => c.anglerName === name).length;
+
+    await page.goto('catches-listing.html');
+    await expect(page.locator('#catchesContainer .catch-card').first()).toBeVisible();
+    await page.locator('#filterAnglerChip').click();
+    await page.locator(`#filterAnglerDropdown .filter-option[data-value="${name}"]`).click();
+
+    await expect(page.locator('#filterSummary')).toBeVisible();
+    const cards = page.locator('#catchesContainer .catch-card');
+    await expect(cards).toHaveCount(Math.min(PER_PAGE, expected));
+    for (const card of await cards.all()) await expect(card).toContainText(name);
+
+    await page.locator('#filterClearAll').click();
+    await expect(cards).toHaveCount(Math.min(PER_PAGE, catches.length));
+  });
+
+  test('View Details opens that catch', async ({ page }) => {
+    await page.goto('catches-listing.html');
+    const first = page.locator('#catchesContainer .catch-card').first();
+    const number = (await first.locator('.catch-id').textContent()).trim();
+    await first.locator('.card-button').click();
+
+    await expect(page).toHaveURL(/catch-details\.html\?catchNumber=/);
+    await expect(page.locator('.detail-card-header h2')).toContainText(number);
+  });
+});
+
+test.describe('catch detail', () => {
+  test('shows the catch\'s angler, species and water', async ({ page }) => {
+    const c = catches[0];
+    await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(c.catchNumber)}`);
+    await expect(page.locator('.detail-card-header h2')).toContainText(c.catchNumber);
+    const details = page.locator('#detailsContainer');
+    await expect(details).toContainText(c.anglerName);
+    await expect(details).toContainText(c.fishSpeciesName);
+    await expect(details).toContainText(c.bodyOfWaterName);
+  });
+
+  test('shows its photos and opens one in the lightbox', async ({ page }) => {
+    const withMedia = catches.find(c => Number(c.catchMediaCount) > 0);
+    test.skip(!withMedia, 'no Staging catch has media');
+    await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(withMedia.catchNumber)}`);
+
+    const tiles = page.locator('.media-tile');
+    await expect(tiles.first()).toBeVisible();
+    await expect(tiles).toHaveCount(Number(withMedia.catchMediaCount));
+
+    const photo = page.locator('.media-tile--photo').first();
+    test.skip(await photo.count() === 0, 'that catch only has videos');
+    await photo.click();
+    await expect(page.locator('#lightbox')).toBeVisible();
+    await page.locator('#lightboxClose').click();
+    await expect(page.locator('#lightbox')).toBeHidden();
+  });
+
+  test('hides Edit from a visitor and shows it to an admin', async ({ page }) => {
+    const c = catches[0];
+    const url = `catch-details.html?catchNumber=${encodeURIComponent(c.catchNumber)}`;
+    // Let the media load finish too: reloading mid-request cancels it, which logs an error.
+    const media = page.waitForResponse(r => r.url().includes('catch-media/get'));
+    await page.goto(url);
+    await expect(page.locator('.detail-card-header h2')).toBeVisible();
+    await expect(page.locator('#editCatchLink')).toBeHidden();
+    await (await media).finished();
+
+    await unlockAdmin(page);
+    await page.goto(url);
+    await expect(page.locator('#editCatchLink')).toBeVisible();
+  });
+
+  test('an unknown catch number shows an error, not a blank page', async ({ page }) => {
+    await page.goto('catch-details.html?catchNumber=Catch%2099-999');
+    await expect(page.locator('#status')).not.toBeEmpty();
+  });
+});
