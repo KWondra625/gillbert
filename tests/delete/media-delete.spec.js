@@ -3,16 +3,13 @@
 // the page reporting success when the file delete fails). Only ever touches media on
 // catches carrying the [E2E Test] marker.
 const { test, expect, unlockAdmin } = require('../support/fixtures');
-const { apiGet } = require('../support/staging-api');
+const { getCatchMedia } = require('../support/staging-api');
 const { requireStagingWrites, findTestCatches } = require('../support/test-data');
 
 requireStagingWrites();
 test.describe.configure({ mode: 'serial' });
 
-async function mediaFor(catchNumber) {
-  const data = await apiGet(`catch-media/get?catchNumber=${encodeURIComponent(catchNumber)}`);
-  return Array.isArray(data) ? data : data.media || [];
-}
+const mediaFor = getCatchMedia;
 
 test('delete one photo and one video from the test catch', async ({ page }) => {
   const withMedia = [];

@@ -1,7 +1,7 @@
 // Layer 1, read-only: the Staging API still returns the fields the pages depend on.
 // A renamed or dropped field here would break a page quietly, so it fails loudly instead.
 const { test, expect } = require('../support/fixtures');
-const { apiGet, getCatches, getLookups } = require('../support/staging-api');
+const { apiGet, getCatches, getLookups, getCatchMedia } = require('../support/staging-api');
 
 function expectFields(record, fields, what) {
   for (const f of fields) expect(record, `${what} is missing "${f}"`).toHaveProperty(f);
@@ -47,7 +47,6 @@ test('the admin GET endpoints return full records', async () => {
 test('catch-media/get returns the media of a catch that has some', async () => {
   const withMedia = (await getCatches()).find(c => Number(c.catchMediaCount) > 0);
   test.skip(!withMedia, 'no Staging catch has media');
-  const data = await apiGet(`catch-media/get?catchNumber=${encodeURIComponent(withMedia.catchNumber)}`);
-  const list = Array.isArray(data) ? data : Object.values(data).find(Array.isArray) || [];
+  const list = await getCatchMedia(withMedia.catchNumber);
   expect(list.length).toBe(Number(withMedia.catchMediaCount));
 });

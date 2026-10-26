@@ -21,4 +21,11 @@ async function getLookups() {
   return Array.isArray(raw) ? raw[0] : raw;
 }
 
-module.exports = { config, apiGet, getCatches, getLookups };
+// A catch's media. Like get-catches, the API answers "none" with one all-null
+// placeholder row, so rows without an id are dropped.
+async function getCatchMedia(catchNumber) {
+  const data = await apiGet(`catch-media/get?catchNumber=${encodeURIComponent(catchNumber)}`);
+  return (Array.isArray(data) ? data : data.media || []).filter(m => m && m.id);
+}
+
+module.exports = { config, apiGet, getCatches, getLookups, getCatchMedia };

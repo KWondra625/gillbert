@@ -17,7 +17,7 @@
 // Settings come from tests/.env (git-ignored; see .env.example): STAGING_SSH, STAGING_SSH_HOSTNAME,
 // PG_CONTAINER, PG_USER, PG_DB. It refuses to run without them.
 const { spawnSync } = require('child_process');
-const { config, apiGet, getCatches } = require('../support/staging-api');
+const { config, apiGet, getCatches, getCatchMedia } = require('../support/staging-api');
 const { NAME_PREFIX, NOTES_MARKER, apiPost } = require('../support/test-data');
 
 const APPLY = process.argv.includes('--apply');
@@ -64,10 +64,7 @@ async function main() {
   // ── 1. Files, through the app ─────────────────────────────────────────
   const testCatches = (await getCatches()).filter(isTestCatch);
   const media = [];
-  for (const c of testCatches) {
-    const data = await apiGet(`catch-media/get?catchNumber=${encodeURIComponent(c.catchNumber)}`);
-    media.push(...(Array.isArray(data) ? data : data.media || []));
-  }
+  for (const c of testCatches) media.push(...await getCatchMedia(c.catchNumber));
   const anglerData = await apiGet('anglers/get');
   const anglers = (Array.isArray(anglerData) ? anglerData : Object.values(anglerData).find(Array.isArray) || []);
   const photos = anglers.filter(a => isTestName(a.name) && a.profilePhotoReadUrl);

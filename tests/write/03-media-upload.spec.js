@@ -6,7 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const { test, expect, STAGING_STORAGE_HOST } = require('../support/fixtures');
-const { apiGet } = require('../support/staging-api');
+const { getCatchMedia } = require('../support/staging-api');
 const { requireStagingWrites, ensureTestCatch } = require('../support/test-data');
 
 requireStagingWrites();
@@ -43,10 +43,7 @@ function listPhoneFiles() {
 let target;
 test.beforeAll(async () => { target = await ensureTestCatch(); });
 
-async function mediaFor(catchNumber) {
-  const data = await apiGet(`catch-media/get?catchNumber=${encodeURIComponent(catchNumber)}`);
-  return Array.isArray(data) ? data : data.media || [];
-}
+const mediaFor = getCatchMedia;
 
 async function upload(page, files) {
   await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(target.catchNumber)}`);

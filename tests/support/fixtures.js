@@ -101,6 +101,9 @@ const test = base.test.extend({
 
     await use(page);
 
+    // Storage upload URLs carry a short-lived write token; keep it out of reports.
+    for (let i = 0; i < errors.length; i++) errors[i] = errors[i].replace(/([?&]sig=)[^&s'"]+/g, '$1***');
+
     // Let in-flight requests finish so their errors are counted, and so a test that
     // ends mid-load doesn't leave a half-finished fetch behind.
     await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => {});
