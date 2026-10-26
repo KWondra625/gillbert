@@ -25,7 +25,7 @@ npx playwright install chromium webkit
 
 Catch media uploads (every photo and video type) and media deletes only run with `MEDIA_TESTS=1`, since conversions are heavy for the Staging Pi. Real phone files in `media/phone/` are a further opt-in: `PHONE_MEDIA=1`.
 
-Set `SKIP_AI=1` to skip the Ask Gillbert test, which calls Claude and spends API tokens. It runs by default.
+Set `SKIP_AI=1` to skip the Ask Gillbert questions, which call Claude and spend API tokens. They run by default. The Catch Chat test (logging a catch by conversation) makes several AI calls, so it only runs with `CATCH_CHAT_TESTS=1`.
 
 A plain `npx playwright test` runs the write and delete tests as **skipped**. Only the `test:write`, `test:delete` and `test:all` scripts turn them on (they set `STAGING_WRITES=1`).
 
@@ -33,7 +33,7 @@ A plain `npx playwright test` runs the write and delete tests as **skipped**. On
 
 - **Never production.** Every request to a production host (the production API server or the live site, both read from `src/assets/config.js`) is blocked and fails the test. Each page must also report that it talks to Staging, and the API helper refuses to start otherwise. Uploads and deletes to any storage account other than Staging's are blocked too. `read/guards.spec.js` checks that the guards themselves work.
 - **Read-only means read-only.** Tests in `read/` block, and fail on, any call to a save, commit, delete or upload endpoint.
-- **Everything is marked.** Test anglers, species and bodies of water are named `E2E Test …`, and test catches carry `[E2E Test]` in their notes. Cleanup removes only those, and only on the Staging server: it checks the SSH host's name before doing anything.
+- **Everything is marked.** Test anglers, species and bodies of water are named `E2E Test …`; test catches carry `[E2E Test]` in their notes or belong to a test angler; chat tests use session ids containing `e2e-test-`, so their conversations and chat memory can be found too. Cleanup removes only those, and only on the Staging server: it checks the SSH host's name before doing anything.
 - **Browser errors fail tests.** Any uncaught error or console error fails the test, which catches breakage a screenshot wouldn't show.
 
 ## Layout
