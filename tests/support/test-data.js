@@ -48,9 +48,13 @@ async function apiPost(endpoint, body) {
     headers: { 'X-API-Key': config.API_KEY, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
+  const text = await res.text();
+  // n8n answers a workflow that failed before its Respond node with an empty 200, so an
+  // empty body counts as a failure here, not a success.
+  if (!res.ok || !text.trim()) throw new Error(`POST ${endpoint} failed: HTTP ${res.status}${text.trim() ? '' : ', empty response'}`);
   let data;
-  try { data = await res.json(); } catch { data = {}; }
-  if (!res.ok || data.success === false) throw new Error(`POST ${endpoint} failed: ${res.status} ${JSON.stringify(data)}`);
+  try { data = JSON.parse(text); } catch { data = {}; }
+  if (data.success === false) throw new Error(`POST ${endpoint} failed: ${text.slice(0, 200)}`);
   return data;
 }
 

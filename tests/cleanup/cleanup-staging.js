@@ -81,9 +81,14 @@ async function main() {
   for (const m of media) console.log(`  media ${m.id}  ${m.catchNumber}  ${m.contentType}  ${m.blobPath}`);
   for (const a of photos) console.log(`  photo  angler ${a.id} "${a.name}"`);
   if (APPLY) {
-    for (const m of media) await apiPost('catch-media/delete', { mediaId: m.id });
-    for (const a of photos) await apiPost('anglers/delete-photo', { anglerId: a.id });
-    console.log('  removed');
+    // A delete can fail (say the file is already gone); report it and carry on, and
+    // the row step below still removes the media row.
+    const attempt = async (what, endpoint, body) => {
+      try { await apiPost(endpoint, body); } catch (err) { console.log(`  ${what} failed: ${err.message.slice(0, 160)}`); }
+    };
+    for (const m of media) await attempt(`media ${m.id}`, 'catch-media/delete', { mediaId: m.id });
+    for (const a of photos) await attempt(`photo of angler ${a.id}`, 'anglers/delete-photo', { anglerId: a.id });
+    console.log('  done');
   }
 
   // ── 2. Rows, with SQL ─────────────────────────────────────────────────
