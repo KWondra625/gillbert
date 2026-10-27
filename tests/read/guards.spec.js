@@ -29,19 +29,38 @@ base.test('the production hosts are the ones the site would use for production',
   for (const host of prod) base.expect(PRODUCTION_HOSTS).toContain(host);
 });
 
-// These two use the guarded `test` and deliberately trip a guard. test.fail() means
-// "this test must fail": if a guard ever stops catching these, the suite goes red.
+// These two use the guarded `test` and deliberately trip a guard, then check that the
+// guard itself caught the probe: not the safety net under it, and not some unrelated
+// error. They clear what the guard recorded, so the usual end-of-test checks (which
+// fail on any guard hit) pass. If a guard ever stops catching these, they fail.
 const guarded = require('../support/fixtures');
 
-guarded.test('a request to production is blocked and fails the test', async ({ page }) => {
-  guarded.test.fail();
-  await page.goto('index.html');
-  await page.evaluate(url => fetch(url).catch(() => {}), `https://${PRODUCTION_HOSTS[0]}/`);
-});
+guarded.test.describe('guards catch what they should', () => {
+  // The blocked probe logs a "failed to load" error in the browser; that's expected.
+  guarded.test.use({ allowConsoleErrors: true });
 
-guarded.test('an upload to a non-Staging storage account is blocked and fails the test', async ({ page }) => {
-  guarded.test.fail();
-  await page.goto('index.html');
-  await page.evaluate(() => fetch('https://not-staging-e2e.blob.core.windows.net/catch-media/x.jpg',
-    { method: 'PUT', body: 'x' }).catch(() => {}));
+  guarded.test('a request to production is stopped by the production guard', async ({ page, context }) => {
+    const probe = `https://${PRODUCTION_HOSTS[0]}/`;
+    await page.goto('index.html');
+    const outcome = await page.evaluate(url => fetch(url).then(() => 'reached', () => 'blocked'), probe);
+
+    const { productionRequests, safetyNetHits } = context.guardHits;
+    base.expect(outcome).toBe('blocked');
+    base.expect(productionRequests).toEqual([probe]);
+    base.expect(safetyNetHits).toEqual([]);
+    productionRequests.length = 0;
+  });
+
+  guarded.test('an upload to a non-Staging storage account is stopped by the storage guard', async ({ page, context }) => {
+    const probe = 'https://not-staging-e2e.blob.core.windows.net/catch-media/x.jpg';
+    await page.goto('index.html');
+    const outcome = await page.evaluate(url => fetch(url, { method: 'PUT', body: 'x' })
+      .then(() => 'reached', () => 'blocked'), probe);
+
+    const { storageWrites, safetyNetHits } = context.guardHits;
+    base.expect(outcome).toBe('blocked');
+    base.expect(storageWrites).toEqual([`PUT ${probe}`]);
+    base.expect(safetyNetHits).toEqual([]);
+    storageWrites.length = 0;
+  });
 });

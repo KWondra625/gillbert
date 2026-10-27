@@ -64,7 +64,9 @@ for (const s of SECTIONS) {
 
       await expect(page).toHaveURL(new RegExp(`${s.edit}\\?id=${record.id}`));
       await expect(page.locator(s.form)).toBeVisible();
-      await expect(page.locator('#formHeading')).toContainText(s.nameOf(record));
+      // The heading uses the record's own name; for a species that's the DNR name, even
+      // when the listing shows its display-name override.
+      await expect(page.locator('#formHeading')).toContainText(record.name);
     });
 
     test('the create form opens empty', async ({ page }) => {

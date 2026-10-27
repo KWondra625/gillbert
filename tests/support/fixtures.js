@@ -22,6 +22,22 @@ const test = base.test.extend({
   allowConsoleErrors: [false, { option: true }],
 
   context: async ({ context, identityEmail }, use, testInfo) => {
+    // Safety net under the two guards below. Playwright tries the most recently added
+    // route first, so these only run if a guard is missing or passes a request on:
+    // they answer locally instead of letting it out, and any hit fails the test.
+    const isStorageWrite = req => !['GET', 'HEAD', 'OPTIONS'].includes(req.method())
+      && new URL(req.url()).hostname !== STAGING_STORAGE_HOST;
+    const safetyNetHits = [];
+    await context.route(url => PRODUCTION_HOSTS.includes(url.hostname), route => {
+      safetyNetHits.push(`production: ${route.request().url()}`);
+      return route.fulfill({ status: 503, body: 'Stopped by the test safety net' });
+    });
+    await context.route(url => url.hostname.endsWith('.blob.core.windows.net'), route => {
+      if (!isStorageWrite(route.request())) return route.continue();
+      safetyNetHits.push(`storage: ${route.request().method()} ${route.request().url().split('?')[0]}`);
+      return route.fulfill({ status: 503, body: 'Stopped by the test safety net' });
+    });
+
     // Production guard, layer 1: no request may reach a production host.
     const productionRequests = [];
     await context.route(url => PRODUCTION_HOSTS.includes(url.hostname), route => {
@@ -32,11 +48,8 @@ const test = base.test.extend({
     // Storage guard: no upload or delete to any storage account but Staging's.
     const storageWrites = [];
     await context.route(url => url.hostname.endsWith('.blob.core.windows.net'), route => {
-      const method = route.request().method();
-      if (['GET', 'HEAD', 'OPTIONS'].includes(method) || new URL(route.request().url()).hostname === STAGING_STORAGE_HOST) {
-        return route.continue();
-      }
-      storageWrites.push(`${method} ${route.request().url().split('?')[0]}`);
+      if (!isStorageWrite(route.request())) return route.continue();
+      storageWrites.push(`${route.request().method()} ${route.request().url().split('?')[0]}`);
       return route.abort('blockedbyclient');
     });
 
@@ -55,9 +68,11 @@ const test = base.test.extend({
       ? route.fulfill({ json: { email: identityEmail } })
       : route.fulfill({ status: 401, body: '' }));
 
-    context.productionRequests = productionRequests;
+    // What each guard caught, for read/guards.spec.js to check the guards themselves.
+    context.guardHits = { productionRequests, storageWrites, safetyNetHits };
     await use(context);
 
+    base.expect(safetyNetHits, 'a guard let a request through; the safety net stopped it').toEqual([]);
     base.expect(productionRequests, 'requests to a production host were blocked').toEqual([]);
     base.expect(blockedWrites, 'a read-only test tried to change data').toEqual([]);
     base.expect(storageWrites, 'a write to a non-Staging storage account was blocked').toEqual([]);

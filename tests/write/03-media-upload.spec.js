@@ -31,7 +31,7 @@ const CASES = [
   { file: 'video-portrait.mov',  type: 'video/mp4',       mediaType: 'Video', converted: true },
   // Real iPhone files, when media/phone/ has them (git-ignored; see .gitignore) and
   // PHONE_MEDIA=1 is set.
-  ...(process.env.PHONE_MEDIA === '1' ? listPhoneFiles() : []).map(file => file.endsWith('.mov')
+  ...(process.env.PHONE_MEDIA === '1' ? listPhoneFiles() : []).map(file => file.toLowerCase().endsWith('.mov')
     ? { file, type: 'video/mp4', mediaType: 'Video', converted: true }
     : { file, type: 'image/jpeg', mediaType: 'Photo', converted: true }),
 ];

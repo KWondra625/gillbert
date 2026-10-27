@@ -7,7 +7,7 @@
     "test:read": "playwright test read/",
     "test:write": "node support/with-writes.js write/",
     "test:delete": "node support/with-writes.js delete/",
-    "test:all": "playwright test read/ && node support/with-writes.js write/ delete/",
+    "test:all": "playwright test read/ && node support/with-writes.js write/ && node support/with-writes.js delete/",
     "test:stress": "playwright test read/ --workers=8 --repeat-each=2 --retries=0",
     "cleanup": "node cleanup/cleanup-staging.js",
     "report": "playwright show-report",
