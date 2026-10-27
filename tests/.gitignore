@@ -1,0 +1,7 @@
+node_modules/
+test-results/
+playwright-report/
+.env
+
+# Real phone files: personal, kept out of the public repo. Tests use them when present.
+media/phone/

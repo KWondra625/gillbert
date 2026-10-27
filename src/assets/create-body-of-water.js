@@ -18,6 +18,8 @@ const el = {
   dnrLinkedChip:     document.getElementById('dnrLinkedChip'),
   dnrLinkedText:     document.getElementById('dnrLinkedText'),
   dnrLinkedClear:    document.getElementById('dnrLinkedClear'),
+  dnrUrlVerifiedGroup:  document.getElementById('dnrUrlVerifiedGroup'),
+  dnrUrlVerified:    document.getElementById('dnrUrlVerified'),
 };
 
 let selectedStatus = 'Active';
@@ -62,7 +64,6 @@ function selectDnrResult(r) {
     // entry (that'd be a separate "custom pin" feature, not part of this).
     latitude: r.latitude ?? null,
     longitude: r.longitude ?? null,
-    dnrUrlVerified: true,
   };
 
   // Prefill Name only if the admin hasn't already typed something — never
@@ -75,11 +76,16 @@ function selectDnrResult(r) {
   el.dnrSearchInput.value = '';
   el.dnrLinkedText.textContent = `✓ Linked to ${r.waterbodyName || '(unnamed)'} (WBIC ${r.waterbodyWbic})`;
   el.dnrLinkedChip.classList.remove('hidden');
+  // Same "DNR link is working" checkbox as the edit page; starts checked, since
+  // most DNR lake pages exist.
+  el.dnrUrlVerified.checked = true;
+  el.dnrUrlVerifiedGroup.classList.remove('hidden');
 }
 
 function clearDnrLink() {
   pendingDnrFields = null;
   el.dnrLinkedChip.classList.add('hidden');
+  el.dnrUrlVerifiedGroup.classList.add('hidden');
 }
 
 // ── Load ──────────────────────────────────────────────────────────────────
@@ -124,7 +130,11 @@ async function submit() {
     latitude: null,
     longitude: null,
     notes: el.notes.value.trim() || null,
-    ...(pendingDnrFields || {}),
+    // dnrUrlVerified is the "DNR link is working" checkbox; with no DNR link there's
+    // nothing to vouch for, so null rather than true or false (same as the edit page).
+    ...(pendingDnrFields
+      ? { ...pendingDnrFields, dnrUrlVerified: el.dnrUrlVerified.checked }
+      : { dnrUrlVerified: null }),
   };
 
   try {

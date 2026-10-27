@@ -102,7 +102,22 @@ async function loadEditCatch() {
   }
 }
 
+// The dropdowns only list Active records. If this catch's angler, species or water has
+// since been made inactive, add it back as an option so it stays selected: otherwise
+// the form opens blank there and can't be saved without picking something new.
+function keepCurrentChoice(selectEl, id, name) {
+  if (id == null || [...selectEl.options].some(o => o.value === String(id))) return;
+  const opt = document.createElement('option');
+  opt.value = id;
+  opt.textContent = `${name || 'Unknown'} (inactive)`;
+  selectEl.appendChild(opt);
+}
+
 function prefillForm(c) {
+  keepCurrentChoice(el.anglerId,      c.anglerId,      c.anglerName);
+  keepCurrentChoice(el.fishSpeciesId, c.fishSpeciesId, c.fishSpeciesName);
+  keepCurrentChoice(el.bodyOfWaterId, c.bodyOfWaterId, c.bodyOfWaterName);
+
   el.anglerId.value      = c.anglerId != null ? String(c.anglerId) : '';
   el.fishSpeciesId.value = c.fishSpeciesId != null ? String(c.fishSpeciesId) : '';
   el.bodyOfWaterId.value = c.bodyOfWaterId != null ? String(c.bodyOfWaterId) : '';

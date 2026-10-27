@@ -52,6 +52,10 @@ let lookupsLoaded = false;
 // below the full roster. Fetched independently of allCatches so it always
 // reflects every catch, not just whatever the current search term matched.
 let speciesWithCatches = null;
+// Numbers each loadCatches() call so only the newest one renders. Without it, a
+// search typed while the first (unfiltered) load is still in flight can lose to that
+// slower response and show the full list instead of the search results.
+let latestCatchesRequest = 0;
 
 function setStatus(msg) {
   el.status.textContent = msg;
@@ -76,6 +80,7 @@ function escapeHtml(s) {
 }
 
 async function loadCatches() {
+  const requestId = ++latestCatchesRequest;
   try {
     showLoading();
     setStatus("Loading catches...");
@@ -92,6 +97,7 @@ async function loadCatches() {
     if (!res.ok) throw new Error(`GET failed: ${res.status}`);
 
     const data = await res.json();
+    if (requestId !== latestCatchesRequest) return; // a newer load has taken over
 
     // Accept either [{...}] OR { catches: [...] }; filter out null-placeholder rows the API returns on no-results
     allCatches = (Array.isArray(data) ? data : (data.catches || []))
@@ -131,6 +137,7 @@ async function loadCatches() {
     if (!activeFilters.group || lookupsLoaded) applyFilters();
     hideLoading();
   } catch (err) {
+    if (requestId !== latestCatchesRequest) return; // a newer load has taken over
     console.error(err);
     setStatus("Failed to load catches ❌");
     el.catchesContainer.innerHTML = `<div class="empty-state"><p>Error loading catches.</p></div>`;
