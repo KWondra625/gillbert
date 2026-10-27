@@ -22,12 +22,29 @@ npx playwright install chromium webkit
 | `npm run cleanup` | Shows what test data is on Staging (dry run) | No |
 | `npm run cleanup -- --apply` | Removes all test data from Staging | Yes, Staging only |
 | `npm run report` | Opens the HTML report from the last run | No |
+| `npm run ui` | Opens Playwright's UI mode to run and watch tests | Only write tests, if turned on |
 
 Catch media uploads (every photo and video type) and media deletes only run with `MEDIA_TESTS=1`, since conversions are heavy for the Staging Pi. Real phone files in `media/phone/` are a further opt-in: `PHONE_MEDIA=1`.
 
 Set `SKIP_AI=1` to skip the Ask Gillbert questions, which call Claude and spend API tokens. They run by default. The Catch Chat test (logging a catch by conversation) makes several AI calls, so it only runs with `CATCH_CHAT_TESTS=1`.
 
 A plain `npx playwright test` runs the write and delete tests as **skipped**. Only the `test:write`, `test:delete` and `test:all` scripts turn them on (they set `STAGING_WRITES=1`).
+
+## When to run them
+
+These run by hand, not automatically on pull requests (a deliberate choice for now: the Staging server would gate every merge). The habit:
+
+- **While working on a change:** the tests for the area you touched, plus `npm test`.
+- **Before promoting develop to main:** `npm run test:all` on Staging, then `npm run cleanup -- --apply`. Add `MEDIA_TESTS=1` if the change touches uploads or media.
+- **With every feature change:** add or update the tests that cover it.
+
+## Watching tests
+
+- **UI mode:** `npm run ui` opens a window listing every test; click ▶ to run and watch each go green, and click a test to replay it step by step. Pick the `desktop-chrome` project to keep the load light on the Staging server.
+- **VS Code:** install Microsoft's "Playwright Test for VS Code" extension, then use the Testing panel (beaker icon). Under Playwright, tick only `desktop-chrome`, and tick "Show browser" to watch Chrome run them.
+- **Headed:** add `--headed` to any run to see the browser.
+
+Write tests stay skipped in UI mode and VS Code unless `STAGING_WRITES=1` is set (PowerShell: `$env:STAGING_WRITES="1"; npm run ui`), so a stray click can't change Staging.
 
 ## Safety guards
 
