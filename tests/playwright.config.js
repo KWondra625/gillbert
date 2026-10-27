@@ -34,9 +34,10 @@ module.exports = defineConfig({
   webServer: {
     command: 'node support/static-server.js',
     url: `http://127.0.0.1:${PORT}/index.html`,
-    // Fail clearly if something else (e.g. Live Server) already holds the port, rather
-    // than testing whatever that server happens to serve.
-    reuseExistingServer: false,
+    // Reuse a test server that's already running, so UI mode and the VS Code extension
+    // can be open at the same time. Something else on the port (e.g. Live Server serving
+    // the repo root) fails the startup check on /index.html instead of being tested.
+    reuseExistingServer: true,
     env: { PORT: String(PORT) },
   },
 });
