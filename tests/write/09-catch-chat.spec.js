@@ -48,13 +48,18 @@ test.describe('logged in as the test angler', () => {
     const replies = page.locator('.message--gillbert:not(.message--thinking):not(.message--error)');
     let said = `I caught a 21 inch ${speciesName} on ${water.name} today at 2pm, in 8 feet of water. No notes.`;
 
+    // Answer like a person would: Gillbert sometimes takes "I" to mean the logged-in
+    // angler and sometimes asks who caught it, so reply to what it actually asked.
     for (let turn = 0; turn < MAX_TURNS && !(await myCatch()); turn++) {
       const before = await replies.count();
       await page.locator('#chatInput').fill(said);
       await page.locator('#chatSendBtn').click();
       await expect(replies).toHaveCount(before + 1, { timeout: 110_000 });
       await expect(page.locator('.message--error')).toHaveCount(0);
-      said = "Yes, that's all correct. Please save it.";
+      const asked = (await replies.last().textContent()).toLowerCase();
+      said = /who (caught|gets|landed|reeled)|whose|angler name|your name|which angler/.test(asked)
+        ? 'Me, I caught it myself.'
+        : "Yes, that's all correct. Please save it.";
     }
 
     const saved = await myCatch();
