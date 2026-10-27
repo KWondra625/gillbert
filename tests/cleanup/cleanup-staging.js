@@ -81,9 +81,24 @@ async function main() {
   for (const m of media) console.log(`  media ${m.id}  ${m.catchNumber}  ${m.contentType}  ${m.blobPath}`);
   for (const a of photos) console.log(`  photo  angler ${a.id} "${a.name}"`);
   if (APPLY) {
-    for (const m of media) await apiPost('catch-media/delete', { mediaId: m.id });
-    for (const a of photos) await apiPost('anglers/delete-photo', { anglerId: a.id });
-    console.log('  removed');
+    // A delete can fail. If its file is already gone, the row step below can still remove
+    // the row. If the file is still in storage, removing the row would orphan it, so stop
+    // before the row step: the rows stay, and the next cleanup run retries.
+    const stillStored = [];
+    const attempt = async (what, endpoint, body, fileUrl) => {
+      try { await apiPost(endpoint, body); return; } catch (err) { console.log(`  ${what} failed: ${err.message.slice(0, 160)}`); }
+      const status = await fetch(fileUrl, { method: 'HEAD' }).then(r => r.status, () => 'unreachable');
+      if (status === 404) console.log(`    its file is already gone, so the row can go`);
+      else stillStored.push(`${what} (file check: ${status})`);
+    };
+    for (const m of media) await attempt(`media ${m.id}`, 'catch-media/delete', { mediaId: m.id }, m.readUrl);
+    for (const a of photos) await attempt(`photo of angler ${a.id}`, 'anglers/delete-photo', { anglerId: a.id }, a.profilePhotoReadUrl);
+    if (stillStored.length) {
+      console.error(`\nStopped before removing any rows: these files are still in storage, and removing`
+        + ` their rows would leave them orphaned. Run cleanup again later.\n  ${stillStored.join('\n  ')}`);
+      process.exit(1);
+    }
+    console.log('  done');
   }
 
   // ── 2. Rows, with SQL ─────────────────────────────────────────────────
