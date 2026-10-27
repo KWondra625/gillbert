@@ -85,7 +85,7 @@ services:
   # Public entry point. Outbound-only connection to Cloudflare; no ports opened on this box.
   # The tunnel's routes (configured in the Cloudflare dashboard) point at http://n8n:5678 over the compose network.
   cloudflared:
-    image: cloudflare/cloudflared:2026.9.3
+    image: cloudflare/cloudflared:2026.10.4
     container_name: cloudflared
     restart: unless-stopped
     command: tunnel --no-autoupdate run
