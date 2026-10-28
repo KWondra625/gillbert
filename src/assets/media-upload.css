@@ -1,4 +1,4 @@
-* {
+﻿* {
   box-sizing: border-box;
 }
 
@@ -196,6 +196,61 @@ input[type="file"]::file-selector-button {
 
 .log--collapsed {
   display: none;
+}
+
+/* Per-file upload results */
+.file-list {
+  list-style: none;
+  margin: 16px 0 0 0;
+  padding: 0;
+  text-align: left;
+}
+
+.file-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background: #f5f5f5;
+  border-left: 4px solid #ccc;
+  font-size: 13px;
+}
+
+.file-row-name {
+  color: #333;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  flex: 1 1 160px;
+}
+
+.file-row-status {
+  color: #666;
+  white-space: nowrap;
+}
+
+.file-row-error {
+  flex-basis: 100%;
+  color: #b42318;
+  font-size: 12px;
+}
+
+.file-row--uploading,
+.file-row--recording  { border-left-color: #4FACFE; }
+.file-row--complete   { border-left-color: #2e9e5b; }
+.file-row--converting { border-left-color: #e0a100; }
+.file-row--failed     { border-left-color: #d92d20; background: #fff4f3; }
+
+#retryBtn {
+  margin-top: 12px;
+}
+
+#successFiles .file-list {
+  margin: 0 0 16px 0;
 }
 
 .success-back-btn {

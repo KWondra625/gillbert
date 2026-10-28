@@ -1,6 +1,7 @@
-const CATCH_MEDIA_GET_URL = API_BASE + "catch-media/get";
+﻿const CATCH_MEDIA_GET_URL = API_BASE + "catch-media/get";
 const CATCH_VERIFY_URL    = API_BASE + "catch/verify";
 const CATCH_MEDIA_DELETE_URL = API_BASE + "catch-media/delete";
+const CATCH_MEDIA_RETRY_URL  = API_BASE + "catch-media/retry";
 const LOOKUP_URL          = API_BASE + "get-lookup-data";
 
 // Resolved from the Cloudflare identity once lookups load; null if unmatched
@@ -405,7 +406,7 @@ async function handleVerifyToggle(catchData, button) {
     let data;
     try { data = await res.json(); } catch { data = {}; }
 
-    if (!res.ok || data.success === false) {
+    if (!res.ok || !data.success) {
       throw new Error(data.message || 'Unable to update verification status.');
     }
 
@@ -515,7 +516,7 @@ function openDeleteModal() {
   const preview = document.getElementById('deleteMediaPreview');
   const info    = document.getElementById('deleteMediaInfo');
 
-  if (pendingDeleteItem.contentType === 'image/heic') {
+  if (pendingDeleteItem.notViewable || pendingDeleteItem.contentType === 'image/heic') {
     preview.innerHTML = `<div class="dm-preview-placeholder">📷<br>${escapeHtml(pendingDeleteItem.originalFileName || 'HEIC Photo')}</div>`;
   } else if (pendingDeleteItem.mediaType === 'Video') {
     preview.innerHTML = `<video src="${encodeURI(pendingDeleteItem.readUrl)}" preload="metadata" muted playsinline></video>`;
@@ -562,9 +563,10 @@ async function handleMediaDelete() {
       body: JSON.stringify({ mediaId: pendingDeleteItem.id }),
     });
 
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Delete failed: ${res.status} ${text}`);
+    let data;
+    try { data = await res.json(); } catch { data = {}; }
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || `Delete failed (${res.status})`);
     }
 
     // Re-fetch and re-render rather than just removing the tile from the DOM:
@@ -584,8 +586,35 @@ async function handleMediaDelete() {
 
 // ─── Media ───────────────────────────────────────────────────────
 
-async function loadCatchMedia(catchNumber) {
+// While any file is still converting, re-check every 10 s and swap tiles in place as they
+// finish. Stops when nothing is converting, or after 10 minutes (a file that takes longer
+// shows as stuck once 30 minutes pass, with Retry).
+const MEDIA_POLL_MS = 10 * 1000;
+const MEDIA_POLL_LIMIT_MS = 10 * 60 * 1000;
+let mediaPollTimer = null;
+let mediaPollStartedAt = null;
+let lastMediaSignature = null;
+
+function mediaStatus(item) {
+  return item.displayStatus || item.status || 'complete';
+}
+
+function isConverting(item) {
+  const s = mediaStatus(item);
+  return s === 'submitted' || s === 'processing';
+}
+
+function scheduleMediaPoll(catchNumber, items) {
+  clearTimeout(mediaPollTimer);
+  if (!items.some(isConverting)) { mediaPollStartedAt = null; return; }
+  if (mediaPollStartedAt == null) mediaPollStartedAt = Date.now();
+  if (Date.now() - mediaPollStartedAt > MEDIA_POLL_LIMIT_MS) return;
+  mediaPollTimer = setTimeout(() => loadCatchMedia(catchNumber, { quiet: true }), MEDIA_POLL_MS);
+}
+
+async function loadCatchMedia(catchNumber, { quiet = false } = {}) {
   let items = [];
+  let loaded = false;
   try {
     const url = `${CATCH_MEDIA_GET_URL}?catchNumber=${encodeURIComponent(catchNumber)}`;
     const res = await fetch(url, { headers: { "X-API-Key": API_KEY } });
@@ -594,11 +623,20 @@ async function loadCatchMedia(catchNumber) {
     items = Array.isArray(data) ? data
           : Array.isArray(data.media) ? data.media
           : [];
+    loaded = true;
   } catch (err) {
     console.error('Media load error:', err);
-  } finally {
+  }
+
+  // A background re-check only re-renders when something changed, and never while the
+  // lightbox is open (re-rendering rebuilds the sequence it's showing).
+  const signature = JSON.stringify(items.map(m => [m.id, mediaStatus(m)]));
+  const lightboxOpen = el.lightbox.classList.contains('open');
+  if (!quiet || (loaded && signature !== lastMediaSignature && !lightboxOpen)) {
+    lastMediaSignature = signature;
     renderMedia(items);
   }
+  scheduleMediaPoll(catchNumber, loaded ? items : []);
 }
 
 function formatUploadedAt(value) {
@@ -629,6 +667,38 @@ function buildMediaTile(item) {
     ? `<div class="media-tile-caption">${escapeHtml(captionText)}</div>`
     : '';
   const deleteBtn  = buildDeleteBtn(item);
+  const status     = mediaStatus(item);
+
+  // Still converting — becomes the photo/video once ready (the page re-checks)
+  if (status === 'submitted' || status === 'processing') {
+    return `
+      <div class="media-tile media-tile--pending" data-media-id="${item.id || ''}">
+        <div class="media-tile-placeholder">
+          <div class="media-placeholder-icon">⏳</div>
+          <div class="media-placeholder-label">Processing</div>
+          <div class="media-placeholder-sub">${escapeHtml(item.originalFileName || '')}</div>
+        </div>
+        ${caption}${deleteBtn}
+      </div>`;
+  }
+
+  // Conversion failed, or stuck for 30+ minutes — uploader and admin can retry or delete
+  if (status === 'failed' || status === 'stuck') {
+    const actions = canManageFailedMedia(item) ? `
+          <div class="media-tile-actions">
+            <button class="media-tile-action" data-action="retry" data-media-id="${item.id}">🔁 Retry</button>
+            <button class="media-tile-action" data-action="delete" data-media-id="${item.id}">🗑️ Delete</button>
+          </div>` : '';
+    return `
+      <div class="media-tile media-tile--failed" data-media-id="${item.id || ''}">
+        <div class="media-tile-placeholder">
+          <div class="media-placeholder-icon">⚠️</div>
+          <div class="media-placeholder-label">${status === 'stuck' ? 'Taking too long' : "Couldn't convert"}</div>
+          <div class="media-placeholder-sub">${escapeHtml(item.originalFileName || '')}</div>${actions}
+        </div>
+        ${caption}${deleteBtn}
+      </div>`;
+  }
 
   // HEIC — browsers can't render inline; show download placeholder
   if (contentType === 'image/heic') {
@@ -671,6 +741,32 @@ function buildMediaTile(item) {
     </div>`;
 }
 
+function canManageFailedMedia(item) {
+  return isAdminUnlocked() || (myAnglerId != null && item.uploadedByAnglerId === myAnglerId);
+}
+
+async function handleMediaRetry(mediaId, button) {
+  button.disabled = true;
+  button.textContent = '🔁 Retrying…';
+  try {
+    const res = await fetch(CATCH_MEDIA_RETRY_URL, {
+      method: 'POST',
+      headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mediaId }),
+    });
+    let data;
+    try { data = await res.json(); } catch { data = {}; }
+    if (!res.ok || !data.success) throw new Error(data.message || `Retry failed (${res.status})`);
+    mediaPollStartedAt = null; // a fresh 10-minute window for this conversion
+    await loadCatchMedia(getCatchNumberFromUrl());
+  } catch (err) {
+    console.error('Media retry failed:', err);
+    button.disabled = false;
+    button.textContent = '🔁 Retry';
+    setStatus('Retry failed ❌', true);
+  }
+}
+
 function brokenTile() {
   const div = document.createElement('div');
   div.className = 'media-tile media-tile-broken';
@@ -695,7 +791,8 @@ function renderMedia(items) {
   // Matches DOM order below (photos section, then videos section). HEIC
   // items have no inline preview to swipe to, so they're excluded — their
   // tiles keep their own "Open / Download" link and never join the lightbox.
-  lightboxSequence = [...photos, ...videos].filter(m => m.contentType !== 'image/heic');
+  lightboxSequence = [...photos, ...videos]
+    .filter(m => mediaStatus(m) === 'complete' && m.contentType !== 'image/heic');
 
   if (!photos.length && !videos.length) {
     container.innerHTML = `
@@ -741,6 +838,31 @@ function renderMedia(items) {
   // order here matches that array's order, see above).
   container.querySelectorAll('.media-tile--photo, .media-tile--video').forEach((tile, i) => {
     tile.addEventListener('click', () => openLightbox(i));
+  });
+
+  // Retry / Delete on ⚠️ tiles (uploader or admin; the buttons only render for them)
+  const itemsById = Object.fromEntries(items.map(m => [String(m.id), m]));
+  container.querySelectorAll('.media-tile-action').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const item = itemsById[btn.dataset.mediaId];
+      if (!item) return;
+      if (btn.dataset.action === 'retry') {
+        handleMediaRetry(item.id, btn);
+      } else {
+        pendingDeleteItem = {
+          id:               item.id,
+          readUrl:          item.readUrl,
+          mediaType:        item.mediaType,
+          contentType:      item.contentType,
+          originalFileName: item.originalFileName,
+          uploadedAt:       item.uploadedAt,
+          notViewable:      true,
+        };
+        pendingDeleteTile = btn.closest('.media-tile');
+        openDeleteModal();
+      }
+    });
   });
 
   // Wire up admin delete buttons

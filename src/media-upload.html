@@ -40,6 +40,8 @@
           </div>
           <p id="loadingMsg">Casting your media into the cloud…</p>
         </div>
+        <ul id="fileList" class="file-list hidden"></ul>
+        <button id="retryBtn" class="primary-button hidden">🔁 Retry Failed Files</button>
       </div>
     </div>
 
@@ -47,9 +49,11 @@
     <div id="successState" class="success-state hidden">
       <div class="success-icon">🎣</div>
       <h2 class="success-title">Nice catch!</h2>
-      <p class="success-msg">Your media has been dropped in Gillbert's digital live well and linked to the catch.</p>
-      <p class="success-redirect">Heading back to your catch in <span id="countdown">20</span>s…</p>
-      <a id="successBackBtn" href="#" class="primary-button success-back-btn">← Back to Catch Now</a>
+      <p id="successMsg" class="success-msg">Your media has been dropped in Gillbert's digital live well and linked to the catch.</p>
+      <div id="successFiles"></div>
+      <p id="successRedirect" class="success-redirect">Heading back to your catch in <span id="countdown">15</span>s…</p>
+      <a id="successBackBtn" href="#" class="primary-button success-back-btn">← Go to Catch Now</a>
+      <button id="stayHereBtn" type="button" class="back-button">Stay Here</button>
     </div>
 
     <!-- Activity log — persists across states -->
