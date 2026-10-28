@@ -188,3 +188,93 @@ test.describe('upload page results', () => {
     expect(calls.commits.filter(n => n === 'photo.png')).toHaveLength(2);
   });
 });
+
+test.describe('media activity page', () => {
+  test('turns away a visitor who isn\'t admin', async ({ page }) => {
+    await page.goto('media-activity.html');
+    await expect(page.locator('#errorMsg')).toHaveText("You don't have permission to access this page.");
+  });
+
+  test('lists uploads newest first and filters to the ones needing attention', async ({ page }) => {
+    await unlockAdmin(page);
+    const state = { items: [
+      mediaItem(10, { uploadedAt: '2026-10-01T12:00:00Z' }),
+      mediaItem(11, { uploadedAt: '2026-10-03T12:00:00Z', status: 'failed', displayStatus: 'failed', errorMessage: 'magick failed' }),
+      mediaItem(12, { uploadedAt: '2026-10-02T12:00:00Z', status: 'processing', displayStatus: 'stuck' }),
+      mediaItem(13, { uploadedAt: '2026-10-04T12:00:00Z', status: 'submitted', displayStatus: 'submitted' }),
+    ] };
+    await mockMediaList(page, state);
+    await page.goto('media-activity.html');
+
+    const rows = page.locator('#mediaList .media-row');
+    await expect(rows).toHaveCount(4);
+    await expect(rows.nth(0)).toContainText('file-13.jpg');
+    await expect(rows.nth(3)).toContainText('file-10.jpg');
+    await expect(page.locator('#summary')).toContainText('2 need attention');
+
+    await page.locator('.filter-chip[data-filter="attention"]').click();
+    await expect(rows).toHaveCount(2);
+    await expect(rows.nth(0)).toContainText('magick failed');
+    await expect(page.locator('#mediaList .row-action[data-action="retry"]')).toHaveCount(2);
+  });
+
+  test('delete needs a second tap', async ({ page }) => {
+    await unlockAdmin(page);
+    const state = { items: [mediaItem(20, { status: 'failed', displayStatus: 'failed' })] };
+    await mockMediaList(page, state);
+    let deleted = null;
+    await page.route(url => url.pathname.endsWith('/catch-media/delete'), route => {
+      deleted = route.request().postDataJSON();
+      state.items = [];
+      return route.fulfill({ json: { success: true } });
+    });
+    await page.goto('media-activity.html');
+
+    const del = page.locator('.row-action[data-action="delete"]');
+    await del.click();
+    await expect(del).toHaveText('Tap again to delete');
+    expect(deleted).toBeNull();
+    await del.click();
+    await expect(page.locator('#mediaList .media-empty')).toBeVisible();
+    expect(deleted).toEqual({ mediaId: 20 });
+  });
+
+  test('storage check lists files with no record and can attach one to its catch', async ({ page }) => {
+    await unlockAdmin(page);
+    await mockMediaList(page, { items: [mediaItem(30)] });
+    let committed = null;
+    await page.route(url => url.pathname.endsWith('/catch-media/admin'), route => route.fulfill({ json: {
+      success: true, scannedAt: new Date().toISOString(), fileCount: 2, rowCount: 1,
+      orphanFiles: [{ blobPath: 'catches/Catch-26-001/ABCDEFGH12.heic', sizeBytes: 2048, lastModified: 'Tue, 27 Oct 2026 01:00:00 GMT', catchNumber: 'Catch 26-001' }],
+      missingFiles: [] } }));
+    await page.route(url => url.pathname.endsWith('/catch-media/commit'), route => {
+      committed = route.request().postDataJSON();
+      return route.fulfill({ json: { success: true, files: [{ id: 31, status: 'submitted' }] } });
+    });
+    await page.goto('media-activity.html');
+
+    await page.locator('#scanBtn').click();
+    await expect(page.locator('#scanResult')).toContainText('Files with no record (1)');
+    const attach = page.locator('#scanResult .row-action[data-action="attach"]');
+    await attach.click();
+    await attach.click();
+    await expect.poll(() => committed).toEqual({
+      catchNumber: 'Catch 26-001',
+      uploads: [{ blobPath: 'catches/Catch-26-001/ABCDEFGH12.heic', originalName: 'ABCDEFGH12.heic', size: 2048 }],
+      uploadedByAnglerId: null,
+    });
+  });
+});
+
+test.describe('media badges', () => {
+  test('📷 counts viewable media and ⏳ shows while something converts', async ({ page }) => {
+    const [first] = await getCatches();
+    await page.route(url => url.pathname.endsWith('/get-catches'), route => route.fulfill({ json: [
+      { ...first, catchMediaCount: 2, catchMediaProcessingCount: 1 },
+    ] }));
+    await page.goto('catches-listing.html');
+    const badges = page.locator('#catchesContainer .catch-card').first().locator('.catch-badges');
+    await expect(badges).toContainText('📷 2');
+    await expect(badges.locator('.badge-media--converting')).toHaveText('⏳');
+  });
+});

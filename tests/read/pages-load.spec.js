@@ -9,7 +9,7 @@ const PAGES = [
   'fish-of-fame.html', 'anglers-listing.html', 'create-angler.html', 'edit-angler.html',
   'fish-species-listing.html', 'create-fish-species.html', 'edit-fish-species.html',
   'bodies-of-water-listing.html', 'create-body-of-water.html', 'edit-body-of-water.html',
-  'me.html', 'under-the-hood.html', 'whats-new.html', 'features-functionality.html',
+  'me.html', 'under-the-hood.html', 'media-activity.html', 'whats-new.html', 'features-functionality.html',
 ];
 
 for (const path of PAGES) {

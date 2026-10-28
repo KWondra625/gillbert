@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Media Activity · Gillbert</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/top-home-link.css" />
+  <link rel="stylesheet" href="./assets/media-activity.css" />
+</head>
+<body>
+  <!-- Admin-only: linked from the home page's Admin section. -->
+  <div class="container">
+    <div class="top-nav">
+      <a href="./index.html" class="top-home-link top-home-link--on-light" aria-label="Go back to Home">← Home</a>
+    </div>
+
+    <div class="header">
+      <h1>🗂️ Media Activity</h1>
+      <p>Every photo and video upload, newest first, with its status</p>
+    </div>
+
+    <!-- ── Loading state ────────────────────────────────────────────── -->
+    <div id="loadingState">
+      <div class="loading-indicator">
+        <div class="fishing-animation">🎣<span class="bobber">●</span></div>
+        <p>Counting the catch photos…</p>
+      </div>
+    </div>
+
+    <!-- ── Error state ──────────────────────────────────────────────── -->
+    <div id="errorState" class="hidden">
+      <div class="error-card">
+        <p class="error-icon">⚠️</p>
+        <p id="errorMsg">Unable to load media.</p>
+        <button id="retryLoadBtn" class="primary-button">🔄 Try Again</button>
+      </div>
+    </div>
+
+    <!-- ── Uploads ──────────────────────────────────────────────────── -->
+    <div id="listState" class="hidden">
+      <div id="summary" class="summary"></div>
+
+      <div class="filter-chips" role="group" aria-label="Filter uploads">
+        <button class="filter-chip filter-chip--active" data-filter="all">All</button>
+        <button class="filter-chip" data-filter="attention">⚠️ Needs attention</button>
+        <button class="filter-chip" data-filter="converting">⏳ Converting</button>
+      </div>
+
+      <div id="status" class="status" role="status"></div>
+      <ul id="mediaList" class="media-list"></ul>
+      <button id="showMoreBtn" class="secondary-button hidden">Show more</button>
+      <button id="refreshBtn" class="primary-button">🔄 Refresh</button>
+
+      <!-- ── Orphans ────────────────────────────────────────────────── -->
+      <section class="info-card orphans-card">
+        <h2>🧹 Storage Check</h2>
+        <p class="card-intro">Compares the files in storage with the media records. Files with no record can be attached to their catch or deleted. Nothing changes until you press a button on a file.</p>
+        <button id="scanBtn" class="secondary-button">🔍 Scan Storage</button>
+        <div id="scanResult" class="scan-result hidden"></div>
+      </section>
+    </div>
+  </div>
+
+  <script src="./assets/config.js"></script>
+  <script src="./assets/admin.js"></script>
+  <script src="./assets/media-activity.js"></script>
+</body>
+</html>
