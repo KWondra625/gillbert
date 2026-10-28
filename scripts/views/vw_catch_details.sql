@@ -1,4 +1,7 @@
-CREATE OR REPLACE VIEW vw_catch_details AS
+-- Drop + create (not REPLACE): servers have drifted in column order, which REPLACE can't change.
+-- Nothing depends on this view; run inside a transaction so readers never see it missing.
+DROP VIEW IF EXISTS vw_catch_details;
+CREATE VIEW vw_catch_details AS
     SELECT 
         c.id AS id,
         c.catch_number AS catch_number,
