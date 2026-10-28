@@ -75,8 +75,9 @@ function createProfilePhotoWidget({ getAnglerId, elements: el }) {
           originalName: file.name,
         }),
       });
-      if (!commitRes.ok) throw new Error(`HTTP ${commitRes.status}`);
-      const commitData = await commitRes.json();
+      let commitData;
+      try { commitData = await commitRes.json(); } catch { commitData = {}; }
+      if (!commitRes.ok || !commitData.success) throw new Error(commitData.message || `HTTP ${commitRes.status}`);
 
       currentReadUrl = commitData.readUrl || readUrl;
       render(currentReadUrl);
@@ -102,7 +103,9 @@ function createProfilePhotoWidget({ getAnglerId, elements: el }) {
         headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ anglerId: parseInt(getAnglerId(), 10) }),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      let data;
+      try { data = await res.json(); } catch { data = {}; }
+      if (!res.ok || !data.success) throw new Error(data.message || `HTTP ${res.status}`);
       currentReadUrl = null;
       render(null);
       el.status.textContent = 'Photo removed.';
