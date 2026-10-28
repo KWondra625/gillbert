@@ -1,8 +1,8 @@
 // Layer 2, create and clean up (Staging only): uploading every photo and video type the
 // site accepts to a test catch, then checking the result on Staging rather than trusting
-// the upload page. HEIC/HEIF and MOV are converted in the background after the page says
-// "success" (issue #11 is about that success being shown even when conversion fails), so
-// for those the test waits for the converted JPEG/MP4 to actually appear.
+// the upload page. Each file's media record is written as soon as it's uploaded; HEIC/HEIF,
+// MOV and MP4 then go through the background conversion (MP4s only convert when they
+// aren't H.264), so the test waits for each record to reach 'complete'.
 const fs = require('fs');
 const path = require('path');
 const { test, expect, STAGING_STORAGE_HOST } = require('../support/fixtures');
@@ -55,14 +55,17 @@ async function upload(page, files) {
   await expect(page.locator('#successState'), 'the upload page reports success').toBeVisible({ timeout: 60_000 });
 }
 
-// Waits until `count` new media rows exist beyond `before`, and returns them.
-async function waitForNewMedia(before, count, timeout) {
+// Waits until `count` new media rows exist beyond `before` and all of them have finished
+// (complete or failed), and returns them.
+async function waitForNewMedia(before, count, timeout, { finished = ['complete'] } = {}) {
   const known = new Set(before.map(m => m.id));
   let fresh = [];
   await expect.poll(async () => {
     fresh = (await mediaFor(target.catchNumber)).filter(m => !known.has(m.id));
-    return fresh.length;
-  }, { timeout, intervals: [2_000, 5_000] }).toBeGreaterThanOrEqual(count);
+    const failed = fresh.filter(m => m.displayStatus === 'failed' && !finished.includes('failed'));
+    if (failed.length) return `failed: ${failed.map(m => `${m.originalFileName} (${m.errorMessage})`).join(', ')}`;
+    return fresh.length >= count && fresh.every(m => finished.includes(m.displayStatus)) ? 'done' : 'waiting';
+  }, { timeout, intervals: [2_000, 5_000] }).toBe('done');
   return fresh;
 }
 
@@ -97,6 +100,17 @@ test('several mixed files in one upload all arrive', async ({ page }) => {
   expect(fresh.map(m => m.contentType).sort()).toEqual(['image/jpeg', 'image/jpeg', 'video/mp4', 'video/mp4']);
 });
 
+test('each file gets its own result on the upload page', async ({ page }) => {
+  test.setTimeout(CONVERSION_TIMEOUT + 90_000);
+  const before = await mediaFor(target.catchNumber);
+  await upload(page, ['photo.png', 'photo-portrait.heic']);
+  const rows = page.locator('#successFiles .file-row');
+  await expect(rows).toHaveCount(2);
+  await expect(rows.nth(0)).toContainText('✅ Done');
+  await expect(rows.nth(1)).toContainText('⏳ Converting');
+  await waitForNewMedia(before, 2, CONVERSION_TIMEOUT);
+});
+
 test('the catch detail page shows every uploaded file', async ({ page }) => {
   const all = await mediaFor(target.catchNumber);
   await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(target.catchNumber)}`);
@@ -104,32 +118,20 @@ test('the catch detail page shows every uploaded file', async ({ page }) => {
   await expect(page.locator('.media-tile--video')).toHaveCount(all.filter(m => m.mediaType === 'Video').length);
 });
 
-// Known bug #11: for HEIC/MOV the page reports success before conversion has run, so a
-// file that fails to convert still shows "success" and never attaches. test.fail()
-// means this test is expected to fail until that's fixed; once the page reports the
-// failure, it passes, Playwright flags it as "unexpectedly passed", and test.fail()
-// should be removed. The broken file's raw upload may be left in Staging storage; the
-// test notes whether it was.
-test('a HEIC that fails to convert is not reported as a success (#11)', async ({ page }) => {
-  test.fail(true, 'known bug #11: the upload page reports success before conversion finishes');
+// #11: a file that fails to convert is reported honestly. The upload page says it's
+// converting (not done), the record ends as failed with the reason, the original is kept
+// so Retry has something to work from, and the catch page shows a ⚠️ tile.
+test('a HEIC that fails to convert ends as failed, not as a success (#11)', async ({ page }) => {
   test.setTimeout(CONVERSION_TIMEOUT + 90_000);
   const before = await mediaFor(target.catchNumber);
-  const slots = page.waitForResponse(r => r.url().includes('catch-media/get-sas'));
+  await upload(page, ['broken.heic']);
+  await expect(page.locator('#successFiles .file-row').first()).toContainText('⏳ Converting');
 
-  await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(target.catchNumber)}`);
-  await page.locator('#files').setInputFiles(path.join(MEDIA, 'broken.heic'));
-  await page.locator('#uploadBtn').click();
-  const rawUrl = ((await (await slots).json()).uploads || [])[0]?.uploadUrl?.split('?')[0];
+  const [item] = await waitForNewMedia(before, 1, CONVERSION_TIMEOUT, { finished: ['failed'] });
+  expect(item.status).toBe('failed');
+  expect(item.errorMessage, 'the reason is stored').toBeTruthy();
+  expect((await fetch(item.readUrl)).status, 'the original is kept for Retry').toBe(200);
 
-  // What the page claims, then what actually happened.
-  const claimedSuccess = await page.locator('#successState')
-    .waitFor({ state: 'visible', timeout: 60_000 }).then(() => true, () => false);
-  // Give the background conversion time to finish (or fail), then confirm nothing attached.
-  await page.waitForTimeout(45_000);
-  expect((await mediaFor(target.catchNumber)).length, 'nothing should attach from a broken file').toBe(before.length);
-  if (rawUrl) {
-    const leftOver = (await fetch(rawUrl)).status === 200;
-    test.info().annotations.push({ type: 'note', description: `raw upload ${leftOver ? 'left in' : 'not in'} Staging storage: ${rawUrl}` });
-  }
-  expect(claimedSuccess, 'the page should not report success for a file that failed to convert').toBe(false);
+  await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(target.catchNumber)}`);
+  await expect(page.locator(`.media-tile--failed[data-media-id="${item.id}"]`)).toContainText("Couldn't convert");
 });
