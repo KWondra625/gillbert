@@ -53,10 +53,14 @@ function formatDate(dateStr) {
   });
 }
 
-function mediaBadge(count) {
-  return count > 0
+function mediaBadge(count, convertingCount) {
+  const media = count > 0
     ? `<span class="rank-media-badge" title="${count} attachment${count === 1 ? '' : 's'}">📷 ${count}</span>`
     : '';
+  const converting = convertingCount > 0
+    ? `<span class="rank-media-badge" title="${convertingCount} still converting">⏳</span>`
+    : '';
+  return media + converting;
 }
 
 function pendingBadge(verifiedAt) {
@@ -164,7 +168,7 @@ function renderTopCatches(list) {
       <a class="rank-row${rankClass(i)}" href="./catch-details.html?catchNumber=${encodeURIComponent(c.catchNumber)}&from=fish-of-fame">
         <div class="rank-badge">${rankBadge(i)}</div>
         <div class="rank-content">
-          <div class="rank-main">${escapeHtml(String(c.length))}" ${escapeHtml(c.fishSpeciesName || 'Unknown')}${mediaBadge(c.catchMediaCount)}${pendingBadge(c.verifiedAt)}</div>
+          <div class="rank-main">${escapeHtml(String(c.length))}" ${escapeHtml(c.fishSpeciesName || 'Unknown')}${mediaBadge(c.catchMediaCount, c.catchMediaProcessingCount)}${pendingBadge(c.verifiedAt)}</div>
           <div class="rank-meta">${escapeHtml(meta)}</div>
         </div>
         <span class="rank-link">View →</span>
@@ -185,7 +189,7 @@ function renderFishSpeciesRecords(list) {
       <a class="rank-row" href="./catch-details.html?catchNumber=${encodeURIComponent(c.catchNumber)}&from=fish-of-fame">
         <div class="rank-badge">🐟</div>
         <div class="rank-content">
-          <div class="rank-main">${escapeHtml(fishSpecies)}${mediaBadge(c.catchMediaCount)}${pendingBadge(c.verifiedAt)}</div>
+          <div class="rank-main">${escapeHtml(fishSpecies)}${mediaBadge(c.catchMediaCount, c.catchMediaProcessingCount)}${pendingBadge(c.verifiedAt)}</div>
           <div class="rank-meta">${escapeHtml(meta)}</div>
         </div>
         <span class="rank-link">View →</span>

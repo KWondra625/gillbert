@@ -214,6 +214,7 @@ function renderCatchCard(catchData) {
     createdAt = null,
     bodyOfWaterName = null,
     catchMediaCount = 0,
+    catchMediaProcessingCount = 0,
     verifiedAt = null,
   } = catchData;
 
@@ -244,6 +245,7 @@ function renderCatchCard(catchData) {
           <div class="catch-badges">
             ${isRecentlyAdded ? '<span class="badge-new" title="Added within the last 24 hours">🆕</span>' : ''}
             ${catchMediaCount > 0 ? `<span class="badge-media" title="${catchMediaCount} attachment${catchMediaCount === 1 ? '' : 's'}">📷 ${catchMediaCount}</span>` : ''}
+            ${catchMediaProcessingCount > 0 ? `<span class="badge-media badge-media--converting" title="${catchMediaProcessingCount} still converting">⏳</span>` : ''}
           </div>
         </div>
       </div>
