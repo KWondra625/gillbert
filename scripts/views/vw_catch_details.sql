@@ -55,7 +55,8 @@ CREATE OR REPLACE VIEW vw_catch_details AS
         a3.name as updated_by_angler_name,
         c.updated_at AS updated_at,
 
-        (SELECT COUNT(*) FROM catch_media cm WHERE cm.catch_id = c.id) AS catch_media_count,
+        -- Viewable media only; files still converting are counted separately below.
+        (SELECT COUNT(*) FROM catch_media cm WHERE cm.catch_id = c.id AND cm.status = 'complete') AS catch_media_count,
 
         -- Appended after the view's other columns (not grouped with their
         -- related fields above): CREATE OR REPLACE VIEW can only add columns
@@ -64,7 +65,14 @@ CREATE OR REPLACE VIEW vw_catch_details AS
         -- position, so the non-adjacent placement is harmless.
         fs.dnr_url AS fish_species_dnr_url,
         bow.wbic AS body_of_water_wbic,
-        bow.dnr_url_verified AS body_of_water_dnr_url_verified
+        bow.dnr_url_verified AS body_of_water_dnr_url_verified,
+
+        -- Files still converting (drives the ⏳ badge). Excludes stuck ones (no status
+        -- change in 30 minutes), matching vw_catch_media_details.display_status.
+        (SELECT COUNT(*) FROM catch_media cm
+            WHERE cm.catch_id = c.id
+              AND cm.status IN ('submitted', 'processing')
+              AND cm.status_updated_at >= CURRENT_TIMESTAMP - INTERVAL '30 minutes') AS catch_media_processing_count
 
     FROM catches c
         INNER JOIN anglers a ON c.angler_id = a.id

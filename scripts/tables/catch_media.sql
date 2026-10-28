@@ -9,6 +9,10 @@ CREATE TABLE IF NOT EXISTS catch_media (
     file_size_bytes INT NOT NULL,
     uploaded_by_angler_id INT REFERENCES anglers(id),
     uploaded_at TIMESTAMPTZ,
+    status varchar(20) NOT NULL DEFAULT 'complete'
+        CHECK (status IN ('submitted', 'processing', 'complete', 'failed')),
+    error_message text,
+    status_updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
