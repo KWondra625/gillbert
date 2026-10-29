@@ -31,3 +31,25 @@ test('crop and upload a profile photo for the test angler', async ({ page }) => 
   expect(profilePhotoReadUrl, 'stored in the Staging storage account').toContain(STAGING_STORAGE_HOST);
   expect((await fetch(profilePhotoReadUrl)).status).toBe(200);
 });
+
+// A HEIC skips the crop (browsers can't draw it) and is converted to JPEG on the server,
+// through the same Convert Media workflow catch media uses; the save waits for it.
+test('a HEIC profile photo is converted to JPEG', async ({ page }) => {
+  const angler = await testAngler();
+  test.skip(!angler, 'no E2E Test Angler on Staging; run 01-lookups first');
+  const before = angler.profilePhotoReadUrl;
+
+  await unlockAdmin(page);
+  await page.goto(`edit-angler.html?id=${angler.id}`);
+  await expect(page.locator('#anglerForm')).toBeVisible();
+  await page.locator('#profilePhotoInput').setInputFiles(path.join(__dirname, '..', 'media', 'photo.heic'));
+
+  await expect.poll(async () => (await testAngler()).profilePhotoReadUrl, { timeout: 90_000 }).not.toBe(before);
+  const { profilePhotoReadUrl } = await testAngler();
+  expect(profilePhotoReadUrl, 'stored as a JPEG').toMatch(/\.jpg$/);
+  expect(profilePhotoReadUrl, 'stored in the Staging storage account').toContain(STAGING_STORAGE_HOST);
+  const res = await fetch(profilePhotoReadUrl);
+  expect(res.status).toBe(200);
+  expect(res.headers.get('content-type')).toBe('image/jpeg');
+  await expect(page.locator('#profilePhotoImg')).toBeVisible({ timeout: 30_000 });
+});
