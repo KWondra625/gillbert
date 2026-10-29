@@ -42,6 +42,10 @@ subprocess.run([ffmpeg, '-y', '-loglevel', 'error', *source, *encode, '-f', 'mov
 # Like a phone held upright: landscape pixels plus a rotation flag the player must honor.
 subprocess.run([ffmpeg, '-y', '-loglevel', 'error', '-display_rotation', '90', '-i', HERE / 'video.mov',
                 '-c', 'copy', HERE / 'video-portrait.mov'], check=True)
+# Like an Android phone: HEVC in an MP4. The site probes MP4s and converts only non-H.264 ones.
+subprocess.run([ffmpeg, '-y', '-loglevel', 'error', *source, '-c:v', 'libx265', '-tag:v', 'hvc1',
+                '-pix_fmt', 'yuv420p', '-crf', '32', '-c:a', 'aac', '-b:a', '64k', '-shortest',
+                HERE / 'video-hevc.mp4'], check=True)
 
 
 # Not an image at all, just text with a .heic name: conversion must fail on it.
