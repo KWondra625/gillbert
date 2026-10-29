@@ -115,7 +115,11 @@ test('the catch detail page shows every uploaded file', async ({ page }) => {
   const all = await mediaFor(target.catchNumber);
   await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(target.catchNumber)}`);
   await expect(page.locator('.media-tile')).toHaveCount(all.length);
-  await expect(page.locator('.media-tile--video')).toHaveCount(all.filter(m => m.mediaType === 'Video').length);
+  // Only finished videos play; a failed or stuck one shows as a ⚠️ tile instead
+  await expect(page.locator('.media-tile--video'))
+    .toHaveCount(all.filter(m => m.mediaType === 'Video' && m.displayStatus === 'complete').length);
+  await expect(page.locator('.media-tile--failed'))
+    .toHaveCount(all.filter(m => ['failed', 'stuck'].includes(m.displayStatus)).length);
 });
 
 // #11: a file that fails to convert is reported honestly. The upload page says it's
