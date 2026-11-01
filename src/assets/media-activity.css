@@ -220,6 +220,27 @@ body {
   color: #b42318;
 }
 
+.catch-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+}
+
+.catch-filter select {
+  flex: 1;
+  max-width: 260px;
+  padding: 8px 10px;
+  border: 1px solid #d0eaff;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 14px;
+  font-family: inherit;
+}
+
 .filter-chips {
   display: flex;
   flex-wrap: wrap;

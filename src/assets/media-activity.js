@@ -29,10 +29,12 @@ const el = {
   refreshBtn:   document.getElementById('refreshBtn'),
   scanBtn:      document.getElementById('scanBtn'),
   scanResult:   document.getElementById('scanResult'),
+  catchFilter:  document.getElementById('catchFilter'),
 };
 
 let allMedia = [];
 let filter = 'all';
+let catchFilter = ''; // a catch number, or '' for all
 let shown = PAGE_SIZE;
 
 function escapeHtml(s) {
@@ -115,7 +117,8 @@ function renderSummary() {
 
 function renderList() {
   const filtered = allMedia.filter(m =>
-    filter === 'attention' ? needsAttention(m) : filter === 'converting' ? isConverting(m) : true);
+    (!catchFilter || m.catchNumber === catchFilter) &&
+    (filter === 'attention' ? needsAttention(m) : filter === 'converting' ? isConverting(m) : true));
 
   if (!filtered.length) {
     el.mediaList.innerHTML = `<li class="media-empty">${filter === 'all' ? 'No uploads yet.' : 'Nothing here right now.'}</li>`;
@@ -188,6 +191,21 @@ document.querySelectorAll('.filter-chip').forEach(chip => {
     document.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('filter-chip--active', c === chip));
     renderList();
   });
+});
+
+// Catches that have uploads, newest catch number first; keeps the current pick across refreshes
+function renderCatchFilter() {
+  const catches = [...new Set(allMedia.map(m => m.catchNumber).filter(Boolean))]
+    .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+  if (catchFilter && !catches.includes(catchFilter)) catchFilter = '';
+  el.catchFilter.innerHTML = '<option value="">All catches</option>' + catches
+    .map(c => `<option value="${escapeHtml(c)}"${c === catchFilter ? ' selected' : ''}>${escapeHtml(c)}</option>`).join('');
+}
+
+el.catchFilter.addEventListener('change', () => {
+  catchFilter = el.catchFilter.value;
+  shown = PAGE_SIZE;
+  renderList();
 });
 
 el.showMoreBtn.addEventListener('click', () => {
@@ -294,6 +312,7 @@ async function loadMedia({ keepState = false } = {}) {
       .filter(m => m && m.id)
       .sort((a, b) => new Date(b.uploadedAt || 0) - new Date(a.uploadedAt || 0) || b.id - a.id);
     renderSummary();
+    renderCatchFilter();
     renderList();
     showState('listState');
   } catch (err) {
