@@ -28,6 +28,8 @@ const CASES = [
   { file: 'photo-portrait.heic', type: 'image/jpeg',      mediaType: 'Photo', converted: true },
   { file: 'video.mp4',           type: 'video/mp4',       mediaType: 'Video' },
   { file: 'video-hevc.mp4',      type: 'video/mp4',       mediaType: 'Video', converted: true },
+  { file: 'video-hdr.mp4',       type: 'video/mp4',       mediaType: 'Video', converted: true },
+  { file: 'video-4k.mp4',        type: 'video/mp4',       mediaType: 'Video', converted: true },
   { file: 'video.mov',           type: 'video/mp4',       mediaType: 'Video', converted: true },
   { file: 'video-portrait.mov',  type: 'video/mp4',       mediaType: 'Video', converted: true },
   // Real iPhone files, when media/phone/ has them (git-ignored; see .gitignore) and

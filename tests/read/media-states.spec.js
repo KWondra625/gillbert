@@ -169,6 +169,45 @@ test.describe('upload page results', () => {
     await expect(page.locator('#countdown')).toHaveText(shown);
   });
 
+  test('converting rows turn ✅ Done or ⚠️ while the page stays open', async ({ page }) => {
+    await mockUploadFlow(page);
+    // Registered last, so it answers before mockUploadFlow's empty list
+    const state = { items: [] };
+    await page.route(url => url.pathname.endsWith('/catch-media/get'), route => route.fulfill({ json: state.items }));
+    await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    await page.locator('#files').setInputFiles(['photo.heic', 'video.mov'].map(f => path.join(MEDIA, f)));
+    await page.locator('#uploadBtn').click();
+    await expect(page.locator('#successState')).toBeVisible();
+    await page.locator('#stayHereBtn').click();
+
+    // The commit mock numbers records 1, 2 in commit order; mark whichever is the HEIC done
+    // and the other failed.
+    const rows = page.locator('#successFiles .file-row');
+    await expect(rows).toHaveCount(2);
+    state.items = [
+      mediaItem(1, { status: 'complete', displayStatus: 'complete' }),
+      mediaItem(2, { status: 'failed', displayStatus: 'failed' }),
+    ];
+    await expect(page.locator('#successFiles .file-row--complete')).toHaveCount(1, { timeout: 20_000 });
+    await expect(page.locator('#successFiles .file-row--convertFailed')).toHaveCount(1);
+    await expect(page.locator('#successFiles .file-row--convertFailed')).toContainText("Couldn't convert");
+    await expect(page.locator('#successMsg')).toContainText("1 file couldn't be converted");
+  });
+
+  test('Go to Catch Now and Stay Here are full-width with space between them', async ({ page }) => {
+    await mockUploadFlow(page);
+    await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    await page.locator('#files').setInputFiles(path.join(MEDIA, 'photo.jpg'));
+    await page.locator('#uploadBtn').click();
+    await expect(page.locator('#successState')).toBeVisible();
+
+    const go = await page.locator('#successBackBtn').boundingBox();
+    const stay = await page.locator('#stayHereBtn').boundingBox();
+    expect(Math.abs(go.width - stay.width)).toBeLessThan(2);
+    expect(stay.y - (go.y + go.height)).toBeGreaterThanOrEqual(16);
+    await page.locator('#stayHereBtn').click();
+  });
+
   test('a file that fails to record keeps the others, and retry only re-records it', async ({ page }) => {
     const calls = await mockUploadFlow(page, { failFirstCommitFor: 'photo.png' });
     await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
@@ -216,6 +255,30 @@ test.describe('media activity page', () => {
     await expect(rows).toHaveCount(2);
     await expect(rows.nth(0)).toContainText('magick failed');
     await expect(page.locator('#mediaList .row-action[data-action="retry"]')).toHaveCount(2);
+  });
+
+  test('the catch filter narrows the list to one catch', async ({ page }) => {
+    await unlockAdmin(page);
+    const state = { items: [
+      mediaItem(30, { catchNumber: 'Catch 26-009' }),
+      mediaItem(31, { catchNumber: 'Catch 26-010' }),
+      mediaItem(32, { catchNumber: 'Catch 26-010', status: 'failed', displayStatus: 'failed' }),
+    ] };
+    await mockMediaList(page, state);
+    await page.goto('media-activity.html');
+
+    const rows = page.locator('#mediaList .media-row');
+    await expect(rows).toHaveCount(3);
+    // Newest catch number first
+    await expect(page.locator('#catchFilter option')).toHaveText(['All catches', 'Catch 26-010', 'Catch 26-009']);
+    await page.locator('#catchFilter').selectOption('Catch 26-010');
+    await expect(rows).toHaveCount(2);
+    // Combines with the status chips
+    await page.locator('.filter-chip[data-filter="attention"]').click();
+    await expect(rows).toHaveCount(1);
+    await page.locator('#catchFilter').selectOption('');
+    await page.locator('.filter-chip[data-filter="all"]').click();
+    await expect(rows).toHaveCount(3);
   });
 
   test('delete needs a second tap', async ({ page }) => {
