@@ -148,9 +148,11 @@ test.describe('catch detail', () => {
     test.skip(!withMedia, 'no Staging catch has media');
     await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(withMedia.catchNumber)}`);
 
+    // One tile per file, including ⏳ converting and ⚠️ failed ones
+    const all = await getCatchMedia(withMedia.catchNumber);
     const tiles = page.locator('.media-tile');
     await expect(tiles.first()).toBeVisible();
-    await expect(tiles).toHaveCount(Number(withMedia.catchMediaCount));
+    await expect(tiles).toHaveCount(all.length);
 
     const photo = page.locator('.media-tile--photo').first();
     test.skip(await photo.count() === 0, 'that catch only has videos');
@@ -165,7 +167,7 @@ test.describe('catch detail', () => {
     let best = null;
     for (const c of catches.filter(c => Number(c.catchMediaCount) > 0)) {
       for (const m of await getCatchMedia(c.catchNumber)) {
-        if (m.contentType === 'video/mp4' && (!best || m.fileSizeInBytes < best.m.fileSizeInBytes)) best = { c, m };
+        if (m.contentType === 'video/mp4' && m.displayStatus === 'complete' && (!best || m.fileSizeInBytes < best.m.fileSizeInBytes)) best = { c, m };
       }
     }
     test.skip(!best, 'no Staging catch has an MP4 video');
