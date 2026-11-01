@@ -243,7 +243,8 @@ input[type="file"]::file-selector-button {
 .file-row--recording  { border-left-color: #4FACFE; }
 .file-row--complete   { border-left-color: #2e9e5b; }
 .file-row--converting { border-left-color: #e0a100; }
-.file-row--failed     { border-left-color: #d92d20; background: #fff4f3; }
+.file-row--failed,
+.file-row--convertFailed { border-left-color: #d92d20; background: #fff4f3; }
 
 #retryBtn {
   margin-top: 12px;
@@ -253,8 +254,21 @@ input[type="file"]::file-selector-button {
   margin: 0 0 16px 0;
 }
 
-.success-back-btn {
-  margin-bottom: 20px;
+/* "Go to Catch Now" is a link styled as a button: make it a full-width block like
+   "Stay Here", with clear space between the two */
+.success-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.success-actions .primary-button,
+.success-actions .back-button {
+  display: block;
+  box-sizing: border-box;
+  margin: 0;
+  text-align: center;
+  text-decoration: none;
 }
 
 

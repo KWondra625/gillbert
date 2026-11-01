@@ -1,6 +1,7 @@
 ﻿const SAS_WEBHOOK_URL    = N8N_BASE_URL + WEBHOOK_PATH + "gillbert/catch-media/get-sas";
 const COMMIT_WEBHOOK_URL = N8N_BASE_URL + WEBHOOK_PATH + "gillbert/catch-media/commit";
 const LOOKUP_URL         = API_BASE + 'get-lookup-data';
+const CATCH_MEDIA_GET_URL = API_BASE + "catch-media/get";
 
 const REDIRECT_DELAY = 15; // seconds, starting once every file is uploaded and recorded
 const PARALLEL_UPLOADS = 3; // files sent to storage at once
@@ -176,8 +177,9 @@ async function runPool(items, limit, fn) {
 // --- Per-file list ------------------------------------------------------------
 
 // One entry per picked file. stage: 'waiting' → 'uploading' → 'recording' → 'complete' |
-// 'converting' | 'failed'. `uploaded` remembers a file already in storage, so a retry only
-// re-records it instead of uploading it again under a new name.
+// 'converting' | 'failed'; a converting file then ends 'complete' or 'convertFailed'.
+// `uploaded` remembers a file already in storage, so a retry only re-records it instead of
+// uploading it again under a new name. `mediaId` is its record, for watching the conversion.
 let fileJobs = [];
 
 const STAGE_LABELS = {
@@ -187,6 +189,7 @@ const STAGE_LABELS = {
   complete:   '✅ Done',
   converting: '⏳ Converting',
   failed:     '❌ Failed',
+  convertFailed: "⚠️ Couldn't convert",
 };
 
 function renderFileList() {
@@ -209,12 +212,20 @@ function setStage(job, stage, error) {
 
 let countdownTimer = null;
 
-function startSuccessCountdown(catchNumber, convertingCount) {
+function updateSuccessMessage() {
+  const converting = fileJobs.filter(j => j.stage === 'converting').length;
+  const notConverted = fileJobs.filter(j => j.stage === 'convertFailed').length;
+  el.successMsg.textContent = converting
+    ? `Your media is in Gillbert's digital live well. ${converting} file${converting === 1 ? ' is' : 's are'} still converting and will show up on your catch shortly.`
+    : notConverted
+      ? `${notConverted} file${notConverted === 1 ? '' : 's'} couldn't be converted. Open the catch to retry or delete ${notConverted === 1 ? 'it' : 'them'}; the rest are on your catch.`
+      : "Your media has been dropped in Gillbert's digital live well and linked to the catch.";
+}
+
+function startSuccessCountdown(catchNumber) {
   const detailsUrl = `./catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`;
   el.successBackBtn.href = detailsUrl;
-  el.successMsg.textContent = convertingCount
-    ? `Your media is in Gillbert's digital live well. ${convertingCount} file${convertingCount === 1 ? ' is' : 's are'} still converting and will show up on your catch shortly.`
-    : "Your media has been dropped in Gillbert's digital live well and linked to the catch.";
+  updateSuccessMessage();
 
   let remaining = REDIRECT_DELAY;
   el.countdown.textContent = remaining;
@@ -231,6 +242,44 @@ function startSuccessCountdown(catchNumber, convertingCount) {
   }, 1000);
 }
 
+// While the page stays open, re-check converting files every 10 s and flip their rows to
+// ✅ Done (or ⚠️) as they finish, like the catch page does. Gives up after 10 minutes; the
+// catch page and Media Activity have the final word after that.
+const CONVERT_POLL_MS = 10 * 1000;
+const CONVERT_POLL_LIMIT_MS = 10 * 60 * 1000;
+
+function watchConversions(catchNumber) {
+  const startedAt = Date.now();
+  const check = async () => {
+    const pending = fileJobs.filter(j => j.stage === 'converting');
+    if (!pending.length || Date.now() - startedAt > CONVERT_POLL_LIMIT_MS) return;
+    try {
+      const url = `${CATCH_MEDIA_GET_URL}?catchNumber=${encodeURIComponent(catchNumber)}`;
+      const res = await fetch(url, { headers: { 'X-API-Key': API_KEY } });
+      if (!res.ok) throw new Error(`Media GET failed: ${res.status}`);
+      const data = await res.json();
+      const items = Array.isArray(data) ? data : Array.isArray(data.media) ? data.media : [];
+      const byId = new Map(items.map(m => [String(m.id), m]));
+      for (const job of pending) {
+        const item = byId.get(String(job.mediaId));
+        const status = item && (item.displayStatus || item.status);
+        if (status === 'complete') {
+          setStage(job, 'complete');
+          log(`✅ ${job.file.name} is ready.`);
+        } else if (status === 'failed' || status === 'stuck') {
+          setStage(job, 'convertFailed');
+          log(`⚠️ ${job.file.name} couldn't be converted. Retry it from the catch page.`);
+        }
+      }
+      updateSuccessMessage();
+    } catch (err) {
+      console.error('Conversion check failed:', err);
+    }
+    setTimeout(check, CONVERT_POLL_MS);
+  };
+  setTimeout(check, CONVERT_POLL_MS);
+}
+
 el.stayHereBtn.addEventListener('click', () => {
   clearInterval(countdownTimer);
   el.successRedirect.classList.add('hidden');
@@ -240,7 +289,7 @@ el.stayHereBtn.addEventListener('click', () => {
 // --- Upload -------------------------------------------------------------------
 
 // Uploads and records each job that isn't done yet, 3 at a time. Files that need converting
-// (HEIC, MOV, some MP4s) come back as 'converting'; the catch page shows them finishing.
+// (HEIC, MOV, some MP4s) come back as 'converting' and are watched until they finish.
 async function processJobs(catchNumber, jobs) {
   const uploadedByAnglerId = await uploadedByAnglerIdPromise;
 
@@ -262,6 +311,7 @@ async function processJobs(catchNumber, jobs) {
       setStage(job, 'recording');
       const { uploadUrl, ...upload } = job.slot;
       const recorded = await commitUpload(catchNumber, upload, uploadedByAnglerId);
+      job.mediaId = recorded.id;
       setStage(job, recorded.status === 'complete' ? 'complete' : 'converting');
       if (recorded.status !== 'complete') log(`⏳ ${job.file.name} is converting so everyone can see it.`);
     } catch (err) {
@@ -303,7 +353,8 @@ async function runUpload(jobs) {
   el.backToCatch.classList.add('hidden');
   el.successState.classList.remove('hidden');
   el.successFiles.appendChild(el.fileList);
-  startSuccessCountdown(catchNumber, fileJobs.filter(j => j.stage === 'converting').length);
+  startSuccessCountdown(catchNumber);
+  watchConversions(catchNumber);
 }
 
 // --- Buttons ------------------------------------------------------------------
@@ -315,7 +366,7 @@ el.uploadBtn.addEventListener('click', () => {
 
   log(`Catch: ${getCatchNumberFromUrl()}`);
   log(`Files: ${files.length}`);
-  fileJobs = files.map(file => ({ file, stage: 'waiting', uploaded: false, slot: null, error: null }));
+  fileJobs = files.map(file => ({ file, stage: 'waiting', uploaded: false, slot: null, error: null, mediaId: null }));
   el.files.disabled = true;
   renderFileList();
   runUpload(fileJobs);
