@@ -110,40 +110,41 @@ test.describe('catch page media states', () => {
   });
 });
 
+// Fake upload slots, storage and commit. `failFirstCommitFor` names a file whose first
+// commit fails (it then succeeds on retry). Returns what was sent where.
+async function mockUploadFlow(page, { failFirstCommitFor } = {}) {
+  const calls = { slotRequests: [], puts: [], commits: [] };
+  const failed = new Set();
+  await page.route(url => url.pathname.endsWith('/catch-media/get-sas'), route => {
+    const { files } = route.request().postDataJSON();
+    calls.slotRequests.push(files.map(f => f.name));
+    return route.fulfill({ json: { uploads: files.map((f, i) => ({
+      originalName: f.name, size: f.size, contentType: f.type, mediaType: f.type.startsWith('video/') ? 'Video' : 'Photo',
+      blobPath: `catches/x/F${calls.puts.length}${i}.${f.name.split('.').pop()}`,
+      uploadUrl: `${FAKE_STORAGE}/put/${encodeURIComponent(f.name)}?sig=x` })) } });
+  });
+  await page.route(`${FAKE_STORAGE}/put/**`, route => {
+    calls.puts.push(decodeURIComponent(new URL(route.request().url()).pathname.split('/').pop()));
+    return route.fulfill({ status: 201, body: '' });
+  });
+  await page.route(url => url.pathname.endsWith('/catch-media/commit'), route => {
+    const { uploads } = route.request().postDataJSON();
+    const u = uploads[0];
+    calls.commits.push(u.originalName);
+    if (u.originalName === failFirstCommitFor && !failed.has(u.originalName)) {
+      failed.add(u.originalName);
+      return route.fulfill({ status: 200, body: '' }); // n8n's empty answer when a workflow fails
+    }
+    const converting = /\.(heic|mov|mp4)$/i.test(u.originalName);
+    return route.fulfill({ json: { success: true, files: [{ id: calls.commits.length, status: converting ? 'submitted' : 'complete' }] } });
+  });
+  // The catch page we're redirected to isn't under test here.
+  await page.route(url => url.pathname.endsWith('/catch-media/get'), route => route.fulfill({ json: [] }));
+  return calls;
+}
+
 test.describe('upload page results', () => {
   test.use({ allowConsoleErrors: true }); // the failed commit below logs its error
-
-  // Fake upload slots, storage and commit. `failFirstCommitFor` names a file whose first
-  // commit fails (it then succeeds on retry). Returns what was sent where.
-  async function mockUploadFlow(page, { failFirstCommitFor } = {}) {
-    const calls = { puts: [], commits: [] };
-    const failed = new Set();
-    await page.route(url => url.pathname.endsWith('/catch-media/get-sas'), route => {
-      const { files } = route.request().postDataJSON();
-      return route.fulfill({ json: { uploads: files.map((f, i) => ({
-        originalName: f.name, size: f.size, contentType: f.type, mediaType: f.type.startsWith('video/') ? 'Video' : 'Photo',
-        blobPath: `catches/x/F${calls.puts.length}${i}.${f.name.split('.').pop()}`,
-        uploadUrl: `${FAKE_STORAGE}/put/${encodeURIComponent(f.name)}?sig=x` })) } });
-    });
-    await page.route(`${FAKE_STORAGE}/put/**`, route => {
-      calls.puts.push(decodeURIComponent(new URL(route.request().url()).pathname.split('/').pop()));
-      return route.fulfill({ status: 201, body: '' });
-    });
-    await page.route(url => url.pathname.endsWith('/catch-media/commit'), route => {
-      const { uploads } = route.request().postDataJSON();
-      const u = uploads[0];
-      calls.commits.push(u.originalName);
-      if (u.originalName === failFirstCommitFor && !failed.has(u.originalName)) {
-        failed.add(u.originalName);
-        return route.fulfill({ status: 200, body: '' }); // n8n's empty answer when a workflow fails
-      }
-      const converting = /\.(heic|mov|mp4)$/i.test(u.originalName);
-      return route.fulfill({ json: { success: true, files: [{ id: calls.commits.length, status: converting ? 'submitted' : 'complete' }] } });
-    });
-    // The catch page we're redirected to isn't under test here.
-    await page.route(url => url.pathname.endsWith('/catch-media/get'), route => route.fulfill({ json: [] }));
-    return calls;
-  }
 
   test('each file gets its own result, and the page hands off with a 15 s countdown', async ({ page }) => {
     const calls = await mockUploadFlow(page);
@@ -225,6 +226,52 @@ test.describe('upload page results', () => {
     // Uploaded once each; photo.png was recorded twice (the failed try, then the retry).
     expect(calls.puts.sort()).toEqual(['photo.jpg', 'photo.png']);
     expect(calls.commits.filter(n => n === 'photo.png')).toHaveLength(2);
+  });
+});
+
+test.describe('upload page checks before uploading', () => {
+  test('a too-large or unsupported file is refused on its own row; the rest upload', async ({ page }) => {
+    // A real 1 GB+ file is too big to hand the browser, so report one file's size as 1.5 GB
+    await page.addInitScript(() => {
+      const realSize = Object.getOwnPropertyDescriptor(Blob.prototype, 'size').get;
+      Object.defineProperty(File.prototype, 'size', {
+        get() { return this.name === 'huge.mp4' ? 1.5 * 1024 * 1024 * 1024 : realSize.call(this); },
+      });
+    });
+    const calls = await mockUploadFlow(page);
+    await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    const jpg = require('fs').readFileSync(path.join(MEDIA, 'photo.jpg'));
+    await page.locator('#files').setInputFiles([
+      { name: 'photo.jpg', mimeType: 'image/jpeg', buffer: jpg },
+      { name: 'huge.mp4', mimeType: 'video/mp4', buffer: jpg },
+      { name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('hi') },
+    ]);
+    await page.locator('#uploadBtn').click();
+
+    const rows = page.locator('#fileList .file-row');
+    await expect(rows.nth(0)).toContainText('✅ Done');
+    await expect(rows.nth(1)).toContainText("🚫 Can't upload");
+    await expect(rows.nth(1)).toContainText('Too large (1.5 GB); the limit is 1.0 GB per file.');
+    await expect(rows.nth(2)).toContainText("isn't supported");
+    await expect(page.locator('#status')).toContainText("2 of 3 files didn't make it");
+    await expect(page.locator('#retryBtn')).toBeHidden();
+    await expect(page.locator('#successState')).toBeHidden();
+    expect(calls.slotRequests).toEqual([['photo.jpg']]);
+    expect(calls.puts).toEqual(['photo.jpg']);
+  });
+
+  test('more than 10 files ask for upload slots 10 at a time', async ({ page }) => {
+    const calls = await mockUploadFlow(page);
+    await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    const jpg = require('fs').readFileSync(path.join(MEDIA, 'photo.jpg'));
+    await page.locator('#files').setInputFiles(Array.from({ length: 12 }, (_, i) =>
+      ({ name: `p${i + 1}.jpg`, mimeType: 'image/jpeg', buffer: jpg })));
+    await page.locator('#uploadBtn').click();
+
+    await expect(page.locator('#successState')).toBeVisible();
+    expect(calls.slotRequests.map(r => r.length)).toEqual([10, 2]);
+    expect(calls.puts).toHaveLength(12);
+    await page.locator('#stayHereBtn').click();
   });
 });
 

@@ -6,6 +6,27 @@ const CATCH_MEDIA_GET_URL = API_BASE + "catch-media/get";
 const REDIRECT_DELAY = 15; // seconds, starting once every file is uploaded and recorded
 const PARALLEL_UPLOADS = 3; // files sent to storage at once
 
+// Same rules as the upload-slot workflow (POST Generate SAS Token). Checked here first so one
+// file it would refuse doesn't fail the whole batch; keep the two in step.
+const MAX_FILE_BYTES = 1024 * 1024 * 1024; // 1 GB
+const SLOTS_PER_REQUEST = 10; // MAX_FILES there
+const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'mov', 'mp4'];
+
+function formatSize(bytes) {
+  return bytes >= 1024 * 1024 * 1024
+    ? `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
+    : `${Math.round(bytes / (1024 * 1024))} MB`;
+}
+
+// Why a file can't be uploaded at all, or null if it's fine
+function rejectReason(file) {
+  const ext = file.name.includes('.') ? file.name.split('.').pop().toLowerCase() : '';
+  if (!ALLOWED_EXTENSIONS.includes(ext)) return "This file type isn't supported (photos and videos only).";
+  if (file.size <= 0) return 'This file is empty.';
+  if (file.size > MAX_FILE_BYTES) return `Too large (${formatSize(file.size)}); the limit is ${formatSize(MAX_FILE_BYTES)} per file.`;
+  return null;
+}
+
 // Fired immediately so it's resolved (or in flight) by the time the user hits Upload.
 // Multiple files in one upload are always attributed to the same person.
 const uploadedByAnglerIdPromise = (async () => {
@@ -178,6 +199,7 @@ async function runPool(items, limit, fn) {
 
 // One entry per picked file. stage: 'waiting' → 'uploading' → 'recording' → 'complete' |
 // 'converting' | 'failed'; a converting file then ends 'complete' or 'convertFailed'.
+// 'rejected' = refused before upload (too large, wrong type); retrying won't help it.
 // `uploaded` remembers a file already in storage, so a retry only re-records it instead of
 // uploading it again under a new name. `mediaId` is its record, for watching the conversion.
 let fileJobs = [];
@@ -189,6 +211,7 @@ const STAGE_LABELS = {
   complete:   '✅ Done',
   converting: '⏳ Converting',
   failed:     '❌ Failed',
+  rejected:   "🚫 Can't upload",
   convertFailed: "⚠️ Couldn't convert",
 };
 
@@ -197,7 +220,7 @@ function renderFileList() {
     <li class="file-row file-row--${job.stage}">
       <span class="file-row-name">${escapeHtml(job.file.name)}</span>
       <span class="file-row-status">${STAGE_LABELS[job.stage]}</span>
-      ${job.stage === 'failed' && job.error ? `<span class="file-row-error">${escapeHtml(job.error)}</span>` : ''}
+      ${(job.stage === 'failed' || job.stage === 'rejected') && job.error ? `<span class="file-row-error">${escapeHtml(job.error)}</span>` : ''}
     </li>`).join('');
   el.fileList.classList.toggle('hidden', !fileJobs.length);
 }
@@ -295,9 +318,11 @@ async function processJobs(catchNumber, jobs) {
 
   // Upload slots only for files not already in storage from an earlier attempt
   const needSlots = jobs.filter(j => !j.uploaded);
-  if (needSlots.length) {
-    const { uploads } = await getSasUrls(catchNumber, needSlots.map(j => j.file));
-    needSlots.forEach((job, i) => { job.slot = uploads[i]; });
+  // The slot workflow takes at most 10 files per request
+  for (let start = 0; start < needSlots.length; start += SLOTS_PER_REQUEST) {
+    const batch = needSlots.slice(start, start + SLOTS_PER_REQUEST);
+    const { uploads } = await getSasUrls(catchNumber, batch.map(j => j.file));
+    batch.forEach((job, i) => { job.slot = uploads[i]; });
   }
 
   await runPool(jobs, PARALLEL_UPLOADS, async job => {
@@ -339,14 +364,7 @@ async function runUpload(jobs) {
   }
 
   el.loadingIndicator.classList.remove('visible');
-  const failed = fileJobs.filter(j => j.stage === 'failed');
-
-  if (failed.length) {
-    setStatus(`${failed.length} of ${fileJobs.length} file${fileJobs.length === 1 ? '' : 's'} didn't make it ❌ — the rest are saved.`);
-    el.retryBtn.textContent = `🔁 Retry ${failed.length} Failed File${failed.length === 1 ? '' : 's'}`;
-    el.retryBtn.classList.remove('hidden');
-    return;
-  }
+  if (showProblems()) return;
 
   setStatus("");
   el.uploadState.classList.add('hidden');
@@ -355,6 +373,21 @@ async function runUpload(jobs) {
   el.successFiles.appendChild(el.fileList);
   startSuccessCountdown(catchNumber);
   watchConversions(catchNumber);
+}
+
+// Stays on the page if any file didn't make it, offering Retry for the ones a retry can fix.
+// Returns true if it did.
+function showProblems() {
+  const failed = fileJobs.filter(j => j.stage === 'failed');
+  const notSaved = failed.length + fileJobs.filter(j => j.stage === 'rejected').length;
+  if (!notSaved) return false;
+  const saved = fileJobs.length - notSaved;
+  setStatus(`${notSaved} of ${fileJobs.length} file${fileJobs.length === 1 ? '' : 's'} didn't make it ❌${saved ? ' — the rest are saved.' : '.'}`);
+  if (failed.length) {
+    el.retryBtn.textContent = `🔁 Retry ${failed.length} Failed File${failed.length === 1 ? '' : 's'}`;
+    el.retryBtn.classList.remove('hidden');
+  }
+  return true;
 }
 
 // --- Buttons ------------------------------------------------------------------
@@ -368,8 +401,21 @@ el.uploadBtn.addEventListener('click', () => {
   log(`Files: ${files.length}`);
   fileJobs = files.map(file => ({ file, stage: 'waiting', uploaded: false, slot: null, error: null, mediaId: null }));
   el.files.disabled = true;
+  fileJobs.forEach(job => {
+    const reason = rejectReason(job.file);
+    if (reason) {
+      job.stage = 'rejected';
+      job.error = reason;
+      log(`🚫 ${job.file.name}: ${reason}`);
+    }
+  });
   renderFileList();
-  runUpload(fileJobs);
+  const toUpload = fileJobs.filter(j => j.stage === 'waiting');
+  if (toUpload.length) runUpload(toUpload);
+  else {
+    showProblems();
+    el.files.disabled = false; // nothing was sent, so let them pick different files
+  }
 });
 
 el.retryBtn.addEventListener('click', () => {
