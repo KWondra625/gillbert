@@ -592,6 +592,34 @@ test.describe('media activity page', () => {
       uploadedByAnglerId: null,
     });
   });
+
+  test('storage check lists profile photo files too, which can be deleted but not attached', async ({ page }) => {
+    await unlockAdmin(page);
+    await mockMediaList(page, { items: [mediaItem(30)] });
+    let deleted = null;
+    await page.route(url => url.pathname.endsWith('/catch-media/admin'), route => {
+      const body = route.request().postDataJSON();
+      if (body.action === 'delete-orphan') { deleted = body; return route.fulfill({ json: { success: true } }); }
+      return route.fulfill({ json: {
+        success: true, scannedAt: new Date().toISOString(), fileCount: 2, rowCount: 1,
+        orphanFiles: deleted ? [] : [{ container: 'angler-media', blobPath: 'anglers/13/ABCDEFGH12.jpg', sizeBytes: 3974,
+                                       lastModified: 'Mon, 26 Oct 2026 19:02:16 GMT', anglerId: 13 }],
+        missingFiles: [{ container: 'angler-media', anglerId: 7, blobPath: 'anglers/7/ZYXWVUTS98.jpg' }] } });
+    });
+    await page.goto('media-activity.html');
+    await page.locator('#scanBtn').click();
+
+    const row = page.locator('#scanResult .media-row').first();
+    await expect(row).toContainText('Angler #13 profile photo');
+    await expect(row.locator('[data-action="attach"]')).toHaveCount(0);
+    await expect(page.locator('#scanResult')).toContainText("Angler #7's profile photo points at a file that isn't in storage");
+
+    const del = row.locator('[data-action="delete-orphan"]');
+    await del.click();
+    await del.click();
+    await expect.poll(() => deleted).toEqual({ action: 'delete-orphan', container: 'angler-media', blobPath: 'anglers/13/ABCDEFGH12.jpg' });
+    await expect(page.locator('#scanResult')).toContainText('Files with no record (0)');
+  });
 });
 
 test.describe('media badges', () => {

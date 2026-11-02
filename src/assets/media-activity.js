@@ -222,20 +222,29 @@ function renderScan() {
   const orphans = s.orphanFiles || [];
   const missing = s.missingFiles || [];
 
-  const orphanRows = orphans.map((f, i) => `
+  // Catch media can be attached back to its catch; a profile photo file nothing points at
+  // (e.g. from an interrupted save) can only be deleted: re-upload it from the angler page.
+  const orphanRows = orphans.map((f, i) => {
+    const isPhoto = f.container === 'angler-media';
+    const owner = isPhoto ? (f.anglerId ? `Angler #${f.anglerId} profile photo` : 'Profile photo') : f.catchNumber;
+    const attach = isPhoto ? '' : `
+        <button class="row-action" data-orphan="${i}" data-action="attach" data-label="📎 Attach to ${escapeHtml(f.catchNumber || 'catch')}">📎 Attach to ${escapeHtml(f.catchNumber || 'catch')}</button>`;
+    return `
     <li class="media-row media-row--failed">
       <div class="row-file">${escapeHtml(f.blobPath)}</div>
-      <div class="row-meta">${escapeHtml([f.catchNumber, formatDateTime(f.lastModified), formatSize(f.sizeBytes)].filter(Boolean).join(' · '))}</div>
-      <div class="row-actions">
-        <button class="row-action" data-orphan="${i}" data-action="attach" data-label="📎 Attach to ${escapeHtml(f.catchNumber || 'catch')}">📎 Attach to ${escapeHtml(f.catchNumber || 'catch')}</button>
+      <div class="row-meta">${escapeHtml([owner, formatDateTime(f.lastModified), formatSize(f.sizeBytes)].filter(Boolean).join(' · '))}</div>
+      <div class="row-actions">${attach}
         <button class="row-action row-action--danger" data-orphan="${i}" data-action="delete-orphan" data-label="🗑️ Delete file">🗑️ Delete file</button>
       </div>
-    </li>`).join('');
+    </li>`;
+  }).join('');
 
   const missingRows = missing.map(m => `
     <li class="media-row media-row--failed">
       <div class="row-file">${escapeHtml(m.blobPath)}</div>
-      <div class="row-meta">Media record #${escapeHtml(m.id)} points at a file that isn't in storage. Delete it from its catch page.</div>
+      <div class="row-meta">${m.container === 'angler-media'
+        ? `Angler #${escapeHtml(m.anglerId)}'s profile photo points at a file that isn't in storage. Remove or replace it on the angler's page.`
+        : `Media record #${escapeHtml(m.id)} points at a file that isn't in storage. Delete it from its catch page.`}</div>
     </li>`).join('');
 
   el.scanResult.innerHTML = `
@@ -281,7 +290,7 @@ el.scanResult.addEventListener('click', e => {
     })));
   } else {
     armOrRun(button, 'delete', () => runScanAction(button, 'Deleting…',
-      () => postJson(CATCH_MEDIA_ADMIN_URL, { action: 'delete-orphan', blobPath: file.blobPath })));
+      () => postJson(CATCH_MEDIA_ADMIN_URL, { action: 'delete-orphan', container: file.container || 'catch-media', blobPath: file.blobPath })));
   }
 });
 
