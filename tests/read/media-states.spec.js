@@ -709,3 +709,33 @@ test.describe('media badges', () => {
     await expect(badges).toHaveText(['📷 2', '⏳ 3']);
   });
 });
+
+test.describe('profile photo HEIC', () => {
+  test.use({ allowConsoleErrors: true }); // the failed conversion logs its error
+
+  test('a HEIC opens in the crop box once converted, and a failed conversion says so', async ({ page }) => {
+    await unlockAdmin(page);
+    const fs = require('fs');
+    const state = { fail: true };
+    await page.route(url => url.pathname.endsWith('/anglers/get-photo-sas'), route => route.fulfill({ json: {
+      uploadUrl: `${FAKE_STORAGE}/put/photo.heic?sig=x`, readUrl: `${FAKE_STORAGE}/photo.heic`,
+      blobPath: 'anglers/1/ABCDEFGH12.heic', contentType: 'image/heic' } }));
+    await page.route(`${FAKE_STORAGE}/put/**`, route => route.fulfill({ status: 201, body: '' }));
+    await page.route(url => url.pathname.endsWith('/anglers/convert-photo'), route => state.fail
+      ? route.fulfill({ status: 500, json: { success: false, message: 'Photo conversion failed: boom' } })
+      : route.fulfill({ json: { success: true, contentType: 'image/jpeg',
+          data: fs.readFileSync(path.join(MEDIA, 'photo.jpg')).toString('base64') } }));
+    // Read-only: the angler page loads a real angler, but nothing is saved
+    await page.goto('edit-angler.html?id=1');
+    await expect(page.locator('#anglerForm')).toBeVisible();
+
+    await page.locator('#profilePhotoInput').setInputFiles(path.join(MEDIA, 'photo.heic'));
+    await expect(page.locator('#profilePhotoStatus')).toContainText("Couldn't prepare that photo for cropping");
+    await expect(page.locator('#cropModal')).not.toHaveClass(/open/);
+
+    state.fail = false;
+    await page.locator('#profilePhotoInput').setInputFiles(path.join(MEDIA, 'photo.heic'));
+    await expect(page.locator('#cropModal')).toHaveClass(/open/);
+    await page.locator('#cropModalClose').click(); // cancel: nothing is saved
+  });
+});

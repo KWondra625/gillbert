@@ -10,6 +10,22 @@
 const ANGLER_MEDIA_SAS_URL    = API_BASE + 'anglers/get-photo-sas';
 const ANGLER_MEDIA_COMMIT_URL = API_BASE + 'anglers/save-photo';
 const ANGLER_MEDIA_REMOVE_URL = API_BASE + 'anglers/delete-photo';
+const ANGLER_MEDIA_CONVERT_URL = API_BASE + 'anglers/convert-photo';
+
+// Same rules as the profile photo upload-slot workflow (anglers/get-photo-sas); checked here
+// first so a refused file gets a clear reason instead of a generic failure. Keep in step.
+const PROFILE_PHOTO_MAX_BYTES = 25 * 1024 * 1024; // 25 MB
+const PROFILE_PHOTO_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif'];
+
+function profilePhotoRejectReason(file) {
+  const ext = (file.name || '').includes('.') ? file.name.split('.').pop().toLowerCase() : '';
+  if (!PROFILE_PHOTO_EXTENSIONS.includes(ext)) return "That file type isn't supported. Choose a JPG, PNG, WebP, GIF or HEIC photo.";
+  if (file.size <= 0) return 'That file is empty.';
+  if (file.size > PROFILE_PHOTO_MAX_BYTES) {
+    return `That photo is too large (${Math.round(file.size / (1024 * 1024))} MB); the limit is 25 MB.`;
+  }
+  return null;
+}
 
 function createProfilePhotoWidget({ getAnglerId, elements: el }) {
   let currentReadUrl = null;
@@ -35,6 +51,29 @@ function createProfilePhotoWidget({ getAnglerId, elements: el }) {
     render(currentReadUrl);
   }
 
+  // Gets an upload slot for the file and puts it in storage; returns where it went
+  async function uploadToStorage(anglerId, file) {
+    const sasRes = await fetch(ANGLER_MEDIA_SAS_URL, {
+      method: 'POST',
+      headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        anglerId,
+        file: { name: file.name, size: file.size, type: file.type },
+      }),
+    });
+    if (!sasRes.ok) throw new Error(`HTTP ${sasRes.status}`);
+    const { uploadUrl, readUrl, blobPath, contentType } = await sasRes.json();
+    if (!uploadUrl || !blobPath) throw new Error('No upload slot');
+
+    const putRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'x-ms-blob-type': 'BlockBlob', 'Content-Type': contentType || file.type },
+      body: file,
+    });
+    if (!putRes.ok) throw new Error(`Azure PUT failed: ${putRes.status}`);
+    return { readUrl, blobPath, contentType };
+  }
+
   async function uploadProfilePhoto(file) {
     el.status.textContent = 'Uploading…';
     el.uploadBtn.disabled = true;
@@ -47,23 +86,7 @@ function createProfilePhotoWidget({ getAnglerId, elements: el }) {
 
     try {
       const anglerId = parseInt(getAnglerId(), 10);
-      const sasRes = await fetch(ANGLER_MEDIA_SAS_URL, {
-        method: 'POST',
-        headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          anglerId,
-          file: { name: file.name, size: file.size, type: file.type },
-        }),
-      });
-      if (!sasRes.ok) throw new Error(`HTTP ${sasRes.status}`);
-      const { uploadUrl, readUrl, blobPath, contentType } = await sasRes.json();
-
-      const putRes = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: { 'x-ms-blob-type': 'BlockBlob', 'Content-Type': contentType || file.type },
-        body: file,
-      });
-      if (!putRes.ok) throw new Error(`Azure PUT failed: ${putRes.status}`);
+      const { readUrl, blobPath, contentType } = await uploadToStorage(anglerId, file);
 
       const commitRes = await fetch(ANGLER_MEDIA_COMMIT_URL, {
         method: 'POST',
@@ -119,9 +142,10 @@ function createProfilePhotoWidget({ getAnglerId, elements: el }) {
 
   // ── Crop modal ────────────────────────────────────────────────────────
   // Browsers generally can't decode HEIC into an <img>/canvas at all (the
-  // same reason the server-side conversion step exists), so cropping only
-  // applies to formats the browser can actually render — HEIC skips straight
-  // to the upload-as-is flow and lets the server-side conversion handle it.
+  // same reason the server-side conversion step exists), so a HEIC goes to the
+  // server first: it's converted to JPEG (through the same Convert Media step as
+  // everything else), sent back, and opened in the crop box like any JPEG. The
+  // HEIC and the converted copy aren't kept; the crop is what gets saved.
   //
   // file.type alone isn't reliable for this — browsers are known to report
   // HEIC/HEIF as an empty string or 'image/heif' depending on OS/browser, the
@@ -133,6 +157,34 @@ function createProfilePhotoWidget({ getAnglerId, elements: el }) {
       return ext === 'heic' || ext === 'heif';
     }
     return false;
+  }
+
+  async function convertHeicForCrop(file) {
+    el.status.textContent = 'Converting your photo so you can crop it…';
+    el.uploadBtn.disabled = true;
+    try {
+      const anglerId = parseInt(getAnglerId(), 10);
+      const { blobPath } = await uploadToStorage(anglerId, file);
+      const res = await fetch(ANGLER_MEDIA_CONVERT_URL, {
+        method: 'POST',
+        headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ anglerId, blobPath }),
+      });
+      let data;
+      try { data = await res.json(); } catch { data = {}; }
+      if (!res.ok || !data.success || !data.data) throw new Error(data.message || `HTTP ${res.status}`);
+
+      const bytes = Uint8Array.from(atob(data.data), c => c.charCodeAt(0));
+      const jpegName = (file.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg';
+      el.status.textContent = '';
+      openCropModal(new File([bytes], jpegName, { type: 'image/jpeg' }));
+    } catch (err) {
+      console.error('HEIC conversion for crop failed:', err);
+      el.status.textContent = "Couldn't prepare that photo for cropping. Please try again.";
+      el.input.value = '';
+    } finally {
+      el.uploadBtn.disabled = false;
+    }
   }
 
   function openCropModal(file) {
@@ -182,8 +234,14 @@ function createProfilePhotoWidget({ getAnglerId, elements: el }) {
   el.input.addEventListener('change', () => {
     const file = el.input.files && el.input.files[0];
     if (!file) return;
+    const reason = profilePhotoRejectReason(file);
+    if (reason) {
+      el.status.textContent = reason;
+      el.input.value = '';
+      return;
+    }
     if (isHeic(file)) {
-      uploadProfilePhoto(file);
+      convertHeicForCrop(file);
     } else {
       openCropModal(file);
     }
