@@ -7,6 +7,8 @@ const { apiGet } = require('../support/staging-api');
 const { requireStagingWrites, NAME_PREFIX } = require('../support/test-data');
 
 requireStagingWrites();
+// Both tests change the same test angler's photo, so they must not overlap
+test.describe.configure({ mode: 'serial' });
 
 async function testAngler() {
   const data = await apiGet('anglers/get');

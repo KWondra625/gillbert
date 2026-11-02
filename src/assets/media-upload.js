@@ -338,15 +338,19 @@ function startSuccessCountdown(catchNumber) {
 
 // While the page stays open, re-check converting files every 10 s and flip their rows to
 // ✅ Done (or ⚠️) as they finish, like the catch page does. Gives up after 10 minutes; the
-// catch page and Media Activity have the final word after that.
+// catch page and Media Activity have the final word after that. One loop at a time: a
+// retry that adds converting files joins the loop already running.
 const CONVERT_POLL_MS = 10 * 1000;
 const CONVERT_POLL_LIMIT_MS = 10 * 60 * 1000;
+let watchingConversions = false;
 
 function watchConversions(catchNumber) {
+  if (watchingConversions || !fileJobs.some(j => j.stage === 'converting')) return;
+  watchingConversions = true;
   const startedAt = Date.now();
   const check = async () => {
     const pending = fileJobs.filter(j => j.stage === 'converting');
-    if (!pending.length || Date.now() - startedAt > CONVERT_POLL_LIMIT_MS) return;
+    if (!pending.length || Date.now() - startedAt > CONVERT_POLL_LIMIT_MS) { watchingConversions = false; return; }
     try {
       const url = `${CATCH_MEDIA_GET_URL}?catchNumber=${encodeURIComponent(catchNumber)}`;
       const res = await fetch(url, { headers: { 'X-API-Key': API_KEY } });
@@ -440,6 +444,8 @@ async function runUpload(jobs) {
   uploadsRunning = false;
   if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
   el.loadingIndicator.classList.remove('visible');
+  // Files that were recorded are watched even if others in the batch didn't make it
+  watchConversions(catchNumber);
   if (showProblems()) return;
 
   setStatus("");
@@ -448,7 +454,6 @@ async function runUpload(jobs) {
   el.successState.classList.remove('hidden');
   el.successFiles.appendChild(el.fileList);
   startSuccessCountdown(catchNumber);
-  watchConversions(catchNumber);
 }
 
 // Stays on the page if any file didn't make it, offering Retry for the ones a retry can fix.

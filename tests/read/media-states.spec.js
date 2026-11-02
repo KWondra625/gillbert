@@ -60,6 +60,43 @@ test.describe('catch page media states', () => {
     expect(state.requests).toBe(1);
   });
 
+  test('a file that finishes while the lightbox is open shows once it closes', async ({ page }) => {
+    const state = { items: [mediaItem(1), mediaItem(2, { status: 'processing', displayStatus: 'processing' })] };
+    await mockMediaList(page, state);
+    await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    await page.locator('.media-tile--photo').first().click();
+    await expect(page.locator('#lightbox')).toHaveClass(/open/);
+
+    state.items = [mediaItem(1), mediaItem(2)];
+    await expect.poll(() => state.requests, { timeout: 20_000 }).toBeGreaterThan(1);
+    await expect(page.locator('.media-tile--pending')).toHaveCount(1); // held back while open
+    await page.locator('#lightboxClose').click();
+    await expect(page.locator('.media-tile--pending')).toHaveCount(0);
+    await expect(page.locator('.media-tile--photo')).toHaveCount(2);
+  });
+
+  test.describe('when a background check fails', () => {
+    test.use({ allowConsoleErrors: true }); // the page logs the failed check
+
+    test('it keeps checking, and the tile still updates', async ({ page }) => {
+      const state = { items: [mediaItem(1, { status: 'submitted', displayStatus: 'submitted' })], fail: 0 };
+      await page.route(url => url.pathname.endsWith('/catch-media/get'), route => {
+        state.requests = (state.requests || 0) + 1;
+        if (state.fail > 0) { state.fail--; return route.fulfill({ status: 500, body: '' }); }
+        return route.fulfill({ json: state.items });
+      });
+      await page.route(`${FAKE_STORAGE}/**`, route => route.fulfill({
+        contentType: 'image/gif', body: Buffer.from('R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==', 'base64') }));
+      await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+      await expect(page.locator('.media-tile--pending')).toHaveCount(1);
+
+      state.fail = 1; // the next check fails; the one after finds it finished
+      state.items = [mediaItem(1)];
+      await expect(page.locator('.media-tile--pending')).toHaveCount(0, { timeout: 35_000 });
+      await expect(page.locator('.media-tile--photo')).toHaveCount(1);
+    });
+  });
+
   test('a failed or stuck file shows ⚠️ without buttons for other anglers', async ({ page }) => {
     const state = { items: [
       mediaItem(3, { status: 'failed', displayStatus: 'failed', errorMessage: 'boom' }),
@@ -207,6 +244,25 @@ test.describe('upload page results', () => {
     expect(Math.abs(go.width - stay.width)).toBeLessThan(2);
     expect(stay.y - (go.y + go.height)).toBeGreaterThanOrEqual(16);
     await page.locator('#stayHereBtn').click();
+  });
+
+  test('when one file is refused, the others still flip from ⏳ to ✅', async ({ page }) => {
+    await mockUploadFlow(page);
+    const state = { items: [] };
+    await page.route(url => url.pathname.endsWith('/catch-media/get'), route => route.fulfill({ json: state.items }));
+    await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    const fs = require('fs');
+    await page.locator('#files').setInputFiles([
+      { name: 'photo.heic', mimeType: 'image/heic', buffer: fs.readFileSync(path.join(MEDIA, 'photo.heic')) },
+      { name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('hi') },
+    ]);
+    await page.locator('#uploadBtn').click();
+
+    const rows = page.locator('#fileList .file-row');
+    await expect(rows.nth(0)).toContainText('⏳ Converting');
+    await expect(rows.nth(1)).toContainText("🚫 Can't upload");
+    state.items = [mediaItem(1)]; // the commit mock recorded the HEIC as id 1
+    await expect(rows.nth(0)).toContainText('✅ Done', { timeout: 20_000 });
   });
 
   test('the upload log stays collapsed until opened', async ({ page }) => {

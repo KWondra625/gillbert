@@ -594,6 +594,8 @@ const MEDIA_POLL_LIMIT_MS = 10 * 60 * 1000;
 let mediaPollTimer = null;
 let mediaPollStartedAt = null;
 let lastMediaSignature = null;
+let lastMediaItems = [];     // the last list the server returned, for polling through a failed check
+let deferredMediaItems = null; // a changed list held back while the lightbox was open
 
 function mediaStatus(item) {
   return item.displayStatus || item.status || 'complete';
@@ -632,11 +634,17 @@ async function loadCatchMedia(catchNumber, { quiet = false } = {}) {
   // lightbox is open (re-rendering rebuilds the sequence it's showing).
   const signature = JSON.stringify(items.map(m => [m.id, mediaStatus(m)]));
   const lightboxOpen = el.lightbox.classList.contains('open');
+  if (loaded) lastMediaItems = items;
   if (!quiet || (loaded && signature !== lastMediaSignature && !lightboxOpen)) {
     lastMediaSignature = signature;
+    deferredMediaItems = null;
     renderMedia(items);
+  } else if (loaded && signature !== lastMediaSignature) {
+    deferredMediaItems = items; // shown when the lightbox closes
   }
-  scheduleMediaPoll(catchNumber, loaded ? items : []);
+  // A failed background check keeps going on the last known list (within the same
+  // 10-minute window) rather than stopping as if nothing were converting.
+  scheduleMediaPoll(catchNumber, loaded ? items : quiet ? lastMediaItems : []);
 }
 
 function formatUploadedAt(value) {
@@ -939,4 +947,10 @@ function closeLightbox() {
   el.lightboxVideo.load();
   document.body.style.overflow = '';
   lightboxIndex = -1;
+  if (deferredMediaItems) {
+    const items = deferredMediaItems;
+    deferredMediaItems = null;
+    lastMediaSignature = JSON.stringify(items.map(m => [m.id, mediaStatus(m)]));
+    renderMedia(items);
+  }
 }
