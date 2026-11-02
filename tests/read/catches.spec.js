@@ -132,6 +132,29 @@ test.describe('catches listing', () => {
   });
 });
 
+test.describe('catch card dates', () => {
+  // Built in the browser's own time zone, so "Today"/"Yesterday" and the time match what it shows
+  test('are compact: short month, year only for older catches', async ({ page }) => {
+    const dates = await page.evaluate(() => {
+      const at = (daysAgo, h, m) => { const d = new Date(Date.now() - daysAgo * 86400000); d.setHours(h, m, 0, 0); return d.toISOString(); };
+      return { recent: at(40, 12, 27), old: at(400, 13, 15), recentNoTime: at(20, 0, 0), oldNoTime: at(500, 0, 0) };
+    });
+    const [first] = catches;
+    const order = ['recent', 'old', 'recentNoTime', 'oldNoTime'];
+    await page.route(url => url.pathname.endsWith('/get-catches'), route => route.fulfill({ json:
+      order.map((k, i) => ({ ...first, catchNumber: `Catch 99-00${i}`, caughtWhen: dates[k] })) }));
+    await page.goto('catches-listing.html');
+
+    const when = page.locator('#catchesContainer .catch-card .catch-field:has(.field-label:text("When")) .field-value');
+    await expect(when).toHaveCount(4);
+    const texts = Object.fromEntries(await Promise.all(order.map(async (k, i) => [k, (await when.nth(i).textContent()).trim()])));
+    expect(texts.recent).toMatch(/^[A-Z][a-z]{2} \d{1,2} at 12:27 PM$/);         // e.g. "Sep 23 at 12:27 PM"
+    expect(texts.old).toMatch(/^[A-Z][a-z]{2} \d{1,2}, \d{4} at 1:15 PM$/);      // e.g. "Sep 28, 2025 at 1:15 PM"
+    expect(texts.recentNoTime).toMatch(/^[A-Z][a-z]{2} \d{1,2}$/);                // no year, no made-up time
+    expect(texts.oldNoTime).toMatch(/^[A-Z][a-z]{2} \d{1,2}, \d{4}$/);
+  });
+});
+
 test.describe('catch detail', () => {
   test('shows the catch\'s angler, species and water', async ({ page }) => {
     const c = catches[0];

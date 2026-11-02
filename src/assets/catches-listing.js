@@ -227,15 +227,15 @@ function renderCatchCard(catchData) {
   // and absolute-with-time treatments and just show the date.
   const caughtWhenHasTime = caughtWhen && hasExplicitTime(new Date(caughtWhen));
 
+  // Compact so it fits on one line: "Oct 24 at 12:27 PM", with the year only for older
+  // catches ("Jun 24, 2025 at 1:15 PM"); see formatShortDate in date-format.js.
   const caughtWhenDisplay = caughtWhen
     ? !caughtWhenHasTime
-      ? formatDateLabel(new Date(caughtWhen))
+      ? formatShortDateLabel(new Date(caughtWhen))
       : isRecentCatch
         ? getRelativeTime(caughtWhen)
-        : new Date(caughtWhen).toLocaleString('en-US', {
-            month: 'long', day: 'numeric', year: 'numeric',
-            hour: 'numeric', minute: '2-digit', hour12: true,
-          })
+        : `${formatShortDateLabel(new Date(caughtWhen))} at ${new Date(caughtWhen).toLocaleTimeString('en-US', {
+            hour: 'numeric', minute: '2-digit', hour12: true })}`
     : 'Unknown';
 
   return `
