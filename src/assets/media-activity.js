@@ -310,12 +310,18 @@ async function runScanAction(button, busyLabel, action) {
 
 // ── Load ───────────────────────────────────────────────────────────────
 
+// Numbers each load: a slower, older one (e.g. a Refresh that answers after a delete's reload)
+// must not overwrite the newer list and bring back a deleted row.
+let latestLoad = 0;
+
 async function loadMedia({ keepState = false } = {}) {
+  const loadId = ++latestLoad;
   if (!keepState) showState('loadingState');
   try {
     const res = await fetch(CATCH_MEDIA_GET_URL, { headers: { 'X-API-Key': API_KEY } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
+    if (loadId !== latestLoad) return;
     // Like the other GETs, "no media" comes back as one all-null row
     allMedia = (Array.isArray(data) ? data : data.media || [])
       .filter(m => m && m.id)
@@ -325,6 +331,7 @@ async function loadMedia({ keepState = false } = {}) {
     renderList();
     showState('listState');
   } catch (err) {
+    if (loadId !== latestLoad) return;
     console.error(err);
     if (keepState) {
       setStatus('Could not refresh the list ❌', true);

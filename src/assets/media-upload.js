@@ -229,8 +229,13 @@ let uploadsRunning = false;
 
 async function keepScreenOn() {
   try {
-    if ('wakeLock' in navigator && !document.hidden) wakeLock = await navigator.wakeLock.request('screen');
-  } catch { wakeLock = null; } // not allowed (e.g. battery saver): uploads still resume
+    if (!('wakeLock' in navigator) || document.hidden) return;
+    const lock = await navigator.wakeLock.request('screen');
+    // The upload may have ended (e.g. the slot request failed fast) while this was pending
+    if (!uploadsRunning) { lock.release().catch(() => {}); return; }
+    if (wakeLock) wakeLock.release().catch(() => {});
+    wakeLock = lock;
+  } catch { /* not allowed (e.g. battery saver): uploads still resume */ }
 }
 
 document.addEventListener('visibilitychange', () => {

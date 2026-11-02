@@ -10,8 +10,8 @@ const STAGING_STORAGE_HOST = process.env.STAGING_STORAGE_ACCOUNT
 
 // Endpoints that change data. Tests under read/ may not call them at all.
 // (Ask Gillbert is a POST but only reads; Catch Chat's catch-conversation can save a
-// catch, so it's here. Media retry and media admin change data too.)
-const WRITE_ENDPOINT = /\/gillbert\/(.*\/)?(commit|save|delete|verify|get-sas|save-photo|delete-photo|get-photo-sas|catch-conversation|retry|admin)$/;
+// catch, so it's here. Media retry, media admin and convert-photo change data too.)
+const WRITE_ENDPOINT = /\/gillbert\/(.*\/)?(commit|save|delete|verify|get-sas|save-photo|delete-photo|get-photo-sas|catch-conversation|retry|admin|convert-photo)$/;
 
 const test = base.test.extend({
   // Cloudflare Access identity to pretend to be. null = no Cloudflare session,

@@ -612,6 +612,8 @@ let mediaPollTimer = null;
 let mediaPollStartedAt = null;
 let lastMediaSignature = null;
 let latestMediaRequest = 0;  // numbers each load; an older one that answers late is ignored
+let mediaLoadedOnce = false;  // after the first good load, a failed refresh keeps what's shown
+let mediaRefreshWarned = false;
 let lastMediaItems = [];     // the last list the server returned, for polling through a failed check
 let deferredMediaItems = null; // a changed list held back while the lightbox was open
 
@@ -651,6 +653,22 @@ async function loadCatchMedia(catchNumber, { quiet = false } = {}) {
   // A newer load (e.g. after Retry) started meanwhile: it renders and schedules the next check
   if (requestId !== latestMediaRequest) return;
 
+  // A refresh failed after the media had loaded (a background check, or the reload after Retry
+  // or Delete): keep what's on screen and keep checking on the last known list, rather than
+  // showing an empty gallery and stopping.
+  if (!loaded && mediaLoadedOnce) {
+    if (!quiet) {
+      mediaRefreshWarned = true;
+      setStatus("Couldn't refresh the media just now; still checking.", true);
+    }
+    scheduleMediaPoll(catchNumber, lastMediaItems);
+    return;
+  }
+  if (loaded) {
+    mediaLoadedOnce = true;
+    if (mediaRefreshWarned) { mediaRefreshWarned = false; setStatus(''); }
+  }
+
   // A background re-check only re-renders when something changed, and never while the
   // lightbox is open (re-rendering rebuilds the sequence it's showing).
   const signature = JSON.stringify(items.map(m => [m.id, mediaStatus(m)]));
@@ -663,9 +681,7 @@ async function loadCatchMedia(catchNumber, { quiet = false } = {}) {
   } else if (loaded && signature !== lastMediaSignature) {
     deferredMediaItems = items; // shown when the lightbox closes
   }
-  // A failed background check keeps going on the last known list (within the same
-  // 10-minute window) rather than stopping as if nothing were converting.
-  scheduleMediaPoll(catchNumber, loaded ? items : quiet ? lastMediaItems : []);
+  scheduleMediaPoll(catchNumber, loaded ? items : []);
 }
 
 function formatUploadedAt(value) {
@@ -785,6 +801,11 @@ async function handleMediaRetry(mediaId, button) {
     try { data = await res.json(); } catch { data = {}; }
     if (!res.ok || !data.success) throw new Error(data.message || `Retry failed (${res.status})`);
     mediaPollStartedAt = null; // a fresh 10-minute window for this conversion
+    // Show it as converting straight away, so it stays that way even if the refresh below fails
+    lastMediaItems = lastMediaItems.map(m => String(m.id) === String(mediaId)
+      ? { ...m, status: 'submitted', displayStatus: 'submitted', errorMessage: null } : m);
+    lastMediaSignature = JSON.stringify(lastMediaItems.map(m => [m.id, mediaStatus(m)]));
+    renderMedia(lastMediaItems);
     await loadCatchMedia(getCatchNumberFromUrl());
   } catch (err) {
     console.error('Media retry failed:', err);

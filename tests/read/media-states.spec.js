@@ -141,6 +141,35 @@ test.describe('catch page media states', () => {
     await expect.poll(() => state.requests, { timeout: 20_000 }).toBeGreaterThan(before);
   });
 
+  test.describe('when the refresh after Retry fails', () => {
+    test.use({ allowConsoleErrors: true }); // the failed refresh logs its error
+
+    test('the tile stays ⏳ (not an empty gallery) and checking carries on', async ({ page }) => {
+      await unlockAdmin(page);
+      const state = { items: [mediaItem(1), mediaItem(2, { status: 'failed', displayStatus: 'failed' })], fail: 0 };
+      await page.route(url => url.pathname.endsWith('/catch-media/get'), route => {
+        if (state.fail > 0) { state.fail--; return route.fulfill({ status: 500, body: '' }); }
+        return route.fulfill({ json: state.items });
+      });
+      await page.route(`${FAKE_STORAGE}/**`, route => route.fulfill({ contentType: 'image/gif', body: Buffer.from('R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==', 'base64') }));
+      await page.route(url => url.pathname.endsWith('/catch-media/retry'), route => {
+        state.fail = 1; // the refresh right after Retry fails
+        state.items = [mediaItem(1), mediaItem(2)]; // ...and the conversion then finishes
+        return route.fulfill({ json: { success: true, mediaId: 2, status: 'submitted' } });
+      });
+      await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+      await expect(page.locator('.media-tile--failed')).toHaveCount(1);
+
+      await page.locator('.media-tile-action[data-action="retry"]').click();
+      await expect(page.locator('.media-tile--pending')).toHaveCount(1);
+      await expect(page.locator('.media-tile--photo')).toHaveCount(1); // the other file is still shown
+      await expect(page.locator('#status')).toContainText("Couldn't refresh the media");
+      // The next check (10 s) finds it finished
+      await expect(page.locator('.media-tile--photo')).toHaveCount(2, { timeout: 20_000 });
+      await expect(page.locator('#status')).not.toContainText("Couldn't refresh");
+    });
+  });
+
   test.describe('when a background check fails', () => {
     test.use({ allowConsoleErrors: true }); // the page logs the failed check
 
@@ -396,6 +425,24 @@ test.describe('upload page results', () => {
     expect(dialogs, 'no second prompt').toEqual(['beforeunload']);
   });
 
+  test('a screen-on lock that arrives after the upload ended is released', async ({ page }) => {
+    // A fake wake lock whose request resolves only when the test says so
+    await page.addInitScript(() => {
+      window.__lock = { released: false, resolve: null };
+      Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: {
+        request: () => new Promise(r => { window.__lock.resolve = () => r({ release: async () => { window.__lock.released = true; } }); }),
+      } });
+    });
+    await page.route(url => url.pathname.endsWith('/catch-media/get-sas'), route => route.fulfill({ status: 500, body: '' }));
+    await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    await page.locator('#files').setInputFiles(path.join(MEDIA, 'photo.jpg'));
+    await page.locator('#uploadBtn').click();
+    await expect(page.locator('#fileList .file-row').first()).toContainText('❌ Failed'); // the upload has ended
+
+    await page.evaluate(() => window.__lock.resolve()); // the lock finally arrives
+    await expect.poll(() => page.evaluate(() => window.__lock.released)).toBe(true);
+  });
+
   test('the upload log stays collapsed until opened', async ({ page }) => {
     await mockUploadFlow(page);
     await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
@@ -570,6 +617,35 @@ test.describe('media activity page', () => {
     await page.locator('#catchFilter').selectOption('');
     await page.locator('.filter-chip[data-filter="all"]').click();
     await expect(rows).toHaveCount(3);
+  });
+
+  test('a slow, older refresh does not bring back a deleted row', async ({ page }) => {
+    await unlockAdmin(page);
+    const state = { items: [mediaItem(40, { status: 'failed', displayStatus: 'failed' }), mediaItem(41)], hold: false };
+    let held = null;
+    await page.route(url => url.pathname.endsWith('/catch-media/get'), route => {
+      if (state.hold) { state.hold = false; held = { route, items: state.items }; return; }
+      return route.fulfill({ json: state.items });
+    });
+    await page.route(url => url.pathname.endsWith('/catch-media/delete'), route => {
+      state.items = [mediaItem(41)];
+      return route.fulfill({ json: { success: true } });
+    });
+    await page.goto('media-activity.html');
+    const rows = page.locator('#mediaList .media-row');
+    await expect(rows).toHaveCount(2);
+
+    state.hold = true; // the Refresh below answers late, with the old list
+    await page.locator('#refreshBtn').click();
+    await expect.poll(() => held).not.toBeNull();
+    const del = page.locator('.row-action[data-action="delete"][data-id="40"]');
+    await del.click();
+    await del.click();
+    await expect(rows).toHaveCount(1);
+
+    await held.route.fulfill({ json: held.items }); // the old answer arrives after the delete
+    await page.waitForTimeout(500);
+    await expect(rows, 'the deleted row stays gone').toHaveCount(1);
   });
 
   test('delete needs a second tap', async ({ page }) => {
