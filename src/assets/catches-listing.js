@@ -41,6 +41,8 @@ let activeFilters = { angler: '', species: '', water: '', waterId: null, group: 
 // anglerId -> groups[] — built once lookups.anglers loads, so the Group
 // filter can check a catch's angler without re-deriving this per catch.
 let groupsByAnglerId = {};
+// anglerId -> profile photo URL, from the same lookups; shown in each card's header (#27)
+let photoByAnglerId = {};
 
 // Guards against loadLookups() rendering an empty-state flash if it resolves
 // before loadCatches() has populated allCatches for the first time.
@@ -217,7 +219,9 @@ function renderCatchCard(catchData) {
     catchMediaCount = 0,
     catchMediaProcessingCount = 0,
     verifiedAt = null,
+    anglerId = null,
   } = catchData;
+  const anglerPhotoUrl = anglerId != null ? photoByAnglerId[anglerId] : null;
 
   const now = Date.now();
   const isRecentCatch = caughtWhen && (now - new Date(caughtWhen).getTime()) < 72 * 60 * 60 * 1000;
@@ -242,11 +246,10 @@ function renderCatchCard(catchData) {
     <div class="catch-card">
       <div class="catch-card-header">
         <div class="catch-header-row">
+          ${anglerPhotoUrl ? `<img class="catch-angler-photo" src="${escapeHtml(anglerPhotoUrl)}" alt="" title="${escapeHtml(anglerName)}" loading="lazy" />` : ''}
           <h2 class="catch-id">${escapeHtml(catchNumber)}</h2>
           <div class="catch-badges">
             ${isRecentlyAdded ? '<span class="badge-new" title="Added within the last 24 hours">🆕</span>' : ''}
-            ${catchMediaCount > 0 ? `<span class="badge-media" title="${catchMediaCount} attachment${catchMediaCount === 1 ? '' : 's'}">📷${catchMediaCount > 1 ? ` ${catchMediaCount}` : ''}</span>` : ''}
-            ${catchMediaProcessingCount > 0 ? `<span class="badge-media badge-media--converting" title="${catchMediaProcessingCount} still converting">⏳${catchMediaProcessingCount > 1 ? ` ${catchMediaProcessingCount}` : ''}</span>` : ''}
           </div>
         </div>
       </div>
@@ -276,6 +279,10 @@ function renderCatchCard(catchData) {
         ${!verifiedAt ? '<div class="catch-pending-row"><span class="badge-pending" title="Not yet reviewed">⏳ Pending Review</span></div>' : ''}
       </div>
       <div class="catch-card-footer">
+        <div class="card-footer-badges">
+          ${catchMediaCount > 0 ? `<span class="badge-media" title="${catchMediaCount} attachment${catchMediaCount === 1 ? '' : 's'}">📷${catchMediaCount > 1 ? ` ${catchMediaCount}` : ''}</span>` : ''}
+          ${catchMediaProcessingCount > 0 ? `<span class="badge-media badge-media--converting" title="${catchMediaProcessingCount} still converting">⏳${catchMediaProcessingCount > 1 ? ` ${catchMediaProcessingCount}` : ''}</span>` : ''}
+        </div>
         <a href="./catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}&from=list" class="card-button">
           🔍 View Details
         </a>
@@ -324,6 +331,7 @@ async function loadLookups() {
     lookups.species = (data.fishSpecies || []).map(s => ({ id: s.id, name: s.displayNameOverride || s.name }));
     lookups.bodiesOfWater = data.bodiesOfWater || [];
     groupsByAnglerId = Object.fromEntries(lookups.anglers.map(a => [a.id, a.groups || []]));
+    photoByAnglerId = Object.fromEntries(lookups.anglers.filter(a => a.profilePhotoReadUrl).map(a => [a.id, a.profilePhotoReadUrl]));
     lookupsLoaded = true;
     buildDropdowns();
     // Only re-filter here if catches have already loaded — otherwise this would

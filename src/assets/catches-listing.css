@@ -179,8 +179,20 @@ body {
 .catch-header-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 10px;
+  /* Same height with or without the angler's photo, so cards line up */
+  min-height: 40px;
+}
+
+/* The angler's profile photo, before the catch number (#27) */
+.catch-angler-photo {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
 .catch-id {
@@ -287,7 +299,23 @@ body {
   padding: 12px 20px;
   border-top: 1px solid #f0f0f0;
   background: #fafafa;
+  /* 📷 / ⏳ on the left, View Details on the right */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   text-align: center;
+}
+
+.card-footer-badges {
+  display: flex;
+  gap: 6px;
+}
+
+/* On the light footer, the media badges get a soft blue fill instead of the header's white */
+.card-footer-badges .badge-media {
+  background: #eef7ff;
+  box-shadow: inset 0 0 0 1px #d6ecff;
 }
 
 .card-button {
