@@ -1,6 +1,6 @@
 // Layer 1, read-only: the catches listing and catch detail pages, checked against
 // what the Staging API says the data is.
-const { test, expect, unlockAdmin } = require('../support/fixtures');
+const { test, expect, unlockAdmin, STAGING_STORAGE_HOST } = require('../support/fixtures');
 const { getCatches, getLookups, getCatchMedia } = require('../support/staging-api');
 
 const PER_PAGE = 24;
@@ -206,6 +206,33 @@ test.describe('catch detail', () => {
     expect(await video.evaluate(v => v.duration)).toBeGreaterThan(0);
     await page.locator('#lightboxClose').click();
     await expect(page.locator('#lightbox')).toBeHidden();
+  });
+
+  test("a video's delete preview shows a frame, not a black box", async ({ page }) => {
+    // A video in Staging's own storage (which answers range requests); read-only: cancelled
+    let target = null;
+    for (const c of catches.filter(c => Number(c.catchMediaCount) > 0)) {
+      const v = (await getCatchMedia(c.catchNumber)).find(m => m.mediaType === 'Video' && m.displayStatus === 'complete'
+        && m.readUrl.includes(STAGING_STORAGE_HOST));
+      if (v) { target = { c, v }; break; }
+    }
+    test.skip(!target, 'no video in Staging storage');
+    await unlockAdmin(page);
+    await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(target.c.catchNumber)}`);
+    const tile = page.locator(`.media-tile--video[data-media-id="${target.v.id}"]`);
+    await page.locator('#manageMediaBtn').click(); // Manage Media shows the delete buttons
+    await tile.locator('.media-delete-btn').click();
+
+    const preview = page.locator('#deleteMediaModal video');
+    // Every browser: the preview loads (a browser that refuses "#t=0.1" falls back to the plain URL)
+    await expect.poll(() => preview.evaluate(v => v.error ? `error ${v.error.code}` : v.readyState >= 1),
+      { timeout: 30_000 }).toBe(true);
+    // Chrome (desktop + Android): it jumped to 0.1 s and has that frame ready, so no black box.
+    // Playwright's WebKit refuses the fragment; real Safari supports it but can't be checked here.
+    if (test.info().project.name !== 'iphone-safari') {
+      await expect.poll(() => preview.evaluate(v => v.readyState >= 2 && v.currentTime > 0), { timeout: 30_000 }).toBe(true);
+    }
+    await page.locator('#deleteMediaCancel').click();
   });
 
   test('hides Edit from a visitor and shows it to an admin', async ({ page }) => {

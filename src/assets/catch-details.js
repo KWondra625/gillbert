@@ -520,7 +520,8 @@ function openDeleteModal() {
   if (pendingDeleteItem.notViewable || pendingDeleteItem.contentType === 'image/heic') {
     preview.innerHTML = `<div class="dm-preview-placeholder">📷<br>${escapeHtml(pendingDeleteItem.originalFileName || 'HEIC Photo')}</div>`;
   } else if (pendingDeleteItem.mediaType === 'Video') {
-    preview.innerHTML = `<video src="${encodeURI(pendingDeleteItem.readUrl)}" preload="metadata" muted playsinline></video>`;
+    preview.innerHTML = `<video src="${videoPreviewUrl(pendingDeleteItem.readUrl)}" preload="metadata" muted playsinline></video>`;
+    addPreviewFallback(preview.querySelector('video'));
   } else {
     preview.innerHTML = `<img src="${encodeURI(pendingDeleteItem.readUrl)}" alt="Media to delete">`;
   }
@@ -592,6 +593,21 @@ async function handleMediaDelete() {
 // shows as stuck once 30 minutes pass, with Retry).
 const MEDIA_POLL_MS = 10 * 1000;
 const MEDIA_POLL_LIMIT_MS = 10 * 60 * 1000;
+// A video loaded with preload="metadata" often shows only a black box: the browser reads its length
+// and size but draws no picture. "#t=0.1" (a media fragment) asks it to jump to 0.1 s and draw that
+// frame. Needs the storage account to answer range requests (default service version 2020-12-06).
+// Some browsers refuse a fragment and fail to load the video at all (seen in Playwright's WebKit),
+// so on an error the preview reloads without it: at worst the old black box, never a broken video.
+function videoPreviewUrl(url) {
+  return `${encodeURI(url)}#t=0.1`;
+}
+
+function addPreviewFallback(video) {
+  video.addEventListener('error', () => {
+    if (video.src.includes('#t=')) video.src = video.src.replace(/#t=[^#]*$/, '');
+  }, { once: true });
+}
+
 let mediaPollTimer = null;
 let mediaPollStartedAt = null;
 let lastMediaSignature = null;
@@ -730,9 +746,7 @@ function buildMediaTile(item) {
   if (mediaType === 'Video') {
     return `
       <div class="media-tile media-tile--video" data-media-id="${item.id || ''}">
-        <video preload="metadata" playsinline>
-          <source src="${encodeURI(readUrl)}" type="${escapeHtml(contentType)}">
-        </video>
+        <video src="${videoPreviewUrl(readUrl)}" preload="metadata" muted playsinline></video>
         <div class="media-play-overlay">
           <div class="media-play-btn"></div>
           <div class="media-video-label">Video</div>
@@ -849,6 +863,7 @@ function renderMedia(items) {
   // Wire up lightbox clicks — photo and video tiles both open the same
   // swipeable viewer, at this tile's position in lightboxSequence (DOM
   // order here matches that array's order, see above).
+  container.querySelectorAll('.media-tile--video video').forEach(addPreviewFallback);
   container.querySelectorAll('.media-tile--photo, .media-tile--video').forEach((tile, i) => {
     tile.addEventListener('click', () => openLightbox(i));
   });
