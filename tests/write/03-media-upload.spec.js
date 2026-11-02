@@ -93,6 +93,27 @@ for (const c of CASES) {
   });
 }
 
+// Files over 8 MB go up in blocks that Azure stitches together; the stored file must match
+// the original byte for byte. A JPEG with padding after its end marker is still a valid
+// JPEG, and plain JPEGs aren't converted, so the stored bytes are exactly the uploaded ones.
+test('a 20 MB file uploads in blocks and arrives intact', async ({ page }) => {
+  test.setTimeout(180_000);
+  const jpg = fs.readFileSync(path.join(MEDIA, 'photo.jpg'));
+  const big = Buffer.concat([jpg, Buffer.alloc(20 * 1024 * 1024 - jpg.length, 0x5a)]);
+  const before = await mediaFor(target.catchNumber);
+  await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(target.catchNumber)}`);
+  await page.locator('#files').setInputFiles({ name: 'big-photo.jpg', mimeType: 'image/jpeg', buffer: big });
+  await page.locator('#uploadBtn').click();
+  await expect(page.locator('#successState')).toBeVisible({ timeout: 120_000 });
+
+  const [item] = await waitForNewMedia(before, 1, 30_000);
+  expect(item.fileSizeInBytes).toBe(big.length);
+  const res = await fetch(item.readUrl);
+  expect(res.status).toBe(200);
+  expect(res.headers.get('content-type')).toBe('image/jpeg');
+  expect(Buffer.from(await res.arrayBuffer()).equals(big), 'stored bytes match the original').toBe(true);
+});
+
 test('several mixed files in one upload all arrive', async ({ page }) => {
   test.setTimeout(CONVERSION_TIMEOUT + 90_000);
   const files = ['photo.jpg', 'photo.heic', 'video.mp4', 'video.mov'];
