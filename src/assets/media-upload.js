@@ -238,6 +238,16 @@ document.addEventListener('visibilitychange', () => {
   if (uploadsRunning && !document.hidden) keepScreenOn();
 });
 
+// Leaving while files are still going up loses them, so ask first. Browsers show their own
+// "Leave site?" wording; the message here is only used by older ones. Once every file is
+// recorded it's safe to leave: conversions carry on on the server.
+window.addEventListener('beforeunload', e => {
+  if (!uploadsRunning) return;
+  e.preventDefault();
+  e.returnValue = 'Your upload is not finished yet.';
+  return e.returnValue;
+});
+
 // Records one uploaded file. Only an explicit `success: true` counts: n8n answers an
 // empty 200 when a workflow fails before replying, which must not read as success.
 async function commitUpload(catchNumber, upload, uploadedByAnglerId) {

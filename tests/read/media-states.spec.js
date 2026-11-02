@@ -370,6 +370,32 @@ test.describe('upload page results', () => {
     await page.locator('#stayHereBtn').click();
   });
 
+  test('leaving mid-upload asks first; leaving once everything is recorded does not', async ({ page }) => {
+    await mockUploadFlow(page);
+    // Registered last: holds the storage upload until released
+    let release;
+    const held = new Promise(r => { release = r; });
+    await page.route(`${FAKE_STORAGE}/put/**`, async route => { await held; return route.fallback(); });
+    const dialogs = [];
+    page.on('dialog', d => { dialogs.push(d.type()); d.dismiss(); }); // dismiss = stay on the page
+
+    await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    await page.locator('#files').setInputFiles(path.join(MEDIA, 'photo.jpg'));
+    await page.locator('#uploadBtn').click();
+    await expect(page.locator('#fileList .file-row').first()).toContainText('Uploading');
+
+    await page.close({ runBeforeUnload: true });
+    await expect.poll(() => dialogs).toEqual(['beforeunload']);
+    expect(page.isClosed(), 'stayed on the page').toBe(false);
+
+    release();
+    await expect(page.locator('#successState')).toBeVisible();
+    await page.locator('#stayHereBtn').click();
+    await page.close({ runBeforeUnload: true });
+    await expect.poll(() => page.isClosed()).toBe(true);
+    expect(dialogs, 'no second prompt').toEqual(['beforeunload']);
+  });
+
   test('the upload log stays collapsed until opened', async ({ page }) => {
     await mockUploadFlow(page);
     await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
