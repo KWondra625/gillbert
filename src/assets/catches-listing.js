@@ -244,8 +244,8 @@ function renderCatchCard(catchData) {
           <h2 class="catch-id">${escapeHtml(catchNumber)}</h2>
           <div class="catch-badges">
             ${isRecentlyAdded ? '<span class="badge-new" title="Added within the last 24 hours">🆕</span>' : ''}
-            ${catchMediaCount > 0 ? `<span class="badge-media" title="${catchMediaCount} attachment${catchMediaCount === 1 ? '' : 's'}">📷 ${catchMediaCount}</span>` : ''}
-            ${catchMediaProcessingCount > 0 ? `<span class="badge-media badge-media--converting" title="${catchMediaProcessingCount} still converting">⏳ ${catchMediaProcessingCount}</span>` : ''}
+            ${catchMediaCount > 0 ? `<span class="badge-media" title="${catchMediaCount} attachment${catchMediaCount === 1 ? '' : 's'}">📷${catchMediaCount > 1 ? ` ${catchMediaCount}` : ''}</span>` : ''}
+            ${catchMediaProcessingCount > 0 ? `<span class="badge-media badge-media--converting" title="${catchMediaProcessingCount} still converting">⏳${catchMediaProcessingCount > 1 ? ` ${catchMediaProcessingCount}` : ''}</span>` : ''}
           </div>
         </div>
       </div>

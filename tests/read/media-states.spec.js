@@ -445,6 +445,16 @@ test.describe('media badges', () => {
     await expect(badges.locator('.badge-media--converting')).toHaveText('⏳ 3');
   });
 
+  test('a count of 1 shows just the icon', async ({ page }) => {
+    const [first] = await getCatches();
+    await page.route(url => url.pathname.endsWith('/get-catches'), route => route.fulfill({ json: [
+      { ...first, catchMediaCount: 1, catchMediaProcessingCount: 1 },
+    ] }));
+    await page.goto('catches-listing.html');
+    const badges = page.locator('#catchesContainer .catch-card').first().locator('.catch-badges .badge-media');
+    await expect(badges).toHaveText(['📷', '⏳']);
+  });
+
   test('Fish of Fame shows the same 📷 and ⏳ counts', async ({ page }) => {
     const catches = await getCatches();
     // Every catch gets the counts, so whichever ranks first carries them

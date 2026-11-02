@@ -55,10 +55,10 @@ function formatDate(dateStr) {
 
 function mediaBadge(count, convertingCount) {
   const media = count > 0
-    ? `<span class="rank-media-badge" title="${count} attachment${count === 1 ? '' : 's'}">📷 ${count}</span>`
+    ? `<span class="rank-media-badge" title="${count} attachment${count === 1 ? '' : 's'}">📷${count > 1 ? ` ${count}` : ''}</span>`
     : '';
   const converting = convertingCount > 0
-    ? `<span class="rank-media-badge" title="${convertingCount} still converting">⏳ ${convertingCount}</span>`
+    ? `<span class="rank-media-badge" title="${convertingCount} still converting">⏳${convertingCount > 1 ? ` ${convertingCount}` : ''}</span>`
     : '';
   return media + converting;
 }
