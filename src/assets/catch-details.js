@@ -448,10 +448,11 @@ window.addEventListener("DOMContentLoaded", () => {
   el.lightboxPrev.addEventListener('click', () => navigateLightbox(-1));
   el.lightboxNext.addEventListener('click', () => navigateLightbox(1));
 
-  // Swipe left/right to navigate on touch devices
+  // Swipe left/right to navigate on touch devices. Not on a video: dragging its progress
+  // bar to jump ahead is a sideways drag too, and must not flip to the next item.
   let touchStartX = null;
   el.lightbox.addEventListener('touchstart', (e) => {
-    touchStartX = e.changedTouches[0].clientX;
+    touchStartX = e.target === el.lightboxVideo ? null : e.changedTouches[0].clientX;
   }, { passive: true });
   el.lightbox.addEventListener('touchend', (e) => {
     if (touchStartX == null) return;

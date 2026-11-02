@@ -75,6 +75,37 @@ test.describe('catch page media states', () => {
     await expect(page.locator('.media-tile--photo')).toHaveCount(2);
   });
 
+  test('dragging along a video (to jump ahead) does not flip to the next item', async ({ page }) => {
+    const state = { items: [
+      mediaItem(1, { mediaType: 'Video', contentType: 'video/mp4', readUrl: `${FAKE_STORAGE}/1.mp4`, originalFileName: 'clip.mp4' }),
+      mediaItem(2),
+    ] };
+    await mockMediaList(page, state);
+    await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    await page.locator('.media-tile--video').first().click();
+    await expect(page.locator('#lightboxVideo')).toBeVisible();
+
+    // A synthetic sideways drag: works the same in every test browser
+    const swipe = (target, from, to) => page.evaluate(([sel, a, b]) => {
+      const t = document.querySelector(sel);
+      for (const [type, x] of [['touchstart', a], ['touchend', b]]) {
+        const ev = new Event(type, { bubbles: true });
+        Object.defineProperty(ev, 'changedTouches', { value: [{ clientX: x }] });
+        t.dispatchEvent(ev);
+      }
+    }, [target, from, to]);
+
+    // Both directions on the video: neither changes the item
+    await swipe('#lightboxVideo', 300, 50);
+    await swipe('#lightboxVideo', 50, 300);
+    await expect(page.locator('#lightboxVideo')).toBeVisible();
+    await expect(page.locator('#lightboxImg')).toBeHidden();
+    // The same drag off the video moves to the photo (whichever side of the video it is)
+    await swipe('#lightbox', 300, 50);
+    if (await page.locator('#lightboxImg').isHidden()) await swipe('#lightbox', 50, 300);
+    await expect(page.locator('#lightboxImg')).toBeVisible();
+  });
+
   test.describe('when a background check fails', () => {
     test.use({ allowConsoleErrors: true }); // the page logs the failed check
 
