@@ -58,7 +58,7 @@ function mediaBadge(count, convertingCount) {
     ? `<span class="rank-media-badge" title="${count} attachment${count === 1 ? '' : 's'}">📷 ${count}</span>`
     : '';
   const converting = convertingCount > 0
-    ? `<span class="rank-media-badge" title="${convertingCount} still converting">⏳</span>`
+    ? `<span class="rank-media-badge" title="${convertingCount} still converting">⏳ ${convertingCount}</span>`
     : '';
   return media + converting;
 }

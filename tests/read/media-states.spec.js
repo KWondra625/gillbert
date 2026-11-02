@@ -437,11 +437,21 @@ test.describe('media badges', () => {
   test('📷 counts viewable media and ⏳ shows while something converts', async ({ page }) => {
     const [first] = await getCatches();
     await page.route(url => url.pathname.endsWith('/get-catches'), route => route.fulfill({ json: [
-      { ...first, catchMediaCount: 2, catchMediaProcessingCount: 1 },
+      { ...first, catchMediaCount: 2, catchMediaProcessingCount: 3 },
     ] }));
     await page.goto('catches-listing.html');
     const badges = page.locator('#catchesContainer .catch-card').first().locator('.catch-badges');
     await expect(badges).toContainText('📷 2');
-    await expect(badges.locator('.badge-media--converting')).toHaveText('⏳');
+    await expect(badges.locator('.badge-media--converting')).toHaveText('⏳ 3');
+  });
+
+  test('Fish of Fame shows the same 📷 and ⏳ counts', async ({ page }) => {
+    const catches = await getCatches();
+    // Every catch gets the counts, so whichever ranks first carries them
+    await page.route(url => url.pathname.endsWith('/get-catches'), route => route.fulfill({ json:
+      catches.map(c => ({ ...c, catchMediaCount: 2, catchMediaProcessingCount: 3 })) }));
+    await page.goto('fish-of-fame.html');
+    const badges = page.locator('#topCatchesList .rank-row').first().locator('.rank-media-badge');
+    await expect(badges).toHaveText(['📷 2', '⏳ 3']);
   });
 });
