@@ -275,6 +275,48 @@ test.describe('upload page checks before uploading', () => {
   });
 });
 
+test.describe('upload page large files', () => {
+  test.use({ allowConsoleErrors: true }); // the refused block logs its error
+
+  test('a big file goes up in blocks, and Retry resumes from the block that failed', async ({ page }) => {
+    await mockUploadFlow(page);
+    // Registered last, so it answers the block calls before mockUploadFlow's storage route
+    const sent = [];
+    let refusedOnce = false;
+    let blockList = null;
+    await page.route(`${FAKE_STORAGE}/put/**`, async route => {
+      const q = new URL(route.request().url()).searchParams;
+      if (q.get('comp') === 'blocklist') {
+        blockList = { body: route.request().postData(), type: route.request().headers()['x-ms-blob-content-type'] };
+        return route.fulfill({ status: 201, body: '' });
+      }
+      const id = atob(q.get('blockid'));
+      if (id === 'block-000001' && !refusedOnce) {
+        refusedOnce = true;
+        return route.fulfill({ status: 403, body: 'AuthenticationFailed' }); // a 4xx isn't retried on its own
+      }
+      sent.push(id);
+      return route.fulfill({ status: 201, body: '' });
+    });
+    await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    // 17 MB: two full 8 MB blocks and a short one
+    await page.locator('#files').setInputFiles({ name: 'big.mp4', mimeType: 'video/mp4', buffer: Buffer.alloc(17 * 1024 * 1024, 1) });
+    await page.locator('#uploadBtn').click();
+
+    const row = page.locator('#fileList .file-row').first();
+    await expect(row).toContainText('❌ Failed');
+    expect(sent).toEqual(['block-000000']);
+
+    await page.locator('#retryBtn').click();
+    await expect(page.locator('#successState')).toBeVisible();
+    // Block 0 wasn't sent again; the list stitches all three in order
+    expect(sent).toEqual(['block-000000', 'block-000001', 'block-000002']);
+    expect(blockList.body).toContain(['000000', '000001', '000002'].map(n => `<Latest>${btoa(`block-${n}`)}</Latest>`).join(''));
+    expect(blockList.type).toBe('video/mp4');
+    await page.locator('#stayHereBtn').click();
+  });
+});
+
 test.describe('media activity page', () => {
   test('turns away a visitor who isn\'t admin', async ({ page }) => {
     await page.goto('media-activity.html');

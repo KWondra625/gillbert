@@ -155,17 +155,88 @@ async function getSasUrls(catchNumber, files) {
   return res.json();
 }
 
-async function uploadOne(uploadUrl, file) {
-  const res = await fetch(uploadUrl, {
-    method: "PUT",
-    headers: {
-      "x-ms-blob-type": "BlockBlob",
-      "Content-Type": getContentType(file),
-    },
-    body: file,
+// Files bigger than one block go up in 8 MB blocks (Azure Put Block), then get stitched
+// together (Put Block List). A dropped connection or a locked phone only costs the block in
+// flight: each block is retried, and "Retry" picks up from the last block that made it.
+// Blocks that never get stitched are discarded by Azure after a week, so nothing is left over.
+const BLOCK_SIZE = 8 * 1024 * 1024;
+const BLOCK_TRIES = 5;
+const SLOT_REUSE_MS = 45 * 60 * 1000; // upload links last 60 min; a retry after 45 asks for a new one
+
+const blockId = i => btoa(`block-${String(i).padStart(6, '0')}`); // same length for every block
+
+// Waits until the page is on screen again (a hidden tab's uploads stall or get cut off)
+function whenVisible() {
+  if (!document.hidden) return Promise.resolve();
+  return new Promise(resolve => {
+    const onChange = () => {
+      if (!document.hidden) { document.removeEventListener('visibilitychange', onChange); resolve(); }
+    };
+    document.addEventListener('visibilitychange', onChange);
   });
-  if (!res.ok) throw new Error(`Azure PUT failed: ${res.status} ${await res.text()}`);
 }
+
+async function putToStorage(url, body, headers) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const res = await fetch(url, { method: 'PUT', headers, body });
+      if (res.ok) return;
+      const text = await res.text();
+      // 4xx (other than a timeout or throttling) won't get better by trying again
+      if (res.status < 500 && res.status !== 408 && res.status !== 429) {
+        throw Object.assign(new Error(`Azure PUT failed: ${res.status} ${text}`), { final: true });
+      }
+      throw new Error(`Azure PUT failed: ${res.status}`);
+    } catch (err) {
+      if (err.final || attempt >= BLOCK_TRIES) throw err;
+      await whenVisible();
+      await new Promise(r => setTimeout(r, Math.min(2000 * 2 ** (attempt - 1), 30000)));
+    }
+  }
+}
+
+// Uploads job.file to job.slot.uploadUrl, keeping progress on the job so a retry resumes
+async function uploadOne(job, onProgress) {
+  const { file } = job;
+  const url = job.slot.uploadUrl;
+  const contentType = getContentType(file);
+
+  if (file.size <= BLOCK_SIZE) {
+    await putToStorage(url, file, { 'x-ms-blob-type': 'BlockBlob', 'Content-Type': contentType });
+    onProgress(1);
+    return;
+  }
+
+  const count = Math.ceil(file.size / BLOCK_SIZE);
+  job.blocksDone = job.blocksDone || new Set();
+  for (let i = 0; i < count; i++) {
+    if (job.blocksDone.has(i)) continue;
+    const chunk = file.slice(i * BLOCK_SIZE, Math.min((i + 1) * BLOCK_SIZE, file.size));
+    await putToStorage(`${url}&comp=block&blockid=${encodeURIComponent(blockId(i))}`, chunk, {});
+    job.blocksDone.add(i);
+    onProgress(job.blocksDone.size / count);
+  }
+
+  const list = Array.from({ length: count }, (_, i) => `<Latest>${blockId(i)}</Latest>`).join('');
+  await putToStorage(`${url}&comp=blocklist`,
+    `<?xml version="1.0" encoding="utf-8"?><BlockList>${list}</BlockList>`,
+    { 'Content-Type': 'application/xml', 'x-ms-blob-content-type': contentType });
+}
+
+// Keeps the phone's screen on while files upload, where the browser allows it
+let wakeLock = null;
+let uploadsRunning = false;
+
+async function keepScreenOn() {
+  try {
+    if ('wakeLock' in navigator && !document.hidden) wakeLock = await navigator.wakeLock.request('screen');
+  } catch { wakeLock = null; } // not allowed (e.g. battery saver): uploads still resume
+}
+
+document.addEventListener('visibilitychange', () => {
+  // The browser drops the lock whenever the page is hidden; take it back on return
+  if (uploadsRunning && !document.hidden) keepScreenOn();
+});
 
 // Records one uploaded file. Only an explicit `success: true` counts: n8n answers an
 // empty 200 when a workflow fails before replying, which must not read as success.
@@ -206,7 +277,7 @@ let fileJobs = [];
 
 const STAGE_LABELS = {
   waiting:    '⏸️ Waiting',
-  uploading:  '⬆️ Uploading…',
+  uploading:  '⬆️ Uploading',
   recording:  '📝 Recording…',
   complete:   '✅ Done',
   converting: '⏳ Converting',
@@ -219,7 +290,7 @@ function renderFileList() {
   el.fileList.innerHTML = fileJobs.map(job => `
     <li class="file-row file-row--${job.stage}">
       <span class="file-row-name">${escapeHtml(job.file.name)}</span>
-      <span class="file-row-status">${STAGE_LABELS[job.stage]}</span>
+      <span class="file-row-status">${STAGE_LABELS[job.stage]}${job.stage === 'uploading' ? ` ${Math.floor((job.progress || 0) * 100)}%` : ''}</span>
       ${(job.stage === 'failed' || job.stage === 'rejected') && job.error ? `<span class="file-row-error">${escapeHtml(job.error)}</span>` : ''}
     </li>`).join('');
   el.fileList.classList.toggle('hidden', !fileJobs.length);
@@ -316,20 +387,21 @@ el.stayHereBtn.addEventListener('click', () => {
 async function processJobs(catchNumber, jobs) {
   const uploadedByAnglerId = await uploadedByAnglerIdPromise;
 
-  // Upload slots only for files not already in storage from an earlier attempt
-  const needSlots = jobs.filter(j => !j.uploaded);
+  // Upload slots only for files not already in storage from an earlier attempt. A file that
+  // got partway keeps its slot (and its finished blocks) unless the link is about to expire.
+  const needSlots = jobs.filter(j => !j.uploaded && !(j.slot && Date.now() - j.slotAt < SLOT_REUSE_MS));
   // The slot workflow takes at most 10 files per request
   for (let start = 0; start < needSlots.length; start += SLOTS_PER_REQUEST) {
     const batch = needSlots.slice(start, start + SLOTS_PER_REQUEST);
     const { uploads } = await getSasUrls(catchNumber, batch.map(j => j.file));
-    batch.forEach((job, i) => { job.slot = uploads[i]; });
+    batch.forEach((job, i) => { job.slot = uploads[i]; job.slotAt = Date.now(); job.blocksDone = null; });
   }
 
   await runPool(jobs, PARALLEL_UPLOADS, async job => {
     try {
       if (!job.uploaded) {
         setStage(job, 'uploading');
-        await uploadOne(job.slot.uploadUrl, job.file);
+        await uploadOne(job, fraction => { job.progress = fraction; renderFileList(); });
         job.uploaded = true;
         log(`🐟 ${job.file.name} is in the boat!`);
       }
@@ -354,6 +426,8 @@ async function runUpload(jobs) {
   el.loadingIndicator.classList.add('visible');
   setStatus("Reeling files into the cloud...");
 
+  uploadsRunning = true;
+  keepScreenOn();
   try {
     await processJobs(catchNumber, jobs);
   } catch (err) {
@@ -363,6 +437,8 @@ async function runUpload(jobs) {
     log(String(err));
   }
 
+  uploadsRunning = false;
+  if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
   el.loadingIndicator.classList.remove('visible');
   if (showProblems()) return;
 
