@@ -1,8 +1,9 @@
 """Makes the small media files the upload tests use. Run once; the output is committed.
 
 Needs: pip install pillow pillow-heif imageio-ffmpeg   (in a throwaway venv is fine)
-Real phone files (an iPhone HEIC and MOV, ideally one portrait) are better tests of the
-conversion and rotation paths; drop them in this folder as phone-*.heic / phone-*.mov.
+Phone-like stand-ins (iPhone HEIC/MOV layout, Samsung HDR video) come from
+generate_phone_like.py. Real phone files are better still: drop them in phone/ (git-ignored)
+and run the media tests with PHONE_MEDIA=1.
 """
 import subprocess
 from pathlib import Path
