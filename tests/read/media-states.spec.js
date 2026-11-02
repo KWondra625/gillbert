@@ -455,6 +455,61 @@ test.describe('media badges', () => {
     await expect(badges).toHaveText(['📷', '⏳']);
   });
 
+  // Answers get-catches with the first catch's counts from `state`; counts every request
+  async function mockCounts(page, catches, state) {
+    await page.route(url => url.pathname.endsWith('/get-catches'), route => {
+      state.requests++;
+      return route.fulfill({ json: catches.map((c, i) => i === 0
+        ? { ...c, catchMediaCount: state.media, catchMediaProcessingCount: state.converting }
+        : { ...c, catchMediaCount: 0, catchMediaProcessingCount: 0 }) });
+    });
+  }
+
+  test('the listing re-checks badges every 30 s while something converts', async ({ page }) => {
+    const [first] = await getCatches();
+    const state = { media: 1, converting: 2, requests: 0 };
+    await page.clock.install();
+    await mockCounts(page, [first], state);
+    await page.goto('catches-listing.html');
+    const badges = page.locator('#catchesContainer .catch-card').first().locator('.catch-badges .badge-media');
+    await expect(badges).toHaveText(['📷', '⏳ 2']);
+
+    state.media = 3; state.converting = 0; // both finished
+    await page.clock.runFor(31_000);
+    await expect(badges).toHaveText(['📷 3']);
+    // Nothing converting any more, so it stops checking
+    const after = state.requests;
+    await page.clock.runFor(120_000);
+    expect(state.requests).toBe(after);
+  });
+
+  test('coming back to the listing via Back re-reads the badges', async ({ page }) => {
+    const [first] = await getCatches();
+    const state = { media: 1, converting: 0, requests: 0 };
+    await mockCounts(page, [first], state);
+    await page.goto('catches-listing.html');
+    const badges = page.locator('#catchesContainer .catch-card').first().locator('.catch-badges .badge-media');
+    await expect(badges).toHaveText(['📷']);
+
+    // What the browser fires when it restores the page from its back/forward cache
+    state.media = 1; state.converting = 1;
+    await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
+    await expect(badges).toHaveText(['📷', '⏳']);
+  });
+
+  test('Fish of Fame re-reads its badges via Back too', async ({ page }) => {
+    const catches = await getCatches();
+    const state = { media: 2, converting: 0, requests: 0 };
+    await page.route(url => url.pathname.endsWith('/get-catches'), route => route.fulfill({ json:
+      catches.map(c => ({ ...c, catchMediaCount: state.media, catchMediaProcessingCount: state.converting })) }));
+    await page.goto('fish-of-fame.html');
+    const badges = page.locator('#topCatchesList .rank-row').first().locator('.rank-media-badge');
+    await expect(badges).toHaveText(['📷 2']);
+    state.converting = 2;
+    await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
+    await expect(badges).toHaveText(['📷 2', '⏳ 2']);
+  });
+
   test('Fish of Fame shows the same 📷 and ⏳ counts', async ({ page }) => {
     const catches = await getCatches();
     // Every catch gets the counts, so whichever ranks first carries them

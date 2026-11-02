@@ -321,11 +321,66 @@ async function loadFishOfFame() {
     renderGroupPills(anglerLookup.allGroups);
     renderLeaderboards();
     el.content.classList.remove('hidden');
+    startBadgePoll();
   } catch (err) {
     console.error(err);
     hideLoading();
     setStatus('Failed to load the leaderboards ❌');
   }
 }
+
+// ── Live media badges ────────────────────────────────────────────────────────────────────
+// The 📷/⏳ counts are read once with the page. Re-read just those counts (keeping the
+// page, filters and scroll position) when the page comes back from the browser's
+// back/forward cache, and every 30 s while something is converting, for up to 15 minutes.
+const BADGE_POLL_MS = 30 * 1000;
+const BADGE_POLL_LIMIT_MS = 15 * 60 * 1000;
+let badgePollTimer = null;
+let badgePollStartedAt = 0;
+
+async function refreshMediaCounts() {
+  try {
+    const res = await fetch(CATCHES_GET_URL, { headers: { 'X-API-Key': API_KEY } });
+    if (!res.ok) return;
+    const data = await res.json();
+    const fresh = new Map((Array.isArray(data) ? data : (data.catches || []))
+      .filter(c => c && c.catchNumber).map(c => [c.catchNumber, c]));
+    let changed = false;
+    for (const c of allCatches) {
+      const f = fresh.get(c.catchNumber);
+      if (!f) continue;
+      if (String(f.catchMediaCount) !== String(c.catchMediaCount) ||
+          String(f.catchMediaProcessingCount) !== String(c.catchMediaProcessingCount)) {
+        c.catchMediaCount = f.catchMediaCount;
+        c.catchMediaProcessingCount = f.catchMediaProcessingCount;
+        changed = true;
+      }
+    }
+    if (changed) renderLeaderboards();
+  } catch (err) {
+    console.error('Badge refresh failed:', err);
+  }
+}
+
+function scheduleBadgePoll() {
+  clearTimeout(badgePollTimer);
+  const converting = allCatches.some(c => Number(c.catchMediaProcessingCount) > 0);
+  if (!converting || Date.now() - badgePollStartedAt > BADGE_POLL_LIMIT_MS) return;
+  badgePollTimer = setTimeout(async () => {
+    if (!document.hidden) await refreshMediaCounts();
+    scheduleBadgePoll();
+  }, BADGE_POLL_MS);
+}
+
+function startBadgePoll() {
+  badgePollStartedAt = Date.now();
+  scheduleBadgePoll();
+}
+
+window.addEventListener('pageshow', async e => {
+  if (!e.persisted) return; // a normal load reads fresh counts anyway
+  await refreshMediaCounts();
+  startBadgePoll();
+});
 
 window.addEventListener('DOMContentLoaded', loadFishOfFame);

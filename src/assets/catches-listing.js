@@ -136,6 +136,7 @@ async function loadCatches() {
     // "no results" flash from filtering against an empty groupsByAnglerId.
     if (!activeFilters.group || lookupsLoaded) applyFilters();
     hideLoading();
+    startBadgePoll();
   } catch (err) {
     if (requestId !== latestCatchesRequest) return; // a newer load has taken over
     console.error(err);
@@ -146,7 +147,7 @@ async function loadCatches() {
   }
 }
 
-function renderPage() {
+function renderPage({ keepScroll = false } = {}) {
   const totalPages = Math.ceil(filteredCatches.length / ITEMS_PER_PAGE);
 
   if (currentPage < 1) currentPage = 1;
@@ -181,8 +182,8 @@ function renderPage() {
   // Show pagination only if there's more than one page
   el.paginationContainer.style.display = totalPages > 1 ? 'flex' : 'none';
 
-  // Scroll to top for better UX
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Scroll to top for better UX (not when only the badges were refreshed)
+  if (!keepScroll) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // formatDateLabel/hasExplicitTime come from date-format.js (shared with
@@ -542,6 +543,61 @@ function setupBackNavigation() {
   el.bottomBackLink.href = href;
   el.bottomBackLink.textContent = `← Back to ${label}`;
 }
+
+
+// ── Live media badges ────────────────────────────────────────────────────────────────────
+// The 📷/⏳ counts are read once with the page. Re-read just those counts (keeping the
+// page, filters and scroll position) when the page comes back from the browser's
+// back/forward cache, and every 30 s while something is converting, for up to 15 minutes.
+const BADGE_POLL_MS = 30 * 1000;
+const BADGE_POLL_LIMIT_MS = 15 * 60 * 1000;
+let badgePollTimer = null;
+let badgePollStartedAt = 0;
+
+async function refreshMediaCounts() {
+  try {
+    const res = await fetch(el.searchInput.value.trim() ? `${CATCHES_GET_URL}?search=${encodeURIComponent(el.searchInput.value.trim())}` : CATCHES_GET_URL, { headers: { 'X-API-Key': API_KEY } });
+    if (!res.ok) return;
+    const data = await res.json();
+    const fresh = new Map((Array.isArray(data) ? data : (data.catches || []))
+      .filter(c => c && c.catchNumber).map(c => [c.catchNumber, c]));
+    let changed = false;
+    for (const c of allCatches) {
+      const f = fresh.get(c.catchNumber);
+      if (!f) continue;
+      if (String(f.catchMediaCount) !== String(c.catchMediaCount) ||
+          String(f.catchMediaProcessingCount) !== String(c.catchMediaProcessingCount)) {
+        c.catchMediaCount = f.catchMediaCount;
+        c.catchMediaProcessingCount = f.catchMediaProcessingCount;
+        changed = true;
+      }
+    }
+    if (changed) renderPage({ keepScroll: true });
+  } catch (err) {
+    console.error('Badge refresh failed:', err);
+  }
+}
+
+function scheduleBadgePoll() {
+  clearTimeout(badgePollTimer);
+  const converting = allCatches.some(c => Number(c.catchMediaProcessingCount) > 0);
+  if (!converting || Date.now() - badgePollStartedAt > BADGE_POLL_LIMIT_MS) return;
+  badgePollTimer = setTimeout(async () => {
+    if (!document.hidden) await refreshMediaCounts();
+    scheduleBadgePoll();
+  }, BADGE_POLL_MS);
+}
+
+function startBadgePoll() {
+  badgePollStartedAt = Date.now();
+  scheduleBadgePoll();
+}
+
+window.addEventListener('pageshow', async e => {
+  if (!e.persisted) return; // a normal load reads fresh counts anyway
+  await refreshMediaCounts();
+  startBadgePoll();
+});
 
 window.addEventListener("DOMContentLoaded", () => {
   setupBackNavigation();
