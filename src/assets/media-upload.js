@@ -435,9 +435,12 @@ async function runUpload(jobs) {
   try {
     await processJobs(catchNumber, jobs);
   } catch (err) {
-    // The upload-slot request itself failed: nothing was uploaded
+    // The upload-slot request itself failed, before any file in this batch was sent or
+    // recorded. Mark them all failed so Retry picks them up; a file already in storage
+    // keeps `uploaded`, so its retry only records it.
     console.error(err);
-    jobs.filter(j => !j.uploaded).forEach(j => setStage(j, 'failed', "Couldn't get an upload slot"));
+    jobs.filter(j => j.stage === 'waiting').forEach(j =>
+      setStage(j, 'failed', j.uploaded ? "Couldn't record it yet" : "Couldn't get an upload slot"));
     log(String(err));
   }
 

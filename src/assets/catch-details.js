@@ -595,6 +595,7 @@ const MEDIA_POLL_LIMIT_MS = 10 * 60 * 1000;
 let mediaPollTimer = null;
 let mediaPollStartedAt = null;
 let lastMediaSignature = null;
+let latestMediaRequest = 0;  // numbers each load; an older one that answers late is ignored
 let lastMediaItems = [];     // the last list the server returned, for polling through a failed check
 let deferredMediaItems = null; // a changed list held back while the lightbox was open
 
@@ -616,6 +617,7 @@ function scheduleMediaPoll(catchNumber, items) {
 }
 
 async function loadCatchMedia(catchNumber, { quiet = false } = {}) {
+  const requestId = ++latestMediaRequest;
   let items = [];
   let loaded = false;
   try {
@@ -630,6 +632,8 @@ async function loadCatchMedia(catchNumber, { quiet = false } = {}) {
   } catch (err) {
     console.error('Media load error:', err);
   }
+  // A newer load (e.g. after Retry) started meanwhile: it renders and schedules the next check
+  if (requestId !== latestMediaRequest) return;
 
   // A background re-check only re-renders when something changed, and never while the
   // lightbox is open (re-rendering rebuilds the sequence it's showing).

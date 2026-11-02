@@ -106,6 +106,41 @@ test.describe('catch page media states', () => {
     await expect(page.locator('#lightboxImg')).toBeVisible();
   });
 
+  test('an older background check answering after Retry does not undo it', async ({ page }) => {
+    await unlockAdmin(page);
+    const state = { items: [mediaItem(1, { status: 'submitted', displayStatus: 'submitted' }),
+                            mediaItem(2, { status: 'failed', displayStatus: 'failed' })], requests: 0 };
+    let held = null;
+    await page.route(url => url.pathname.endsWith('/catch-media/get'), route => {
+      state.requests++;
+      if (state.hold) { state.hold = false; held = { route, items: state.items }; return; }
+      return route.fulfill({ json: state.items });
+    });
+    await page.route(`${FAKE_STORAGE}/**`, route => route.fulfill({
+      contentType: 'image/gif', body: Buffer.from('R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==', 'base64') }));
+    await page.route(url => url.pathname.endsWith('/catch-media/retry'), route => {
+      state.items = [mediaItem(1), mediaItem(2, { status: 'submitted', displayStatus: 'submitted' })];
+      return route.fulfill({ json: { success: true, mediaId: 2, status: 'submitted' } });
+    });
+    await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    await expect(page.locator('.media-tile--failed')).toHaveCount(1);
+
+    // The next background check sees the old state (file 1 done, file 2 still failed) but
+    // is slow to answer; Retry on file 2 happens meanwhile.
+    state.items = [mediaItem(1), mediaItem(2, { status: 'failed', displayStatus: 'failed' })];
+    state.hold = true;
+    await expect.poll(() => held, { timeout: 20_000 }).not.toBeNull();
+    await page.locator('.media-tile-action[data-action="retry"]').click();
+    await expect(page.locator('.media-tile--pending')).toHaveCount(1);
+
+    await held.route.fulfill({ json: held.items }); // the old answer finally arrives
+    await page.waitForTimeout(1_000);
+    await expect(page.locator('.media-tile--pending')).toHaveCount(1); // still retrying, not ⚠️
+    // ...and checking carries on
+    const before = state.requests;
+    await expect.poll(() => state.requests, { timeout: 20_000 }).toBeGreaterThan(before);
+  });
+
   test.describe('when a background check fails', () => {
     test.use({ allowConsoleErrors: true }); // the page logs the failed check
 
@@ -294,6 +329,45 @@ test.describe('upload page results', () => {
     await expect(rows.nth(1)).toContainText("🚫 Can't upload");
     state.items = [mediaItem(1)]; // the commit mock recorded the HEIC as id 1
     await expect(rows.nth(0)).toContainText('✅ Done', { timeout: 20_000 });
+  });
+
+  test('if the upload slot request fails on Retry, every file in it can be retried', async ({ page }) => {
+    await page.clock.install();
+    const calls = await mockUploadFlow(page, { failFirstCommitFor: 'photo.png' });
+    const state = { failPutFor: 'photo.jpg', failSas: false };
+    // Registered after mockUploadFlow, so these answer first and fall back to it otherwise
+    await page.route(url => url.pathname.endsWith('/catch-media/get-sas'), route =>
+      state.failSas ? route.fulfill({ status: 500, body: '' }) : route.fallback());
+    await page.route(`${FAKE_STORAGE}/put/**`, route => {
+      if (route.request().url().includes(encodeURIComponent(state.failPutFor || '-'))) {
+        state.failPutFor = null;
+        return route.fulfill({ status: 403, body: 'AuthenticationFailed' });
+      }
+      return route.fallback();
+    });
+    await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    await page.locator('#files').setInputFiles(['photo.png', 'photo.jpg'].map(f => path.join(MEDIA, f)));
+    await page.locator('#uploadBtn').click();
+
+    // photo.png is in storage but its record failed; photo.jpg never reached storage
+    const rows = page.locator('#fileList .file-row');
+    await expect(rows.nth(0)).toContainText('❌ Failed');
+    await expect(rows.nth(1)).toContainText('❌ Failed');
+
+    // 46 minutes later photo.jpg's upload link is too old, so Retry asks for a new one, and that fails
+    await page.clock.fastForward('46:00');
+    state.failSas = true;
+    await page.locator('#retryBtn').click();
+    await expect(rows.nth(0)).toContainText('❌ Failed'); // not stuck on ⏸️ Waiting
+    await expect(rows.nth(1)).toContainText('❌ Failed');
+    await expect(page.locator('#retryBtn')).toHaveText(/Retry 2 Failed Files/);
+
+    state.failSas = false;
+    await page.locator('#retryBtn').click();
+    await expect(page.locator('#successState')).toBeVisible();
+    expect(calls.puts.filter(n => n === 'photo.png'), 'photo.png was only uploaded once').toHaveLength(1);
+    expect(calls.commits.filter(n => n === 'photo.png')).toHaveLength(2);
+    await page.locator('#stayHereBtn').click();
   });
 
   test('the upload log stays collapsed until opened', async ({ page }) => {

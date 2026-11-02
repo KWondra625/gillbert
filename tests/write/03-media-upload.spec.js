@@ -72,6 +72,33 @@ async function waitForNewMedia(before, count, timeout, { finished = ['complete']
   return fresh;
 }
 
+// Reads a stored MP4's video codec, H.264 profile and frame size from the start of the file
+// (conversions write the index first, so it's in the first few hundred KB).
+async function inspectVideo(readUrl) {
+  const res = await fetch(readUrl, { headers: { Range: 'bytes=0-1048575' } });
+  const buf = Buffer.from(await res.arrayBuffer());
+  const has = tag => buf.indexOf(tag, 0, 'latin1') !== -1;
+  const avcC = buf.indexOf('avcC', 0, 'latin1');
+  let width = 0, height = 0;
+  for (let i = buf.indexOf('tkhd', 0, 'latin1'); i !== -1; i = buf.indexOf('tkhd', i + 4, 'latin1')) {
+    const start = i - 4, size = buf.readUInt32BE(start);
+    const w = buf.readUInt32BE(start + size - 8) >>> 16, h = buf.readUInt32BE(start + size - 4) >>> 16;
+    if (w && h) { width = w; height = h; } // the audio track's is 0 x 0
+  }
+  return { h264: has('avc1') && !has('hvc1') && !has('hev1'),
+           profile: avcC === -1 ? null : buf[avcC + 5], width, height };
+}
+
+// Every stored video must play everywhere: H.264 in an 8-bit profile (Baseline 66, Main 77,
+// High 100; not High 10, 110), no larger than 1080p.
+async function expectPlayableVideo(item) {
+  const v = await inspectVideo(item.readUrl);
+  expect(v.h264, `${item.originalFileName} is stored as H.264`).toBe(true);
+  expect([66, 77, 100], `${item.originalFileName} is 8-bit H.264 (profile ${v.profile})`).toContain(v.profile);
+  expect(Math.max(v.width, v.height), `${item.originalFileName} is at most 1080p (${v.width}x${v.height})`).toBeLessThanOrEqual(1920);
+  expect(Math.min(v.width, v.height)).toBeGreaterThan(0);
+}
+
 async function expectServed(item, type) {
   const res = await fetch(item.readUrl);
   expect(res.status, `${item.readUrl} is readable`).toBe(200);
@@ -90,6 +117,7 @@ for (const c of CASES) {
     expect(item.fileSizeInBytes).toBeGreaterThan(0);
     expect(item.readUrl, 'stored in the Staging storage account').toContain(STAGING_STORAGE_HOST);
     await expectServed(item, c.type);
+    if (c.mediaType === 'Video') await expectPlayableVideo(item);
   });
 }
 

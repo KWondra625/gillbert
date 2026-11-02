@@ -37,6 +37,7 @@ test('crop and upload a profile photo for the test angler', async ({ page }) => 
 // A HEIC skips the crop (browsers can't draw it) and is converted to JPEG on the server,
 // through the same Convert Media workflow catch media uses; the save waits for it.
 test('a HEIC profile photo is converted to JPEG', async ({ page }) => {
+  test.setTimeout(150_000); // the conversion wait below allows up to 90 s
   const angler = await testAngler();
   test.skip(!angler, 'no E2E Test Angler on Staging; run 01-lookups first');
   const before = angler.profilePhotoReadUrl;
