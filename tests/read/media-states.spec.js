@@ -784,3 +784,56 @@ test.describe('profile photo HEIC', () => {
     await page.locator('#cropModalClose').click(); // cancel: nothing is saved
   });
 });
+
+// The crop tool (cropperjs 2) saves the crop at the size it's shown on screen (256 px here), not
+// the photo's full resolution, so profile photos stay small. This guards that: a cropperjs
+// upgrade (#29) that changed it would quietly start saving multi-megabyte profile photos.
+test.describe('profile photo size', () => {
+  test('a crop from a big photo is saved small (at most 800 px on its long side)', async ({ page }) => {
+    await unlockAdmin(page);
+    await page.route(url => url.pathname.endsWith('/anglers/get-photo-sas'), route => route.fulfill({ json: {
+      uploadUrl: `${FAKE_STORAGE}/put/crop.jpg?sig=x`, readUrl: `${FAKE_STORAGE}/crop.jpg`,
+      blobPath: 'anglers/1/ABCDEFGH12.jpg', contentType: 'image/jpeg' } }));
+    await page.route(`${FAKE_STORAGE}/put/**`, route => route.fulfill({ status: 201, body: '' }));
+    // Measures the uploaded image in the page (WebKit doesn't expose file request bodies to the test)
+    await page.addInitScript(() => {
+      const realFetch = window.fetch;
+      window.fetch = async (url, opts = {}) => {
+        if (opts.method === 'PUT' && opts.body instanceof Blob) {
+          const bmp = await createImageBitmap(opts.body);
+          window.__uploadedSize = { w: bmp.width, h: bmp.height };
+        }
+        return realFetch(url, opts);
+      };
+    });
+    // Read-only: answers the save itself, so nothing reaches Staging
+    await page.route(url => url.pathname.endsWith('/anglers/save-photo'), route =>
+      route.fulfill({ json: { success: true, readUrl: `${FAKE_STORAGE}/crop.jpg` } }));
+    await page.route(`${FAKE_STORAGE}/crop.jpg`, route => route.fulfill({ contentType: 'image/gif',
+      body: Buffer.from('R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==', 'base64') }));
+    await page.goto('edit-angler.html?id=1');
+    await expect(page.locator('#anglerForm')).toBeVisible();
+
+    // A 4000 x 3000 photo, made in the page (a phone camera's size)
+    await page.evaluate(async () => {
+      const c = document.createElement('canvas');
+      c.width = 4000; c.height = 3000;
+      const g = c.getContext('2d');
+      g.fillStyle = '#2a6'; g.fillRect(0, 0, 4000, 3000);
+      g.fillStyle = '#fff'; g.fillRect(1000, 750, 2000, 1500);
+      const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.9));
+      const dt = new DataTransfer();
+      dt.items.add(new File([blob], 'big.jpg', { type: 'image/jpeg' }));
+      const input = document.getElementById('profilePhotoInput');
+      input.files = dt.files;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await expect(page.locator('#cropModal')).toHaveClass(/open/);
+    await page.locator('#cropConfirmBtn').click();
+    await expect.poll(() => page.evaluate(() => window.__uploadedSize || null)).not.toBeNull();
+    const { w, h } = await page.evaluate(() => window.__uploadedSize);
+    expect(Math.max(w, h), `saved crop is ${w}x${h}`).toBeLessThanOrEqual(800);
+    expect(Math.min(w, h)).toBeGreaterThan(100);
+  });
+});
+
