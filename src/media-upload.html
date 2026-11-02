@@ -58,8 +58,12 @@
       </div>
     </div>
 
-    <!-- Activity log — persists across states -->
-    <br /><div id="log" class="log"></div>
+    <!-- Activity log — persists across states. Collapsed by default: the per-file rows say
+         the same thing; this keeps the raw details (errors included) for troubleshooting. -->
+    <details class="log-details">
+      <summary>Upload log</summary>
+      <div id="log" class="log"></div>
+    </details>
 
     <!-- Kept as the last element on the page so it stays below the activity log -->
     <a id="backToCatch" href="#" class="back-button">← Back to Catch</a>

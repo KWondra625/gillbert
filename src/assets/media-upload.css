@@ -190,12 +190,21 @@ input[type="file"]::file-selector-button {
   margin-bottom: 16px;
 }
 
-.log:empty {
+.log-details {
+  margin-top: 16px;
+  text-align: left;
+}
+
+/* Nothing logged yet: hide the toggle too */
+.log-details:has(.log:empty) {
   display: none;
 }
 
-.log--collapsed {
-  display: none;
+.log-details summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 8px;
 }
 
 /* Per-file upload results */

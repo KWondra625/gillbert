@@ -209,6 +209,21 @@ test.describe('upload page results', () => {
     await page.locator('#stayHereBtn').click();
   });
 
+  test('the upload log stays collapsed until opened', async ({ page }) => {
+    await mockUploadFlow(page);
+    await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    await expect(page.locator('.log-details')).toBeHidden(); // nothing logged yet
+    await page.locator('#files').setInputFiles(path.join(MEDIA, 'photo.jpg'));
+    await page.locator('#uploadBtn').click();
+    await expect(page.locator('#successState')).toBeVisible();
+    await page.locator('#stayHereBtn').click();
+
+    await expect(page.locator('.log-details summary')).toHaveText('Upload log');
+    await expect(page.locator('#log')).toBeHidden();
+    await page.locator('.log-details summary').click();
+    await expect(page.locator('#log')).toContainText('photo.jpg is in the boat!');
+  });
+
   test('a file that fails to record keeps the others, and retry only re-records it', async ({ page }) => {
     const calls = await mockUploadFlow(page, { failFirstCommitFor: 'photo.png' });
     await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
