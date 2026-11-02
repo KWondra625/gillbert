@@ -94,11 +94,11 @@ function escapeHtml(s) {
   }[m]));
 }
 
-function formatDate(value) {
+// "Caught When" exactly as the catch detail page shows it (formatCaughtWhenFull, date-format.js)
+function formatCaughtWhen(value) {
   if (!value) return '';
   const d = new Date(value);
-  if (isNaN(d.getTime())) return value;
-  return d.toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+  return isNaN(d.getTime()) ? value : formatCaughtWhenFull(d);
 }
 
 // --- Catch Context Card -------------------------------------------------------
@@ -128,7 +128,7 @@ function renderCatchCard(catchNumber, data) {
     data.anglerName      && ['Angler',       data.anglerName],
     data.fishSpeciesName && ['Species',       data.fishSpeciesName],
     data.bodyOfWaterName && ['Body of Water', data.bodyOfWaterName],
-    data.caughtWhen      && ['Caught When',   formatDate(data.caughtWhen)],
+    data.caughtWhen      && ['Caught When',   formatCaughtWhen(data.caughtWhen)],
   ].filter(Boolean);
 
   el.catchCard.innerHTML = `

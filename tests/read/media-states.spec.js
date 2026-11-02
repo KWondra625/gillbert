@@ -736,6 +736,25 @@ test.describe('media badges', () => {
   });
 });
 
+test.describe('upload page catch card', () => {
+  test('shows Caught When like the catch detail page, without a made-up 12:00 AM', async ({ page }) => {
+    const [first] = await getCatches();
+    const dates = await page.evaluate(() => {
+      const at = (daysAgo, h, m) => { const d = new Date(Date.now() - daysAgo * 86400000); d.setHours(h, m, 0, 0); return d.toISOString(); };
+      return { withTime: at(40, 12, 27), dateOnly: at(40, 0, 0) };
+    });
+    const when = page.locator('.catch-card-row:has(.catch-card-label:text("Caught When")) .catch-card-value');
+    for (const [kind, caughtWhen] of Object.entries(dates)) {
+      await page.unroute(url => url.pathname.endsWith('/get-catches')).catch(() => {});
+      await page.route(url => url.pathname.endsWith('/get-catches'), route => route.fulfill({ json: [{ ...first, caughtWhen }] }));
+      await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(first.catchNumber)}`);
+      const text = (await when.textContent()).trim();
+      if (kind === 'withTime') expect(text).toMatch(/^[A-Z][a-z]+ \d{1,2}, \d{4} at 12:27 PM$/); // e.g. "September 23, 2026 at 12:27 PM"
+      else expect(text, 'no time for a date-only catch').toMatch(/^[A-Z][a-z]+ \d{1,2}, \d{4}$/);
+    }
+  });
+});
+
 test.describe('profile photo HEIC', () => {
   test.use({ allowConsoleErrors: true }); // the failed conversion logs its error
 

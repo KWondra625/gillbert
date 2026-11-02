@@ -111,7 +111,7 @@ function formatCaughtWhen(value) {
   const d = new Date(value);
   if (isNaN(d.getTime())) return escapeHtml(String(value));
 
-  return hasExplicitTime(d) ? formatDateTime(value) : escapeHtml(formatDateLabel(d));
+  return escapeHtml(formatCaughtWhenFull(d));
 }
 
 function formatValue(key, value) {
