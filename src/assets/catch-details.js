@@ -621,6 +621,8 @@ let lastMediaSignature = null;
 let latestMediaRequest = 0;  // numbers each load; an older one that answers late is ignored
 let mediaLoadedOnce = false;  // after the first good load, a failed refresh keeps what's shown
 let mediaRefreshWarned = false;
+let mediaRefreshRetries = 0;  // tries after a failed refresh when nothing is converting
+const MEDIA_REFRESH_RETRIES = 6; // 10 s apart: about a minute
 let lastMediaItems = [];     // the last list the server returned, for polling through a failed check
 let deferredMediaItems = null; // a changed list held back while the lightbox was open
 
@@ -668,11 +670,22 @@ async function loadCatchMedia(catchNumber, { quiet = false } = {}) {
       mediaRefreshWarned = true;
       setStatus("Couldn't refresh the media just now; still checking.", true);
     }
-    scheduleMediaPoll(catchNumber, lastMediaItems);
+    if (lastMediaItems.some(isConverting)) {
+      scheduleMediaPoll(catchNumber, lastMediaItems);
+    } else if (mediaRefreshWarned && mediaRefreshRetries < MEDIA_REFRESH_RETRIES) {
+      // Nothing is converting, so the usual polling won't run; the list on screen may
+      // still be out of date (e.g. a deleted file), so try again a few times.
+      mediaRefreshRetries++;
+      clearTimeout(mediaPollTimer);
+      mediaPollTimer = setTimeout(() => loadCatchMedia(catchNumber, { quiet: true }), MEDIA_POLL_MS);
+    } else if (mediaRefreshWarned) {
+      setStatus("Couldn't refresh the media. Reload the page to see the latest.", true);
+    }
     return;
   }
   if (loaded) {
     mediaLoadedOnce = true;
+    mediaRefreshRetries = 0;
     if (mediaRefreshWarned) { mediaRefreshWarned = false; setStatus(''); }
   }
 

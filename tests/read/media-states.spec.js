@@ -239,6 +239,31 @@ test.describe('catch page media states', () => {
       await expect(page.locator('#status')).toContainText('Delete failed');
       await expect(page.locator('.media-tile--failed')).toHaveCount(1);
     });
+
+    test('if the reload after a delete fails, the page tries again and the file goes', async ({ page }) => {
+      await unlockAdmin(page);
+      const state = { items: [mediaItem(7), mediaItem(8)], fail: 0 };
+      await page.route(url => url.pathname.endsWith('/catch-media/get'), route => {
+        if (state.fail > 0) { state.fail--; return route.fulfill({ status: 500, body: '' }); }
+        return route.fulfill({ json: state.items });
+      });
+      await page.route(`${FAKE_STORAGE}/**`, route => route.fulfill({ contentType: 'image/gif', body: Buffer.from('R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==', 'base64') }));
+      await page.route(url => url.pathname.endsWith('/catch-media/delete'), route => {
+        state.items = [mediaItem(7)];
+        state.fail = 1; // the reload right after the delete fails
+        return route.fulfill({ json: { success: true } });
+      });
+      await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+      await expect(page.locator('.media-tile--photo')).toHaveCount(2);
+
+      await page.locator('#manageMediaBtn').click(); // Manage Media shows the delete buttons
+      await page.locator('.media-delete-btn[data-media-id="8"]').click();
+      await page.locator('#deleteMediaConfirm').click();
+      await expect(page.locator('#status')).toContainText("Couldn't refresh the media");
+      // Nothing is converting, yet the page checks again (10 s) and the deleted file goes
+      await expect(page.locator('.media-tile--photo')).toHaveCount(1, { timeout: 20_000 });
+      await expect(page.locator('#status')).not.toContainText("Couldn't refresh");
+    });
   });
 });
 
