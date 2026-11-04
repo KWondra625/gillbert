@@ -3,7 +3,7 @@ const COMMIT_WEBHOOK_URL = N8N_BASE_URL + WEBHOOK_PATH + "gillbert/catch-media/c
 const LOOKUP_URL         = API_BASE + 'get-lookup-data';
 const CATCH_MEDIA_GET_URL = API_BASE + "catch-media/get";
 
-const REDIRECT_DELAY = 15; // seconds, starting once every file is uploaded and recorded
+const REDIRECT_DELAY = 10; // seconds, starting once every file is uploaded and recorded
 const PARALLEL_UPLOADS = 3; // files sent to storage at once
 
 // Same rules as the upload-slot workflow (POST Generate SAS Token). Checked here first so one
@@ -65,6 +65,13 @@ const el = {
 
 function getCatchNumberFromUrl() {
   return new URLSearchParams(window.location.search).get('catchNumber');
+}
+
+// The catch page's back button goes where you came from (?from=list etc.); pass it through
+// so a round trip via this page doesn't reset it to Home. The catch page allowlists values.
+function catchDetailsUrl(catchNumber) {
+  const from = new URLSearchParams(window.location.search).get('from');
+  return `./catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}${from ? `&from=${encodeURIComponent(from)}` : ''}`;
 }
 
 function setStatus(msg) {
@@ -332,7 +339,7 @@ function updateSuccessMessage() {
 }
 
 function startSuccessCountdown(catchNumber) {
-  const detailsUrl = `./catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`;
+  const detailsUrl = catchDetailsUrl(catchNumber);
   el.successBackBtn.href = detailsUrl;
   updateSuccessMessage();
 
@@ -536,8 +543,7 @@ window.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
-  const detailsUrl = `./catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`;
-  el.backToCatch.href = detailsUrl;
+  el.backToCatch.href = catchDetailsUrl(catchNumber);
 
   loadCatchDetails(catchNumber);
 

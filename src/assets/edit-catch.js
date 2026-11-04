@@ -37,6 +37,13 @@ function getCatchNumberFromUrl() {
   return new URLSearchParams(window.location.search).get('catchNumber');
 }
 
+// The catch page's back button goes where you came from (?from=list etc.); pass it through
+// so Edit → Save/Cancel doesn't reset it to Home. The catch page allowlists values.
+function catchDetailsUrl(catchNumber) {
+  const from = new URLSearchParams(window.location.search).get('from');
+  return `./catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}${from ? `&from=${encodeURIComponent(from)}` : ''}`;
+}
+
 // ── Load catch + lookups ─────────────────────────────────────────────────────
 
 async function loadEditCatch() {
@@ -51,7 +58,7 @@ async function loadEditCatch() {
   }
 
   el.retryBtn.classList.remove('hidden');
-  el.cancelLink.href = `./catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`;
+  el.cancelLink.href = catchDetailsUrl(catchNumber);
 
   try {
     const [lookupRes, catchRes] = await Promise.all([
@@ -193,7 +200,7 @@ async function submit() {
       throw new Error(data.message || 'Unable to save changes. Please try again.');
     }
 
-    window.location.href = `./catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`;
+    window.location.href = catchDetailsUrl(catchNumber);
   } catch (err) {
     console.error('Save catch failed:', err);
     showState('formState', STATE_IDS);

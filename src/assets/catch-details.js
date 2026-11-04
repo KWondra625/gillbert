@@ -155,6 +155,13 @@ function getCatchNumberFromUrl() {
   return params.get('catchNumber');
 }
 
+// "&from=…" to pass to pages that link back here (Upload Media, Edit), so returning keeps the
+// back button pointed where the visitor came from
+function fromSuffix() {
+  const from = new URLSearchParams(window.location.search).get('from');
+  return from ? `&from=${encodeURIComponent(from)}` : '';
+}
+
 function setupBackNavigation() {
   const params = new URLSearchParams(window.location.search);
   const from = params.get('from');
@@ -362,7 +369,7 @@ function renderDetails(catchData) {
       </div>
       <div class="detail-card-footer">
         <div class="detail-card-footer-admin">
-          <a href="./edit-catch.html?catchNumber=${encodeURIComponent(catchNumber)}" id="editCatchLink" class="edit-catch-trigger hidden">✏️ Edit</a>
+          <a href="./edit-catch.html?catchNumber=${encodeURIComponent(catchNumber)}${fromSuffix()}" id="editCatchLink" class="edit-catch-trigger hidden">✏️ Edit</a>
           <button id="verifyToggle" class="verify-toggle-trigger hidden ${isVerified ? 'verify-toggle-trigger--verified' : 'verify-toggle-trigger--pending'}">${isVerified ? '🔓 ↩️ Unverify' : '🔓 ✅ Verify'}</button>
           <button id="manageMediaBtn" class="manage-media-trigger hidden${isMediaEditMode ? ' manage-media-trigger--active' : ''}">${isMediaEditMode ? '✖ Done' : '🔓 🗑️ Manage Media'}</button>
         </div>
@@ -831,7 +838,7 @@ function renderMedia(items) {
   if (!container) return;
 
   const catchNumber = getCatchNumberFromUrl();
-  const uploadBtn = `<a href="./media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}" class="detail-upload-btn">⬆️ Upload Media</a>`;
+  const uploadBtn = `<a href="./media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}${fromSuffix()}" class="detail-upload-btn">⬆️ Upload Media</a>`;
 
   const photos = items.filter(m => m.mediaType === 'Photo');
   const videos = items.filter(m => m.mediaType === 'Video');

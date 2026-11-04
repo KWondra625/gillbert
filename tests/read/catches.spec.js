@@ -235,6 +235,20 @@ test.describe('catch detail', () => {
     await page.locator('#deleteMediaCancel').click();
   });
 
+  test('Upload Media and Edit pass along where you came from, so the way back keeps it', async ({ page }) => {
+    const c = catches[0];
+    await unlockAdmin(page);
+    await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(c.catchNumber)}&from=list`);
+    await expect(page.locator('.detail-upload-btn')).toHaveAttribute('href', /&from=list$/);
+    await expect(page.locator('#editCatchLink')).toHaveAttribute('href', /&from=list$/);
+    // Edit's Cancel leads back to the catch with the same back button target
+    await page.goto(`edit-catch.html?catchNumber=${encodeURIComponent(c.catchNumber)}&from=list`);
+    await expect(page.locator('#cancelLink')).toHaveAttribute('href', /catch-details\.html\?catchNumber=.*&from=list$/);
+    await page.locator('#cancelLink').click();
+    await expect(page.locator('.top-home-link')).toHaveAttribute('href', './catches-listing.html');
+    await expect(page.locator('.top-home-link')).toHaveText('← Catches');
+  });
+
   test('hides Edit from a visitor and shows it to an admin', async ({ page }) => {
     const c = catches[0];
     const url = `catch-details.html?catchNumber=${encodeURIComponent(c.catchNumber)}`;
