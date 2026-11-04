@@ -1,6 +1,6 @@
 // Media Activity: admin-only list of every catch media upload with its status, so failed
-// or stuck conversions stand out (with Retry/Delete), plus an on-demand storage check for
-// files that have no media record (#10, #16).
+// or stuck conversions stand out (with Retry/Delete), plus a storage check for files that
+// have no media record (#10, #16). Two tabs; the storage check runs by itself on load.
 
 const CATCH_MEDIA_GET_URL    = API_BASE + "catch-media/get";
 const CATCH_MEDIA_RETRY_URL  = API_BASE + "catch-media/retry";
@@ -22,7 +22,15 @@ const STATUS_LABELS = {
 const el = {
   errorMsg:     document.getElementById('errorMsg'),
   retryLoadBtn: document.getElementById('retryLoadBtn'),
-  summary:      document.getElementById('summary'),
+  statTotal:          document.getElementById('statTotal'),
+  statAttention:      document.getElementById('statAttention'),
+  statAttentionTile:  document.getElementById('statAttentionTile'),
+  statConverting:     document.getElementById('statConverting'),
+  statConvertingTile: document.getElementById('statConvertingTile'),
+  statStorage:        document.getElementById('statStorage'),
+  statStorageTile:    document.getElementById('statStorageTile'),
+  uploadsTabCount:    document.getElementById('uploadsTabCount'),
+  storageTabCount:    document.getElementById('storageTabCount'),
   status:       document.getElementById('status'),
   mediaList:    document.getElementById('mediaList'),
   showMoreBtn:  document.getElementById('showMoreBtn'),
@@ -109,11 +117,41 @@ function armOrRun(button, label, run) {
 function renderSummary() {
   const attention = allMedia.filter(needsAttention).length;
   const converting = allMedia.filter(isConverting).length;
-  el.summary.innerHTML = `
-    <span><strong>${allMedia.length}</strong> uploads</span>
-    <span class="${attention ? 'summary-alert' : ''}"><strong>${attention}</strong> need attention</span>
-    <span><strong>${converting}</strong> converting</span>`;
+  el.statTotal.textContent = allMedia.length;
+  el.statAttention.textContent = attention;
+  el.statConverting.textContent = converting;
+  el.statAttentionTile.classList.toggle('stat-tile--alert', attention > 0);
+  el.statConvertingTile.classList.toggle('stat-tile--warn', converting > 0);
+  el.uploadsTabCount.textContent = `(${allMedia.length})`;
 }
+
+// ── Tabs + tiles ───────────────────────────────────────────────────────
+
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(tab => {
+    const active = tab.dataset.tab === name;
+    tab.classList.toggle('tab--active', active);
+    tab.setAttribute('aria-selected', String(active));
+  });
+  document.getElementById('uploadsPanel').classList.toggle('hidden', name !== 'uploads');
+  document.getElementById('storagePanel').classList.toggle('hidden', name !== 'storage');
+}
+
+function setFilter(name) {
+  filter = name;
+  shown = PAGE_SIZE;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('filter-chip--active', c.dataset.filter === name));
+  renderList();
+}
+
+document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => showTab(tab.dataset.tab)));
+
+// Each tile jumps to what it counts: a filter on the Uploads tab, or the Storage Check tab
+document.querySelectorAll('.stat-tile').forEach(tile => tile.addEventListener('click', () => {
+  if (tile.dataset.goto === 'storage') return showTab('storage');
+  showTab('uploads');
+  setFilter(tile.dataset.goto);
+}));
 
 function renderList() {
   const filtered = allMedia.filter(m =>
@@ -136,20 +174,25 @@ function renderList() {
       </div>` : '';
     const error = m.errorMessage && status !== 'complete'
       ? `<div class="row-error">${escapeHtml(m.errorMessage)}</div>` : '';
+    const type = String(m.mediaType || '').toLowerCase();
+    const typeIcon = type === 'video' ? '🎬 ' : type === 'photo' ? '📷 ' : '';
+    const by = m.uploadedByAnglerName ? ` <span class="row-by">by ${escapeHtml(m.uploadedByAnglerName)}</span>` : '';
+    // One markup for both layouts: wide screens lay the cells out as table columns,
+    // phones as a card (see media-activity.css).
     return `
       <li class="media-row media-row--${status}">
-        <div class="row-main">
-          <a class="row-catch" href="${catchUrl}">${escapeHtml(m.catchNumber || 'Unknown catch')}</a>
-          <span class="row-status">${STATUS_LABELS[status] || escapeHtml(status)}</span>
+        <span class="row-status">${STATUS_LABELS[status] || escapeHtml(status)}</span>
+        <a class="row-catch" href="${catchUrl}">${escapeHtml(m.catchNumber || 'Unknown catch')}</a>
+        <div class="row-body">
+          <div class="row-file">${escapeHtml(m.originalFileName || m.blobPath || '')}</div>
+          ${error}
         </div>
-        <div class="row-file">${escapeHtml(m.originalFileName || m.blobPath || '')}</div>
-        <div class="row-meta">${escapeHtml([
-          formatDateTime(m.uploadedAt),
-          m.uploadedByAnglerName ? `by ${m.uploadedByAnglerName}` : '',
-          m.mediaType,
-          formatSize(m.fileSizeInBytes),
-        ].filter(Boolean).join(' · '))}</div>
-        ${error}${actions}
+        <div class="row-meta">
+          <span class="meta-type">${type ? typeIcon + escapeHtml(type) : ''}</span>
+          <span class="meta-size">${formatSize(m.fileSizeInBytes)}</span>
+          <span class="meta-when">${escapeHtml(formatDateTime(m.uploadedAt))}${by}</span>
+        </div>
+        ${actions}
       </li>`;
   }).join('');
 
@@ -185,12 +228,7 @@ async function runRowAction(button, busyLabel, action, doneMsg) {
 }
 
 document.querySelectorAll('.filter-chip').forEach(chip => {
-  chip.addEventListener('click', () => {
-    filter = chip.dataset.filter;
-    shown = PAGE_SIZE;
-    document.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('filter-chip--active', c === chip));
-    renderList();
-  });
+  chip.addEventListener('click', () => setFilter(chip.dataset.filter));
 });
 
 // Catches that have uploads, newest catch number first; keeps the current pick across refreshes
@@ -217,6 +255,22 @@ el.showMoreBtn.addEventListener('click', () => {
 
 let lastScan = null;
 
+// A file written in the last hour may be an upload that's still running (its record is
+// written when the upload finishes), so it's shown but not counted as a problem yet.
+const RECENT_MS = 60 * 60 * 1000;
+const isRecent = f => Boolean(f.lastModified) && Date.now() - new Date(f.lastModified) < RECENT_MS;
+
+// The Storage tile and the tab heading show how the last scan went
+function setStorageSummary(state, issues = 0) {
+  el.statStorage.textContent = state === 'checking' ? 'Checking…'
+    : state === 'error' ? "Couldn't check"
+    : issues ? `${issues} ${issues === 1 ? 'issue' : 'issues'}` : 'All clear ✅';
+  el.statStorageTile.classList.toggle('stat-tile--alert', state === 'error' || (state === 'done' && issues > 0));
+  el.statStorageTile.classList.toggle('stat-tile--ok', state === 'done' && !issues);
+  el.storageTabCount.textContent = state === 'checking' ? '…' : state === 'error' ? '(!)' : issues ? `(${issues})` : '✅';
+  el.storageTabCount.classList.toggle('tab-count--alert', state === 'error' || issues > 0);
+}
+
 function renderScan() {
   const s = lastScan;
   const orphans = s.orphanFiles || [];
@@ -227,12 +281,14 @@ function renderScan() {
   const orphanRows = orphans.map((f, i) => {
     const isPhoto = f.container === 'angler-media';
     const owner = isPhoto ? (f.anglerId ? `Angler #${f.anglerId} profile photo` : 'Profile photo') : f.catchNumber;
+    const recent = isRecent(f);
     const attach = isPhoto ? '' : `
         <button class="row-action" data-orphan="${i}" data-action="attach" data-label="📎 Attach to ${escapeHtml(f.catchNumber || 'catch')}">📎 Attach to ${escapeHtml(f.catchNumber || 'catch')}</button>`;
     return `
-    <li class="media-row media-row--failed">
+    <li class="media-row ${recent ? 'media-row--recent' : 'media-row--failed'}">
       <div class="row-file">${escapeHtml(f.blobPath)}</div>
       <div class="row-meta">${escapeHtml([owner, formatDateTime(f.lastModified), formatSize(f.sizeBytes)].filter(Boolean).join(' · '))}</div>
+      ${recent ? '<div class="row-meta">⏳ Added in the last hour: it may be an upload that is still running. Scan again later before acting on it.</div>' : ''}
       <div class="row-actions">${attach}
         <button class="row-action row-action--danger" data-orphan="${i}" data-action="delete-orphan" data-label="🗑️ Delete file">🗑️ Delete file</button>
       </div>
@@ -249,26 +305,44 @@ function renderScan() {
 
   el.scanResult.innerHTML = `
     <p class="scan-summary">Scanned ${formatDateTime(s.scannedAt)}: ${s.fileCount} files, ${s.rowCount} records.</p>
-    <h3>Files with no record (${orphans.length})</h3>
-    ${orphans.length ? `<ul class="media-list">${orphanRows}</ul>` : '<p class="muted">None 🎉</p>'}
-    <h3>Records with no file (${missing.length})</h3>
-    ${missing.length ? `<ul class="media-list">${missingRows}</ul>` : '<p class="muted">None 🎉</p>'}`;
+    <div class="scan-columns">
+      <div>
+        <h3>Files with no record (${orphans.length})</h3>
+        ${orphans.length ? `<ul class="media-list">${orphanRows}</ul>` : '<p class="muted">None 🎉</p>'}
+      </div>
+      <div>
+        <h3>Records with no file (${missing.length})</h3>
+        ${missing.length ? `<ul class="media-list">${missingRows}</ul>` : '<p class="muted">None 🎉</p>'}
+      </div>
+    </div>`;
   el.scanResult.classList.remove('hidden');
+  setStorageSummary('done', orphans.filter(f => !isRecent(f)).length + missing.length);
 }
 
+// Numbered like the list loads: only the newest scan may draw its result
+let latestScan = 0;
+
 async function scanStorage() {
+  const scanId = ++latestScan;
   el.scanBtn.disabled = true;
   el.scanBtn.textContent = '🔍 Scanning…';
+  setStorageSummary('checking');
   try {
-    lastScan = await postJson(CATCH_MEDIA_ADMIN_URL, { action: 'scan' });
+    const result = await postJson(CATCH_MEDIA_ADMIN_URL, { action: 'scan' });
+    if (scanId !== latestScan) return;
+    lastScan = result;
     renderScan();
   } catch (err) {
+    if (scanId !== latestScan) return;
     console.error(err);
+    setStorageSummary('error');
     el.scanResult.innerHTML = `<p class="status--error">Scan failed: ${escapeHtml(err.message)} ❌</p>`;
     el.scanResult.classList.remove('hidden');
   } finally {
-    el.scanBtn.disabled = false;
-    el.scanBtn.textContent = '🔍 Scan Storage';
+    if (scanId === latestScan) {
+      el.scanBtn.disabled = false;
+      el.scanBtn.textContent = '🔍 Scan Again';
+    }
   }
 }
 
@@ -351,6 +425,9 @@ async function init() {
     return;
   }
   loadMedia();
+  // The storage check takes a few seconds; it runs alongside the list, and the
+  // Storage tile and tab heading update when it's done.
+  scanStorage();
 }
 
 el.retryLoadBtn.addEventListener('click', () => loadMedia());

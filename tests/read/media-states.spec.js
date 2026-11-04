@@ -578,7 +578,15 @@ test.describe('upload page large files', () => {
   });
 });
 
+// The storage check runs by itself when Media Activity opens. Tests that care about its
+// result add their own answer (Playwright tries the newest route first).
+const cleanScan = { success: true, scannedAt: new Date().toISOString(), fileCount: 1, rowCount: 1, orphanFiles: [], missingFiles: [] };
+
 test.describe('media activity page', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.route(url => url.pathname.endsWith('/catch-media/admin'), route => route.fulfill({ json: cleanScan }));
+  });
+
   test('turns away a visitor who isn\'t admin', async ({ page }) => {
     await page.goto('media-activity.html');
     await expect(page.locator('#errorMsg')).toHaveText("You don't have permission to access this page.");
@@ -599,7 +607,10 @@ test.describe('media activity page', () => {
     await expect(rows).toHaveCount(4);
     await expect(rows.nth(0)).toContainText('file-13.jpg');
     await expect(rows.nth(3)).toContainText('file-10.jpg');
-    await expect(page.locator('#summary')).toContainText('2 need attention');
+    await expect(page.locator('#statAttention')).toHaveText('2');
+    await expect(page.locator('#statAttentionTile')).toHaveClass(/stat-tile--alert/);
+    await expect(page.locator('#statConverting')).toHaveText('1');
+    await expect(page.locator('#uploadsTabCount')).toHaveText('(4)');
 
     await page.locator('.filter-chip[data-filter="attention"]').click();
     await expect(rows).toHaveCount(2);
@@ -695,7 +706,10 @@ test.describe('media activity page', () => {
     });
     await page.goto('media-activity.html');
 
-    await page.locator('#scanBtn').click();
+    // Ran by itself; the tab heading and tile show the result
+    await expect(page.locator('#storageTabCount')).toHaveText('(1)');
+    await expect(page.locator('#statStorage')).toHaveText('1 issue');
+    await page.locator('#storageTab').click();
     await expect(page.locator('#scanResult')).toContainText('Files with no record (1)');
     const attach = page.locator('#scanResult .row-action[data-action="attach"]');
     await attach.click();
@@ -721,7 +735,7 @@ test.describe('media activity page', () => {
         missingFiles: [{ container: 'angler-media', anglerId: 7, blobPath: 'anglers/7/ZYXWVUTS98.jpg' }] } });
     });
     await page.goto('media-activity.html');
-    await page.locator('#scanBtn').click();
+    await page.locator('#storageTab').click();
 
     const row = page.locator('#scanResult .media-row').first();
     await expect(row).toContainText('Angler #13 profile photo');
@@ -733,6 +747,64 @@ test.describe('media activity page', () => {
     await del.click();
     await expect.poll(() => deleted).toEqual({ action: 'delete-orphan', container: 'angler-media', blobPath: 'anglers/13/ABCDEFGH12.jpg' });
     await expect(page.locator('#scanResult')).toContainText('Files with no record (0)');
+    // Still one record with no file
+    await expect(page.locator('#statStorage')).toHaveText('1 issue');
+  });
+
+  test('the storage check runs on load, and a file from the last hour isn\'t counted as a problem yet', async ({ page }) => {
+    await unlockAdmin(page);
+    await mockMediaList(page, { items: [mediaItem(30)] });
+    let scans = 0;
+    await page.route(url => url.pathname.endsWith('/catch-media/admin'), async route => {
+      scans++;
+      await new Promise(r => setTimeout(r, 300)); // a scan takes a moment
+      return route.fulfill({ json: { ...cleanScan, orphanFiles: [
+        { blobPath: 'catches/Catch-26-001/NEWNEWNEW1.mov', sizeBytes: 4096, lastModified: new Date().toUTCString(), catchNumber: 'Catch 26-001' },
+      ] } });
+    });
+    await page.goto('media-activity.html');
+
+    // The list shows straight away, on the Uploads tab; the storage tile catches up
+    await expect(page.locator('#mediaList .media-row')).toHaveCount(1);
+    await expect(page.locator('#statStorage')).toHaveText('All clear ✅');
+    await expect(page.locator('#storageTabCount')).toHaveText('✅');
+    await expect(page.locator('#uploadsPanel')).toBeVisible();
+    expect(scans).toBe(1);
+
+    await page.locator('#statStorageTile').click();
+    await expect(page.locator('#storagePanel')).toBeVisible();
+    await expect(page.locator('#uploadsPanel')).toBeHidden();
+    const row = page.locator('#scanResult .media-row');
+    await expect(row).toHaveClass(/media-row--recent/);
+    await expect(row).toContainText('Added in the last hour');
+
+    await page.locator('#scanBtn').click();
+    await expect.poll(() => scans).toBe(2);
+    await expect(page.locator('#scanBtn')).toHaveText('🔍 Scan Again');
+  });
+
+  test('the summary tiles jump to their filter, and the uploader\'s name is set apart', async ({ page }) => {
+    await unlockAdmin(page);
+    await mockMediaList(page, { items: [
+      mediaItem(50, { uploadedByAnglerName: 'Kent S' }),
+      mediaItem(51, { status: 'failed', displayStatus: 'failed' }),
+      mediaItem(52, { status: 'processing', displayStatus: 'processing' }),
+    ] });
+    await page.goto('media-activity.html');
+    const rows = page.locator('#mediaList .media-row');
+    await expect(rows).toHaveCount(3);
+    await expect(page.locator('#mediaList .row-by')).toHaveText('by Kent S');
+
+    await page.locator('#storageTab').click();
+    await page.locator('#statAttentionTile').click();
+    await expect(page.locator('#uploadsPanel')).toBeVisible();
+    await expect(rows).toHaveCount(1);
+    await expect(page.locator('.filter-chip[data-filter="attention"]')).toHaveClass(/filter-chip--active/);
+    await page.locator('#statConvertingTile').click();
+    await expect(rows).toHaveCount(1);
+    await expect(rows).toContainText('Processing');
+    await page.locator('.stat-tile[data-goto="all"]').click();
+    await expect(rows).toHaveCount(3);
   });
 });
 

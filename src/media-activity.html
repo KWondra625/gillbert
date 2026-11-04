@@ -18,7 +18,7 @@
 
     <div class="header">
       <h1>🗂️ Media Activity</h1>
-      <p>Every photo and video upload, newest first, with its status</p>
+      <p>Every photo and video upload, and a check that storage matches the records</p>
     </div>
 
     <!-- ── Loading state ────────────────────────────────────────────── -->
@@ -38,32 +38,53 @@
       </div>
     </div>
 
-    <!-- ── Uploads ──────────────────────────────────────────────────── -->
     <div id="listState" class="hidden">
-      <div id="summary" class="summary"></div>
-
-      <div class="filter-chips" role="group" aria-label="Filter uploads">
-        <button class="filter-chip filter-chip--active" data-filter="all">All</button>
-        <button class="filter-chip" data-filter="attention">⚠️ Needs attention</button>
-        <button class="filter-chip" data-filter="converting">⏳ Converting</button>
+      <!-- Summary tiles: each one jumps to its filter or tab -->
+      <div id="summary" class="stat-strip">
+        <button class="stat-tile" data-goto="all"><span class="stat-num" id="statTotal">0</span><span class="stat-label">uploads</span></button>
+        <button class="stat-tile" data-goto="attention" id="statAttentionTile"><span class="stat-num" id="statAttention">0</span><span class="stat-label">⚠️ need attention</span></button>
+        <button class="stat-tile" data-goto="converting" id="statConvertingTile"><span class="stat-num" id="statConverting">0</span><span class="stat-label">⏳ converting</span></button>
+        <button class="stat-tile stat-tile--text" data-goto="storage" id="statStorageTile"><span class="stat-num" id="statStorage">Checking…</span><span class="stat-label">🧹 storage</span></button>
       </div>
-      <label class="catch-filter">
-        <span>Catch</span>
-        <select id="catchFilter">
-          <option value="">All catches</option>
-        </select>
-      </label>
 
-      <div id="status" class="status" role="status"></div>
-      <ul id="mediaList" class="media-list"></ul>
-      <button id="showMoreBtn" class="secondary-button hidden">Show more</button>
-      <button id="refreshBtn" class="primary-button">🔄 Refresh</button>
+      <div class="tabs" role="tablist">
+        <button class="tab tab--active" role="tab" id="uploadsTab" data-tab="uploads" aria-selected="true" aria-controls="uploadsPanel">📋 Uploads <span class="tab-count" id="uploadsTabCount"></span></button>
+        <button class="tab" role="tab" id="storageTab" data-tab="storage" aria-selected="false" aria-controls="storagePanel">🧹 Storage Check <span class="tab-count" id="storageTabCount">…</span></button>
+      </div>
 
-      <!-- ── Orphans ────────────────────────────────────────────────── -->
-      <section class="info-card orphans-card">
-        <h2>🧹 Storage Check</h2>
-        <p class="card-intro">Compares the files in storage with the records: catch media and anglers' profile photos. Catch files with no record can be attached to their catch or deleted; profile photo files nothing uses can be deleted. Nothing changes until you press a button on a file.</p>
-        <button id="scanBtn" class="secondary-button">🔍 Scan Storage</button>
+      <!-- ── Uploads ────────────────────────────────────────────────── -->
+      <section id="uploadsPanel" role="tabpanel" aria-labelledby="uploadsTab">
+        <div class="toolbar">
+          <div class="filter-chips" role="group" aria-label="Filter uploads">
+            <button class="filter-chip filter-chip--active" data-filter="all">All</button>
+            <button class="filter-chip" data-filter="attention">⚠️ Needs attention</button>
+            <button class="filter-chip" data-filter="converting">⏳ Converting</button>
+          </div>
+          <label class="catch-filter">
+            <span>Catch</span>
+            <select id="catchFilter">
+              <option value="">All catches</option>
+            </select>
+          </label>
+          <span class="toolbar-spacer"></span>
+          <button id="refreshBtn" class="small-button">🔄 Refresh</button>
+        </div>
+
+        <div id="status" class="status" role="status"></div>
+        <!-- Column headings for the wide-screen layout; phones show each upload as a card -->
+        <div class="media-head" aria-hidden="true">
+          <span>Status</span><span>Catch</span><span>File</span><span>Type</span><span>Size</span><span>Uploaded</span><span></span>
+        </div>
+        <ul id="mediaList" class="media-list"></ul>
+        <button id="showMoreBtn" class="secondary-button hidden">Show more</button>
+      </section>
+
+      <!-- ── Storage check ──────────────────────────────────────────── -->
+      <section id="storagePanel" class="hidden" role="tabpanel" aria-labelledby="storageTab">
+        <div class="scan-head">
+          <p class="card-intro">Compares the files in storage with the records: catch media and anglers' profile photos. It runs by itself when the page opens. Catch files with no record can be attached to their catch or deleted; profile photo files nothing uses can be deleted. Nothing changes until you press a button on a file.</p>
+          <button id="scanBtn" class="secondary-button">🔍 Scan Again</button>
+        </div>
         <div id="scanResult" class="scan-result hidden"></div>
       </section>
     </div>
