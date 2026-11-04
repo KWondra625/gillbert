@@ -278,7 +278,7 @@ async function mockUploadFlow(page, { failFirstCommitFor } = {}) {
 test.describe('upload page results', () => {
   test.use({ allowConsoleErrors: true }); // the failed commit below logs its error
 
-  test('each file gets its own result, and the page hands off with a 15 s countdown', async ({ page }) => {
+  test('each file gets its own result, and the page hands off with a 10 s countdown', async ({ page }) => {
     const calls = await mockUploadFlow(page);
     await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
     await page.locator('#files').setInputFiles(['photo.jpg', 'photo.heic', 'video.mp4'].map(f => path.join(MEDIA, f)));
@@ -291,7 +291,7 @@ test.describe('upload page results', () => {
     await expect(rows.nth(1)).toContainText('⏳ Converting');
     await expect(rows.nth(2)).toContainText('⏳ Converting');
     await expect(page.locator('#successMsg')).toContainText('2 files are still converting');
-    await expect(page.locator('#countdown')).toHaveText(/^1[0-5]$/);
+    await expect(page.locator('#countdown')).toHaveText(/^([5-9]|10)$/);
     expect(calls.puts.sort()).toEqual(['photo.heic', 'photo.jpg', 'video.mp4']);
 
     // Stay Here cancels the countdown.
@@ -327,7 +327,7 @@ test.describe('upload page results', () => {
     await expect(page.locator('#successMsg')).toContainText("1 file couldn't be converted");
   });
 
-  test('Go to Catch Now and Stay Here are full-width with space between them', async ({ page }) => {
+  test('Go to Catch and Stay Here are full-width with space between them', async ({ page }) => {
     await mockUploadFlow(page);
     await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
     await page.locator('#files').setInputFiles(path.join(MEDIA, 'photo.jpg'));
@@ -441,6 +441,18 @@ test.describe('upload page results', () => {
 
     await page.evaluate(() => window.__lock.resolve()); // the lock finally arrives
     await expect.poll(() => page.evaluate(() => window.__lock.released)).toBe(true);
+  });
+
+  test('the way back to the catch keeps where you came from (?from=)', async ({ page }) => {
+    await mockUploadFlow(page);
+    await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}&from=list`);
+    const expected = `catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}&from=list`;
+    await expect(page.locator('#backToCatch')).toHaveAttribute('href', `./${expected}`);
+    await page.locator('#files').setInputFiles(path.join(MEDIA, 'photo.jpg'));
+    await page.locator('#uploadBtn').click();
+    await expect(page.locator('#successBackBtn')).toHaveText('← Go to Catch');
+    await expect(page.locator('#successBackBtn')).toHaveAttribute('href', `./${expected}`);
+    await page.locator('#stayHereBtn').click();
   });
 
   test('the upload log stays collapsed until opened', async ({ page }) => {
@@ -731,7 +743,7 @@ test.describe('media badges', () => {
       { ...first, catchMediaCount: 2, catchMediaProcessingCount: 3 },
     ] }));
     await page.goto('catches-listing.html');
-    const badges = page.locator('#catchesContainer .catch-card').first().locator('.card-footer-badges');
+    const badges = page.locator('#catchesContainer .catch-card').first().locator('.card-button');
     await expect(badges).toContainText('📷 2');
     await expect(badges.locator('.badge-media--converting')).toHaveText('⏳ 3');
   });
@@ -742,7 +754,7 @@ test.describe('media badges', () => {
       { ...first, catchMediaCount: 1, catchMediaProcessingCount: 1 },
     ] }));
     await page.goto('catches-listing.html');
-    const badges = page.locator('#catchesContainer .catch-card').first().locator('.card-footer-badges .badge-media');
+    const badges = page.locator('#catchesContainer .catch-card').first().locator('.card-button .badge-media');
     await expect(badges).toHaveText(['📷', '⏳']);
   });
 
@@ -762,7 +774,7 @@ test.describe('media badges', () => {
     await page.clock.install();
     await mockCounts(page, [first], state);
     await page.goto('catches-listing.html');
-    const badges = page.locator('#catchesContainer .catch-card').first().locator('.card-footer-badges .badge-media');
+    const badges = page.locator('#catchesContainer .catch-card').first().locator('.card-button .badge-media');
     await expect(badges).toHaveText(['📷', '⏳ 2']);
 
     state.media = 3; state.converting = 0; // both finished
@@ -779,7 +791,7 @@ test.describe('media badges', () => {
     const state = { media: 1, converting: 0, requests: 0 };
     await mockCounts(page, [first], state);
     await page.goto('catches-listing.html');
-    const badges = page.locator('#catchesContainer .catch-card').first().locator('.card-footer-badges .badge-media');
+    const badges = page.locator('#catchesContainer .catch-card').first().locator('.card-button .badge-media');
     await expect(badges).toHaveText(['📷']);
 
     // What the browser fires when it restores the page from its back/forward cache
@@ -801,7 +813,7 @@ test.describe('media badges', () => {
     await expect(badges).toHaveText(['📷 2', '⏳ 2']);
   });
 
-  test("each card shows its angler's photo in the header and 📷 / ⏳ in the footer (#27)", async ({ page }) => {
+  test("each card shows its angler's photo in the header and 📷 / ⏳ inside View Details (#27)", async ({ page }) => {
     const [first] = await getCatches();
     const lookups = await getLookups();
     await page.route(url => url.pathname.endsWith('/get-lookup-data'), route => route.fulfill({ json: [{ ...lookups,
@@ -820,8 +832,8 @@ test.describe('media badges', () => {
     await expect(cards).toHaveCount(2);
     await expect(cards.nth(0).locator('.catch-angler-photo')).toHaveAttribute('src', `${FAKE_STORAGE}/face.jpg`);
     await expect(cards.nth(1).locator('.catch-angler-photo'), 'no empty circle without a photo').toHaveCount(0);
-    // Badges live in the footer; the header keeps only 🆕
-    await expect(cards.nth(0).locator('.card-footer-badges .badge-media')).toHaveText(['📷 3', '⏳']);
+    // Badges ride inside the View Details button; the header keeps only 🆕
+    await expect(cards.nth(0).locator('.card-button .badge-media')).toHaveText(['📷 3', '⏳']);
     await expect(cards.nth(0).locator('.catch-badges .badge-media')).toHaveCount(0);
     await expect(cards.nth(0).locator('.catch-badges')).toContainText('🆕');
     // Headers line up whether or not there's a photo

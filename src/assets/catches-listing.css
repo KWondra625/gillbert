@@ -299,27 +299,21 @@ body {
   padding: 12px 20px;
   border-top: 1px solid #f0f0f0;
   background: #fafafa;
-  /* 📷 / ⏳ on the left, View Details on the right */
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
   text-align: center;
 }
 
-.card-footer-badges {
-  display: flex;
-  gap: 6px;
-}
-
-/* On the light footer, the media badges get a soft blue fill instead of the header's white */
-.card-footer-badges .badge-media {
-  background: #eef7ff;
-  box-shadow: inset 0 0 0 1px #d6ecff;
+/* 📷 / ⏳ ride inside the View Details button (#27), as small white pills on its gradient */
+.card-button .badge-media {
+  padding: 1px 8px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #1f8ad6;
+  font-size: 12px;
 }
 
 .card-button {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   padding: 10px 16px;
   background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
   color: white;

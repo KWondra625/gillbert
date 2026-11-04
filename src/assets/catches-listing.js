@@ -279,12 +279,10 @@ function renderCatchCard(catchData) {
         ${!verifiedAt ? '<div class="catch-pending-row"><span class="badge-pending" title="Not yet reviewed">⏳ Pending Review</span></div>' : ''}
       </div>
       <div class="catch-card-footer">
-        <div class="card-footer-badges">
+        <a href="./catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}&from=list" class="card-button">
+          <span>🔍 View Details</span>
           ${catchMediaCount > 0 ? `<span class="badge-media" title="${catchMediaCount} attachment${catchMediaCount === 1 ? '' : 's'}">📷${catchMediaCount > 1 ? ` ${catchMediaCount}` : ''}</span>` : ''}
           ${catchMediaProcessingCount > 0 ? `<span class="badge-media badge-media--converting" title="${catchMediaProcessingCount} still converting">⏳${catchMediaProcessingCount > 1 ? ` ${catchMediaProcessingCount}` : ''}</span>` : ''}
-        </div>
-        <a href="./catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}&from=list" class="card-button">
-          🔍 View Details
         </a>
       </div>
     </div>
