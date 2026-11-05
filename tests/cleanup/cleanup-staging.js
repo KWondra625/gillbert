@@ -49,15 +49,18 @@ const isTestCatch = c => (c.notes || '').includes(NOTES_MARKER) || isTestName(c.
 const sqlString = s => `'${s.replace(/'/g, "''")}'`;
 
 // Every table the row step touches, and how it recognizes a test row.
-const TEST_NAME = `name LIKE ${sqlString(`${NAME_PREFIX} %`)}`;
+const testName = column => `${column} LIKE ${sqlString(`${NAME_PREFIX} %`)}`;
+const TEST_NAME = testName('name');
+// Anglers' name column is display_name since #19 (species and waters keep "name")
+const TEST_ANGLER = testName('display_name');
 const TEST_SESSION = `session_id LIKE ${sqlString(`%${SESSION_MARKER}%`)}`;
 const ROWS = {
   catches: `position(${sqlString(NOTES_MARKER)} in coalesce(notes, '')) > 0
-    OR angler_id IN (SELECT id FROM anglers WHERE ${TEST_NAME})
+    OR angler_id IN (SELECT id FROM anglers WHERE ${TEST_ANGLER})
     OR conversation_id IN (SELECT id FROM conversations WHERE ${TEST_SESSION})`,
   conversations: TEST_SESSION,
   chat_messages: TEST_SESSION,
-  anglers: TEST_NAME,
+  anglers: TEST_ANGLER,
   fish_species: TEST_NAME,
   bodies_of_water: TEST_NAME,
 };

@@ -61,4 +61,9 @@ test('commit: the server sets the public link and type, whatever the browser sen
   expect(row.readUrl).toBe(`https://${process.env.STAGING_STORAGE_ACCOUNT}.blob.core.windows.net/catch-media/${blobPath}`);
   expect(row.contentType).toBe('image/png');
   expect(row.mediaType).toBe('Photo');
+
+  // The record points at a file that was never uploaded: remove it through the app, so the
+  // delete layer's media test (which looks for real photos and videos) doesn't pick it up
+  await apiPost('catch-media/delete', { mediaId: row.id });
+  expect((await getCatchMedia(target.catchNumber)).some(m => m.blobPath === blobPath), 'the test record is gone').toBe(false);
 });
