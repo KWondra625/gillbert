@@ -876,6 +876,35 @@ test.describe('media activity page', () => {
     await expect(page.locator('#statStorage')).toHaveText('1 issue');
   });
 
+  test('files with no record can be previewed and opened, when the scan gives a link', async ({ page }) => {
+    await unlockAdmin(page);
+    await mockMediaList(page, { items: [mediaItem(30)] });
+    const old = 'Tue, 27 Oct 2026 01:00:00 GMT';
+    await page.route(url => url.pathname.endsWith('/catch-media/admin'), route => route.fulfill({ json: { ...cleanScan, orphanFiles: [
+      { blobPath: 'catches/Catch-26-001/PHOTO00001.jpg', contentType: 'image/jpeg', readUrl: `${FAKE_STORAGE}/orphan/PHOTO00001.jpg`, lastModified: old, catchNumber: 'Catch 26-001' },
+      { blobPath: 'catches/Catch-26-001/VIDEO00001.mp4', contentType: 'video/mp4', readUrl: `${FAKE_STORAGE}/orphan/VIDEO00001.mp4`, lastModified: old, catchNumber: 'Catch 26-001' },
+      { blobPath: 'catches/Catch-26-001/HEIC000001.heic', contentType: 'image/heic', readUrl: `${FAKE_STORAGE}/orphan/HEIC000001.heic`, lastModified: old, catchNumber: 'Catch 26-001' },
+      { blobPath: 'catches/Catch-26-001/OLDSCAN001.jpg', lastModified: old, catchNumber: 'Catch 26-001' }, // a scan without links
+      { blobPath: 'catches/Catch-26-001/BADLINK001.jpg', contentType: 'image/jpeg', readUrl: 'javascript:alert(1)', lastModified: old, catchNumber: 'Catch 26-001' },
+    ] } }));
+    await page.goto('media-activity.html');
+    await page.locator('#storageTab').click();
+
+    const rows = page.locator('#scanResult .media-row');
+    await expect(rows).toHaveCount(5);
+    // Photo: thumbnail + link, both opening the file in a new tab
+    await expect(rows.nth(0).locator('.orphan-thumb img')).toHaveAttribute('src', `${FAKE_STORAGE}/orphan/PHOTO00001.jpg`);
+    await expect(rows.nth(0).locator('.orphan-open')).toHaveAttribute('href', `${FAKE_STORAGE}/orphan/PHOTO00001.jpg`);
+    await expect(rows.nth(0).locator('.orphan-open')).toHaveAttribute('target', '_blank');
+    // MP4: a first frame; HEIC: a link only (browsers can't show it)
+    await expect(rows.nth(1).locator('.orphan-thumb video')).toHaveAttribute('src', /VIDEO00001\.mp4#t=0\.1$/);
+    await expect(rows.nth(2).locator('.orphan-thumb')).toHaveCount(0);
+    await expect(rows.nth(2).locator('.orphan-open')).toHaveText('👁️ Open file ↗');
+    // No link from the scan, or a link that isn't https: nothing to click
+    await expect(rows.nth(3).locator('.orphan-preview')).toHaveCount(0);
+    await expect(rows.nth(4).locator('.orphan-preview')).toHaveCount(0);
+  });
+
   test('the storage check runs on load, and a file from the last hour isn\'t counted as a problem yet', async ({ page }) => {
     await unlockAdmin(page);
     await mockMediaList(page, { items: [mediaItem(30)] });
