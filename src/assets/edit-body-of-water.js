@@ -306,7 +306,8 @@ async function submit() {
         wbic: null, dnrOfficialName: null, hydrotype: null, landlockCode: null,
         shapeArea: null, shapeLen: null, riverSysName: null, riverSysWbic: null,
         riverRowName: null, waterbodyRowName: null, latitude: null, longitude: null,
-        dnrUrlVerified: true,
+        // No link, so "is the DNR link working?" has no answer.
+        dnrUrlVerified: null,
       };
 
   const payload = {
@@ -327,7 +328,7 @@ async function submit() {
     let data;
     try { data = await res.json(); } catch { data = {}; }
 
-    if (!res.ok || data.success === false) {
+    if (!res.ok || !data.success) {
       throw new Error(data.message || 'Unable to save changes. Please try again.');
     }
 

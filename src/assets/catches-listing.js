@@ -41,6 +41,8 @@ let activeFilters = { angler: '', species: '', water: '', waterId: null, group: 
 // anglerId -> groups[] — built once lookups.anglers loads, so the Group
 // filter can check a catch's angler without re-deriving this per catch.
 let groupsByAnglerId = {};
+// anglerId -> profile photo URL, from the same lookups; shown in each card's header (#27)
+let photoByAnglerId = {};
 
 // Guards against loadLookups() rendering an empty-state flash if it resolves
 // before loadCatches() has populated allCatches for the first time.
@@ -52,6 +54,10 @@ let lookupsLoaded = false;
 // below the full roster. Fetched independently of allCatches so it always
 // reflects every catch, not just whatever the current search term matched.
 let speciesWithCatches = null;
+// Numbers each loadCatches() call so only the newest one renders. Without it, a
+// search typed while the first (unfiltered) load is still in flight can lose to that
+// slower response and show the full list instead of the search results.
+let latestCatchesRequest = 0;
 
 function setStatus(msg) {
   el.status.textContent = msg;
@@ -76,6 +82,7 @@ function escapeHtml(s) {
 }
 
 async function loadCatches() {
+  const requestId = ++latestCatchesRequest;
   try {
     showLoading();
     setStatus("Loading catches...");
@@ -92,6 +99,7 @@ async function loadCatches() {
     if (!res.ok) throw new Error(`GET failed: ${res.status}`);
 
     const data = await res.json();
+    if (requestId !== latestCatchesRequest) return; // a newer load has taken over
 
     // Accept either [{...}] OR { catches: [...] }; filter out null-placeholder rows the API returns on no-results
     allCatches = (Array.isArray(data) ? data : (data.catches || []))
@@ -130,7 +138,9 @@ async function loadCatches() {
     // "no results" flash from filtering against an empty groupsByAnglerId.
     if (!activeFilters.group || lookupsLoaded) applyFilters();
     hideLoading();
+    startBadgePoll();
   } catch (err) {
+    if (requestId !== latestCatchesRequest) return; // a newer load has taken over
     console.error(err);
     setStatus("Failed to load catches ❌");
     el.catchesContainer.innerHTML = `<div class="empty-state"><p>Error loading catches.</p></div>`;
@@ -139,7 +149,7 @@ async function loadCatches() {
   }
 }
 
-function renderPage() {
+function renderPage({ keepScroll = false } = {}) {
   const totalPages = Math.ceil(filteredCatches.length / ITEMS_PER_PAGE);
 
   if (currentPage < 1) currentPage = 1;
@@ -174,8 +184,8 @@ function renderPage() {
   // Show pagination only if there's more than one page
   el.paginationContainer.style.display = totalPages > 1 ? 'flex' : 'none';
 
-  // Scroll to top for better UX
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Scroll to top for better UX (not when only the badges were refreshed)
+  if (!keepScroll) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // formatDateLabel/hasExplicitTime come from date-format.js (shared with
@@ -207,8 +217,11 @@ function renderCatchCard(catchData) {
     createdAt = null,
     bodyOfWaterName = null,
     catchMediaCount = 0,
+    catchMediaProcessingCount = 0,
     verifiedAt = null,
+    anglerId = null,
   } = catchData;
+  const anglerPhotoUrl = anglerId != null ? photoByAnglerId[anglerId] : null;
 
   const now = Date.now();
   const isRecentCatch = caughtWhen && (now - new Date(caughtWhen).getTime()) < 72 * 60 * 60 * 1000;
@@ -218,25 +231,25 @@ function renderCatchCard(catchData) {
   // and absolute-with-time treatments and just show the date.
   const caughtWhenHasTime = caughtWhen && hasExplicitTime(new Date(caughtWhen));
 
+  // Compact so it fits on one line: "Oct 24 at 12:27 PM", with the year only for older
+  // catches ("Jun 24, 2025 at 1:15 PM"); see formatShortDate in date-format.js.
   const caughtWhenDisplay = caughtWhen
     ? !caughtWhenHasTime
-      ? formatDateLabel(new Date(caughtWhen))
+      ? formatShortDateLabel(new Date(caughtWhen))
       : isRecentCatch
         ? getRelativeTime(caughtWhen)
-        : new Date(caughtWhen).toLocaleString('en-US', {
-            month: 'long', day: 'numeric', year: 'numeric',
-            hour: 'numeric', minute: '2-digit', hour12: true,
-          })
+        : `${formatShortDateLabel(new Date(caughtWhen))} at ${new Date(caughtWhen).toLocaleTimeString('en-US', {
+            hour: 'numeric', minute: '2-digit', hour12: true })}`
     : 'Unknown';
 
   return `
     <div class="catch-card">
       <div class="catch-card-header">
         <div class="catch-header-row">
+          ${anglerPhotoUrl ? `<img class="catch-angler-photo" src="${escapeHtml(anglerPhotoUrl)}" alt="" title="${escapeHtml(anglerName)}" loading="lazy" />` : ''}
           <h2 class="catch-id">${escapeHtml(catchNumber)}</h2>
           <div class="catch-badges">
             ${isRecentlyAdded ? '<span class="badge-new" title="Added within the last 24 hours">🆕</span>' : ''}
-            ${catchMediaCount > 0 ? `<span class="badge-media" title="${catchMediaCount} attachment${catchMediaCount === 1 ? '' : 's'}">📷 ${catchMediaCount}</span>` : ''}
           </div>
         </div>
       </div>
@@ -267,7 +280,9 @@ function renderCatchCard(catchData) {
       </div>
       <div class="catch-card-footer">
         <a href="./catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}&from=list" class="card-button">
-          🔍 View Details
+          <span>🔍 View Details</span>
+          ${catchMediaCount > 0 ? `<span class="badge-media" title="${catchMediaCount} attachment${catchMediaCount === 1 ? '' : 's'}">📷${catchMediaCount > 1 ? ` ${catchMediaCount}` : ''}</span>` : ''}
+          ${catchMediaProcessingCount > 0 ? `<span class="badge-media badge-media--converting" title="${catchMediaProcessingCount} still converting">⏳${catchMediaProcessingCount > 1 ? ` ${catchMediaProcessingCount}` : ''}</span>` : ''}
         </a>
       </div>
     </div>
@@ -314,6 +329,7 @@ async function loadLookups() {
     lookups.species = (data.fishSpecies || []).map(s => ({ id: s.id, name: s.displayNameOverride || s.name }));
     lookups.bodiesOfWater = data.bodiesOfWater || [];
     groupsByAnglerId = Object.fromEntries(lookups.anglers.map(a => [a.id, a.groups || []]));
+    photoByAnglerId = Object.fromEntries(lookups.anglers.filter(a => a.profilePhotoReadUrl).map(a => [a.id, a.profilePhotoReadUrl]));
     lookupsLoaded = true;
     buildDropdowns();
     // Only re-filter here if catches have already loaded — otherwise this would
@@ -533,6 +549,61 @@ function setupBackNavigation() {
   el.bottomBackLink.href = href;
   el.bottomBackLink.textContent = `← Back to ${label}`;
 }
+
+
+// ── Live media badges ────────────────────────────────────────────────────────────────────
+// The 📷/⏳ counts are read once with the page. Re-read just those counts (keeping the
+// page, filters and scroll position) when the page comes back from the browser's
+// back/forward cache, and every 30 s while something is converting, for up to 15 minutes.
+const BADGE_POLL_MS = 30 * 1000;
+const BADGE_POLL_LIMIT_MS = 15 * 60 * 1000;
+let badgePollTimer = null;
+let badgePollStartedAt = 0;
+
+async function refreshMediaCounts() {
+  try {
+    const res = await fetch(el.searchInput.value.trim() ? `${CATCHES_GET_URL}?search=${encodeURIComponent(el.searchInput.value.trim())}` : CATCHES_GET_URL, { headers: { 'X-API-Key': API_KEY } });
+    if (!res.ok) return;
+    const data = await res.json();
+    const fresh = new Map((Array.isArray(data) ? data : (data.catches || []))
+      .filter(c => c && c.catchNumber).map(c => [c.catchNumber, c]));
+    let changed = false;
+    for (const c of allCatches) {
+      const f = fresh.get(c.catchNumber);
+      if (!f) continue;
+      if (String(f.catchMediaCount) !== String(c.catchMediaCount) ||
+          String(f.catchMediaProcessingCount) !== String(c.catchMediaProcessingCount)) {
+        c.catchMediaCount = f.catchMediaCount;
+        c.catchMediaProcessingCount = f.catchMediaProcessingCount;
+        changed = true;
+      }
+    }
+    if (changed) renderPage({ keepScroll: true });
+  } catch (err) {
+    console.error('Badge refresh failed:', err);
+  }
+}
+
+function scheduleBadgePoll() {
+  clearTimeout(badgePollTimer);
+  const converting = allCatches.some(c => Number(c.catchMediaProcessingCount) > 0);
+  if (!converting || Date.now() - badgePollStartedAt > BADGE_POLL_LIMIT_MS) return;
+  badgePollTimer = setTimeout(async () => {
+    if (!document.hidden) await refreshMediaCounts();
+    scheduleBadgePoll();
+  }, BADGE_POLL_MS);
+}
+
+function startBadgePoll() {
+  badgePollStartedAt = Date.now();
+  scheduleBadgePoll();
+}
+
+window.addEventListener('pageshow', async e => {
+  if (!e.persisted) return; // a normal load reads fresh counts anyway
+  await refreshMediaCounts();
+  startBadgePoll();
+});
 
 window.addEventListener("DOMContentLoaded", () => {
   setupBackNavigation();

@@ -1,0 +1,72 @@
+# Gillbert automated tests
+
+Playwright tests that run the site **locally against Staging data**. They never touch production.
+
+## Setup (once)
+
+```sh
+cd tests
+npm install
+npx playwright install chromium webkit
+```
+
+## Running
+
+| Command | What it does | Changes data? |
+|---|---|---|
+| `npm test` | Read-only tests on desktop Chrome, Android Chrome and iPhone Safari | No |
+| `npm run test:write` | Layer 2: creates test records and uploads every media type | Yes, Staging only |
+| `npm run test:delete` | Layer 3: deletes test media and a test profile photo | Yes, Staging only |
+| `npm run test:all` | All three layers in order | Yes, Staging only |
+| `npm run test:stress` | Read-only tests twice over with 8 parallel browsers and no retries: a load test for Staging | No |
+| `npm run cleanup` | Shows what test data is on Staging (dry run) | No |
+| `npm run cleanup -- --apply` | Removes all test data from Staging | Yes, Staging only |
+| `npm run report` | Opens the HTML report from the last run | No |
+| `npm run ui` | Opens Playwright's UI mode to run and watch tests | Only write tests, if turned on |
+
+Catch media uploads (every photo and video type) and media deletes only run with `MEDIA_TESTS=1`, since conversions are heavy for the Staging Pi. Real phone files in `media/phone/` are a further opt-in: `PHONE_MEDIA=1`.
+
+Set `SKIP_AI=1` to skip the Ask Gillbert questions, which call Claude and spend API tokens. They run by default. The Catch Chat test (logging a catch by conversation) makes several AI calls, so it only runs with `CATCH_CHAT_TESTS=1`.
+
+A plain `npx playwright test` runs the write and delete tests as **skipped**. Only the `test:write`, `test:delete` and `test:all` scripts turn them on (they set `STAGING_WRITES=1`).
+
+## When to run them
+
+These run by hand, not automatically on pull requests (a deliberate choice for now: the Staging server would gate every merge). The habit:
+
+- **While working on a change:** the tests for the area you touched, plus `npm test`.
+- **Before promoting develop to main:** `npm run test:all` on Staging, then `npm run cleanup -- --apply`. Add `MEDIA_TESTS=1` if the change touches uploads or media.
+- **With every feature change:** add or update the tests that cover it.
+
+## Watching tests
+
+- **UI mode:** `npm run ui` opens a window listing every test; click ▶ to run and watch each go green, and click a test to replay it step by step. Pick the `desktop-chrome` project to keep the load light on the Staging server.
+- **VS Code:** install Microsoft's "Playwright Test for VS Code" extension, then use the Testing panel (beaker icon). Under Playwright, tick only `desktop-chrome`, and tick "Show browser" to watch Chrome run them.
+- **Headed:** add `--headed` to any run to see the browser.
+
+Write tests stay skipped in UI mode and VS Code unless `STAGING_WRITES=1` is set (PowerShell: `$env:STAGING_WRITES="1"; npm run ui`), so a stray click can't change Staging.
+
+## Safety guards
+
+- **Never production.** Every request to a production host (the production API server or the live site, both read from `src/assets/config.js`) is blocked and fails the test. Each page must also report that it talks to Staging, and the API helper refuses to start otherwise. Uploads and deletes to any storage account other than Staging's are blocked too. `read/guards.spec.js` checks that the guards themselves work.
+- **Read-only means read-only.** Tests in `read/` block, and fail on, any call to a save, commit, delete or upload endpoint.
+- **Everything is marked.** Test anglers, species and bodies of water are named `E2E Test …`; test catches carry `[E2E Test]` in their notes or belong to a test angler; chat tests use session ids containing `e2e-test-`, so their conversations and chat memory can be found too. Cleanup removes only those, and only on the Staging server: it checks the SSH host's name before doing anything.
+- **Browser errors fail tests.** Any uncaught error or console error fails the test, which catches breakage a screenshot wouldn't show.
+
+## Layout
+
+```
+read/      Layer 1: pages load, listings, filters, detail pages, forms, API shapes
+write/     Layer 2: create and edit records, upload every media type, profile photo
+delete/    Layer 3: delete media and profile photos, and check the files are gone
+cleanup/   Removes all test data from Staging
+media/     Small test files for every upload type (generate.py recreates them);
+           media/phone/ holds real phone files, git-ignored
+support/   Guards, the local web server, and Staging API helpers
+```
+
+Layers 2 and 3 run one test at a time, in file order. The Staging server is a Raspberry Pi, so everyday runs use 2 parallel browsers. `test:stress` deliberately pushes harder; any Staging call that fails is reported with its status code and Cloudflare ray ID, so an edge rejection can be told apart from an n8n error.
+
+## Cleanup needs SSH
+
+`npm run cleanup` runs SQL on the Staging database over SSH, because the app has no way to delete catches, anglers, species or bodies of water. Copy `.env.example` to `.env` and fill in the SSH login, the server's hostname, the database container and the Staging storage account. Write tests need the storage account too.

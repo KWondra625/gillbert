@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS bodies_of_water (
     longitude double precision,
     notes TEXT,
     wbic integer,
-    dnr_url_verified boolean NOT NULL DEFAULT true,
+    dnr_url_verified boolean,  -- "the DNR lake-page link works"; NULL when no wbic is linked
     dnr_official_name varchar(255),
     hydrotype smallint,
     landlock_code smallint,

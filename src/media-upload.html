@@ -40,6 +40,8 @@
           </div>
           <p id="loadingMsg">Casting your media into the cloud…</p>
         </div>
+        <ul id="fileList" class="file-list hidden"></ul>
+        <button id="retryBtn" class="primary-button hidden">🔁 Retry Failed Files</button>
       </div>
     </div>
 
@@ -47,13 +49,21 @@
     <div id="successState" class="success-state hidden">
       <div class="success-icon">🎣</div>
       <h2 class="success-title">Nice catch!</h2>
-      <p class="success-msg">Your media has been dropped in Gillbert's digital live well and linked to the catch.</p>
-      <p class="success-redirect">Heading back to your catch in <span id="countdown">20</span>s…</p>
-      <a id="successBackBtn" href="#" class="primary-button success-back-btn">← Back to Catch Now</a>
+      <p id="successMsg" class="success-msg">Your media has been dropped in Gillbert's digital live well and linked to the catch.</p>
+      <div id="successFiles"></div>
+      <p id="successRedirect" class="success-redirect">Heading back to your catch in <span id="countdown">15</span>s…</p>
+      <div class="success-actions">
+        <a id="successBackBtn" href="#" class="primary-button success-back-btn">← Go to Catch</a>
+        <button id="stayHereBtn" type="button" class="back-button">Stay Here</button>
+      </div>
     </div>
 
-    <!-- Activity log — persists across states -->
-    <br /><div id="log" class="log"></div>
+    <!-- Activity log — persists across states. Collapsed by default: the per-file rows say
+         the same thing; this keeps the raw details (errors included) for troubleshooting. -->
+    <details class="log-details">
+      <summary>Upload log</summary>
+      <div id="log" class="log"></div>
+    </details>
 
     <!-- Kept as the last element on the page so it stays below the activity log -->
     <a id="backToCatch" href="#" class="back-button">← Back to Catch</a>
@@ -62,6 +72,7 @@
 
   <script src="./assets/config.js"></script>
   <script src="./assets/admin.js"></script>
+  <script src="./assets/date-format.js"></script>
   <script src="./assets/media-upload.js"></script>
 </body>
 </html>

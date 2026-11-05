@@ -1,4 +1,4 @@
-* {
+﻿* {
   box-sizing: border-box;
 }
 
@@ -523,6 +523,58 @@ body {
   opacity: 0.75;
   text-decoration: underline;
   word-break: break-all;
+}
+
+/* Converting / failed media */
+.media-placeholder-sub {
+  color: white;
+  font-size: 11px;
+  opacity: 0.7;
+  overflow-wrap: anywhere;
+}
+
+.media-tile--pending,
+.media-tile--failed {
+  cursor: default;
+}
+
+.media-tile--pending .media-placeholder-icon {
+  animation: media-pending-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes media-pending-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
+.media-tile--failed .media-tile-placeholder {
+  background: rgba(217, 45, 32, 0.25);
+}
+
+.media-tile-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.media-tile-action {
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #1a1a1a;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.media-tile-action:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media-tile--pending .media-placeholder-icon { animation: none; }
 }
 
 /* Broken media */

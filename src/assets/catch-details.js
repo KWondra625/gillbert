@@ -1,6 +1,7 @@
-const CATCH_MEDIA_GET_URL = API_BASE + "catch-media/get";
+﻿const CATCH_MEDIA_GET_URL = API_BASE + "catch-media/get";
 const CATCH_VERIFY_URL    = API_BASE + "catch/verify";
 const CATCH_MEDIA_DELETE_URL = API_BASE + "catch-media/delete";
+const CATCH_MEDIA_RETRY_URL  = API_BASE + "catch-media/retry";
 const LOOKUP_URL          = API_BASE + "get-lookup-data";
 
 // Resolved from the Cloudflare identity once lookups load; null if unmatched
@@ -110,7 +111,7 @@ function formatCaughtWhen(value) {
   const d = new Date(value);
   if (isNaN(d.getTime())) return escapeHtml(String(value));
 
-  return hasExplicitTime(d) ? formatDateTime(value) : escapeHtml(formatDateLabel(d));
+  return escapeHtml(formatCaughtWhenFull(d));
 }
 
 function formatValue(key, value) {
@@ -152,6 +153,13 @@ function camelToLabel(key) {
 function getCatchNumberFromUrl() {
   const params = new URLSearchParams(window.location.search);
   return params.get('catchNumber');
+}
+
+// "&from=…" to pass to pages that link back here (Upload Media, Edit), so returning keeps the
+// back button pointed where the visitor came from
+function fromSuffix() {
+  const from = new URLSearchParams(window.location.search).get('from');
+  return from ? `&from=${encodeURIComponent(from)}` : '';
 }
 
 function setupBackNavigation() {
@@ -361,7 +369,7 @@ function renderDetails(catchData) {
       </div>
       <div class="detail-card-footer">
         <div class="detail-card-footer-admin">
-          <a href="./edit-catch.html?catchNumber=${encodeURIComponent(catchNumber)}" id="editCatchLink" class="edit-catch-trigger hidden">✏️ Edit</a>
+          <a href="./edit-catch.html?catchNumber=${encodeURIComponent(catchNumber)}${fromSuffix()}" id="editCatchLink" class="edit-catch-trigger hidden">✏️ Edit</a>
           <button id="verifyToggle" class="verify-toggle-trigger hidden ${isVerified ? 'verify-toggle-trigger--verified' : 'verify-toggle-trigger--pending'}">${isVerified ? '🔓 ↩️ Unverify' : '🔓 ✅ Verify'}</button>
           <button id="manageMediaBtn" class="manage-media-trigger hidden${isMediaEditMode ? ' manage-media-trigger--active' : ''}">${isMediaEditMode ? '✖ Done' : '🔓 🗑️ Manage Media'}</button>
         </div>
@@ -405,7 +413,7 @@ async function handleVerifyToggle(catchData, button) {
     let data;
     try { data = await res.json(); } catch { data = {}; }
 
-    if (!res.ok || data.success === false) {
+    if (!res.ok || !data.success) {
       throw new Error(data.message || 'Unable to update verification status.');
     }
 
@@ -447,10 +455,11 @@ window.addEventListener("DOMContentLoaded", () => {
   el.lightboxPrev.addEventListener('click', () => navigateLightbox(-1));
   el.lightboxNext.addEventListener('click', () => navigateLightbox(1));
 
-  // Swipe left/right to navigate on touch devices
+  // Swipe left/right to navigate on touch devices. Not on a video: dragging its progress
+  // bar to jump ahead is a sideways drag too, and must not flip to the next item.
   let touchStartX = null;
   el.lightbox.addEventListener('touchstart', (e) => {
-    touchStartX = e.changedTouches[0].clientX;
+    touchStartX = e.target === el.lightboxVideo ? null : e.changedTouches[0].clientX;
   }, { passive: true });
   el.lightbox.addEventListener('touchend', (e) => {
     if (touchStartX == null) return;
@@ -515,10 +524,11 @@ function openDeleteModal() {
   const preview = document.getElementById('deleteMediaPreview');
   const info    = document.getElementById('deleteMediaInfo');
 
-  if (pendingDeleteItem.contentType === 'image/heic') {
+  if (pendingDeleteItem.notViewable || pendingDeleteItem.contentType === 'image/heic') {
     preview.innerHTML = `<div class="dm-preview-placeholder">📷<br>${escapeHtml(pendingDeleteItem.originalFileName || 'HEIC Photo')}</div>`;
   } else if (pendingDeleteItem.mediaType === 'Video') {
-    preview.innerHTML = `<video src="${encodeURI(pendingDeleteItem.readUrl)}" preload="metadata" muted playsinline></video>`;
+    preview.innerHTML = `<video src="${videoPreviewUrl(pendingDeleteItem.readUrl)}" preload="metadata" muted playsinline></video>`;
+    addPreviewFallback(preview.querySelector('video'));
   } else {
     preview.innerHTML = `<img src="${encodeURI(pendingDeleteItem.readUrl)}" alt="Media to delete">`;
   }
@@ -562,9 +572,10 @@ async function handleMediaDelete() {
       body: JSON.stringify({ mediaId: pendingDeleteItem.id }),
     });
 
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Delete failed: ${res.status} ${text}`);
+    let data;
+    try { data = await res.json(); } catch { data = {}; }
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || `Delete failed (${res.status})`);
     }
 
     // Re-fetch and re-render rather than just removing the tile from the DOM:
@@ -584,8 +595,60 @@ async function handleMediaDelete() {
 
 // ─── Media ───────────────────────────────────────────────────────
 
-async function loadCatchMedia(catchNumber) {
+// While any file is still converting, re-check every 10 s and swap tiles in place as they
+// finish. Stops when nothing is converting, or after 10 minutes (a file that takes longer
+// shows as stuck once 30 minutes pass, with Retry).
+const MEDIA_POLL_MS = 10 * 1000;
+const MEDIA_POLL_LIMIT_MS = 10 * 60 * 1000;
+// A video loaded with preload="metadata" often shows only a black box: the browser reads its length
+// and size but draws no picture. "#t=0.1" (a media fragment) asks it to jump to 0.1 s and draw that
+// frame. Needs the storage account to answer range requests (default service version 2020-12-06).
+// Some browsers refuse a fragment and fail to load the video at all (seen in Playwright's WebKit),
+// so on an error the preview reloads without it: at worst the old black box, never a broken video.
+function videoPreviewUrl(url) {
+  return `${encodeURI(url)}#t=0.1`;
+}
+
+function addPreviewFallback(video) {
+  video.addEventListener('error', () => {
+    if (video.src.includes('#t=')) video.src = video.src.replace(/#t=[^#]*$/, '');
+  }, { once: true });
+}
+
+let mediaPollTimer = null;
+let mediaPollStartedAt = null;
+let lastMediaSignature = null;
+let latestMediaRequest = 0;  // numbers each load; an older one that answers late is ignored
+let mediaLoadedOnce = false;  // after the first good load, a failed refresh keeps what's shown
+let mediaRefreshWarned = false;
+let mediaRefreshRetries = 0;  // tries after a failed refresh when nothing is converting
+const MEDIA_REFRESH_RETRIES = 6; // 10 s apart: about a minute
+let lastMediaItems = [];     // the last list the server returned, for polling through a failed check
+let deferredMediaItems = null; // a changed list held back while the lightbox was open
+
+function mediaStatus(item) {
+  return item.displayStatus || item.status || 'complete';
+}
+
+function isConverting(item) {
+  const s = mediaStatus(item);
+  return s === 'submitted' || s === 'processing';
+}
+
+// Returns whether a check was scheduled
+function scheduleMediaPoll(catchNumber, items) {
+  clearTimeout(mediaPollTimer);
+  if (!items.some(isConverting)) { mediaPollStartedAt = null; return false; }
+  if (mediaPollStartedAt == null) mediaPollStartedAt = Date.now();
+  if (Date.now() - mediaPollStartedAt > MEDIA_POLL_LIMIT_MS) return false;
+  mediaPollTimer = setTimeout(() => loadCatchMedia(catchNumber, { quiet: true }), MEDIA_POLL_MS);
+  return true;
+}
+
+async function loadCatchMedia(catchNumber, { quiet = false } = {}) {
+  const requestId = ++latestMediaRequest;
   let items = [];
+  let loaded = false;
   try {
     const url = `${CATCH_MEDIA_GET_URL}?catchNumber=${encodeURIComponent(catchNumber)}`;
     const res = await fetch(url, { headers: { "X-API-Key": API_KEY } });
@@ -594,11 +657,53 @@ async function loadCatchMedia(catchNumber) {
     items = Array.isArray(data) ? data
           : Array.isArray(data.media) ? data.media
           : [];
+    loaded = true;
   } catch (err) {
     console.error('Media load error:', err);
-  } finally {
-    renderMedia(items);
   }
+  // A newer load (e.g. after Retry) started meanwhile: it renders and schedules the next check
+  if (requestId !== latestMediaRequest) return;
+
+  // A refresh failed after the media had loaded (a background check, or the reload after Retry
+  // or Delete): keep what's on screen and keep checking on the last known list, rather than
+  // showing an empty gallery and stopping.
+  if (!loaded && mediaLoadedOnce) {
+    if (!quiet) {
+      mediaRefreshWarned = true;
+      setStatus("Couldn't refresh the media just now; still checking.", true);
+    }
+    if (scheduleMediaPoll(catchNumber, lastMediaItems)) {
+      // the usual check while files convert will try again
+    } else if (mediaRefreshWarned && mediaRefreshRetries < MEDIA_REFRESH_RETRIES) {
+      // The usual polling isn't running (nothing converting, or past its 10 minutes); the
+      // list on screen may still be out of date (e.g. a deleted file), so try a few times.
+      mediaRefreshRetries++;
+      clearTimeout(mediaPollTimer);
+      mediaPollTimer = setTimeout(() => loadCatchMedia(catchNumber, { quiet: true }), MEDIA_POLL_MS);
+    } else if (mediaRefreshWarned) {
+      setStatus("Couldn't refresh the media. Reload the page to see the latest.", true);
+    }
+    return;
+  }
+  if (loaded) {
+    mediaLoadedOnce = true;
+    mediaRefreshRetries = 0;
+    if (mediaRefreshWarned) { mediaRefreshWarned = false; setStatus(''); }
+  }
+
+  // A background re-check only re-renders when something changed, and never while the
+  // lightbox is open (re-rendering rebuilds the sequence it's showing).
+  const signature = JSON.stringify(items.map(m => [m.id, mediaStatus(m)]));
+  const lightboxOpen = el.lightbox.classList.contains('open');
+  if (loaded) lastMediaItems = items;
+  if (!quiet || (loaded && signature !== lastMediaSignature && !lightboxOpen)) {
+    lastMediaSignature = signature;
+    deferredMediaItems = null;
+    renderMedia(items);
+  } else if (loaded && signature !== lastMediaSignature) {
+    deferredMediaItems = items; // shown when the lightbox closes
+  }
+  scheduleMediaPoll(catchNumber, loaded ? items : []);
 }
 
 function formatUploadedAt(value) {
@@ -629,6 +734,38 @@ function buildMediaTile(item) {
     ? `<div class="media-tile-caption">${escapeHtml(captionText)}</div>`
     : '';
   const deleteBtn  = buildDeleteBtn(item);
+  const status     = mediaStatus(item);
+
+  // Still converting — becomes the photo/video once ready (the page re-checks)
+  if (status === 'submitted' || status === 'processing') {
+    return `
+      <div class="media-tile media-tile--pending" data-media-id="${item.id || ''}">
+        <div class="media-tile-placeholder">
+          <div class="media-placeholder-icon">⏳</div>
+          <div class="media-placeholder-label">Processing</div>
+          <div class="media-placeholder-sub">${escapeHtml(item.originalFileName || '')}</div>
+        </div>
+        ${caption}${deleteBtn}
+      </div>`;
+  }
+
+  // Conversion failed, or stuck for 30+ minutes — uploader and admin can retry or delete
+  if (status === 'failed' || status === 'stuck') {
+    const actions = canManageFailedMedia(item) ? `
+          <div class="media-tile-actions">
+            <button class="media-tile-action" data-action="retry" data-media-id="${item.id}">🔁 Retry</button>
+            <button class="media-tile-action" data-action="delete" data-media-id="${item.id}">🗑️ Delete</button>
+          </div>` : '';
+    return `
+      <div class="media-tile media-tile--failed" data-media-id="${item.id || ''}">
+        <div class="media-tile-placeholder">
+          <div class="media-placeholder-icon">⚠️</div>
+          <div class="media-placeholder-label">${status === 'stuck' ? 'Taking too long' : "Couldn't convert"}</div>
+          <div class="media-placeholder-sub">${escapeHtml(item.originalFileName || '')}</div>${actions}
+        </div>
+        ${caption}${deleteBtn}
+      </div>`;
+  }
 
   // HEIC — browsers can't render inline; show download placeholder
   if (contentType === 'image/heic') {
@@ -647,9 +784,7 @@ function buildMediaTile(item) {
   if (mediaType === 'Video') {
     return `
       <div class="media-tile media-tile--video" data-media-id="${item.id || ''}">
-        <video preload="metadata" playsinline>
-          <source src="${encodeURI(readUrl)}" type="${escapeHtml(contentType)}">
-        </video>
+        <video src="${videoPreviewUrl(readUrl)}" preload="metadata" muted playsinline></video>
         <div class="media-play-overlay">
           <div class="media-play-btn"></div>
           <div class="media-video-label">Video</div>
@@ -671,6 +806,37 @@ function buildMediaTile(item) {
     </div>`;
 }
 
+function canManageFailedMedia(item) {
+  return isAdminUnlocked() || (myAnglerId != null && item.uploadedByAnglerId === myAnglerId);
+}
+
+async function handleMediaRetry(mediaId, button) {
+  button.disabled = true;
+  button.textContent = '🔁 Retrying…';
+  try {
+    const res = await fetch(CATCH_MEDIA_RETRY_URL, {
+      method: 'POST',
+      headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mediaId }),
+    });
+    let data;
+    try { data = await res.json(); } catch { data = {}; }
+    if (!res.ok || !data.success) throw new Error(data.message || `Retry failed (${res.status})`);
+    mediaPollStartedAt = null; // a fresh 10-minute window for this conversion
+    // Show it as converting straight away, so it stays that way even if the refresh below fails
+    lastMediaItems = lastMediaItems.map(m => String(m.id) === String(mediaId)
+      ? { ...m, status: 'submitted', displayStatus: 'submitted', errorMessage: null } : m);
+    lastMediaSignature = JSON.stringify(lastMediaItems.map(m => [m.id, mediaStatus(m)]));
+    renderMedia(lastMediaItems);
+    await loadCatchMedia(getCatchNumberFromUrl());
+  } catch (err) {
+    console.error('Media retry failed:', err);
+    button.disabled = false;
+    button.textContent = '🔁 Retry';
+    setStatus('Retry failed ❌', true);
+  }
+}
+
 function brokenTile() {
   const div = document.createElement('div');
   div.className = 'media-tile media-tile-broken';
@@ -687,7 +853,7 @@ function renderMedia(items) {
   if (!container) return;
 
   const catchNumber = getCatchNumberFromUrl();
-  const uploadBtn = `<a href="./media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}" class="detail-upload-btn">⬆️ Upload Media</a>`;
+  const uploadBtn = `<a href="./media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}${fromSuffix()}" class="detail-upload-btn">⬆️ Upload Media</a>`;
 
   const photos = items.filter(m => m.mediaType === 'Photo');
   const videos = items.filter(m => m.mediaType === 'Video');
@@ -695,7 +861,8 @@ function renderMedia(items) {
   // Matches DOM order below (photos section, then videos section). HEIC
   // items have no inline preview to swipe to, so they're excluded — their
   // tiles keep their own "Open / Download" link and never join the lightbox.
-  lightboxSequence = [...photos, ...videos].filter(m => m.contentType !== 'image/heic');
+  lightboxSequence = [...photos, ...videos]
+    .filter(m => mediaStatus(m) === 'complete' && m.contentType !== 'image/heic');
 
   if (!photos.length && !videos.length) {
     container.innerHTML = `
@@ -739,8 +906,34 @@ function renderMedia(items) {
   // Wire up lightbox clicks — photo and video tiles both open the same
   // swipeable viewer, at this tile's position in lightboxSequence (DOM
   // order here matches that array's order, see above).
+  container.querySelectorAll('.media-tile--video video').forEach(addPreviewFallback);
   container.querySelectorAll('.media-tile--photo, .media-tile--video').forEach((tile, i) => {
     tile.addEventListener('click', () => openLightbox(i));
+  });
+
+  // Retry / Delete on ⚠️ tiles (uploader or admin; the buttons only render for them)
+  const itemsById = Object.fromEntries(items.map(m => [String(m.id), m]));
+  container.querySelectorAll('.media-tile-action').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const item = itemsById[btn.dataset.mediaId];
+      if (!item) return;
+      if (btn.dataset.action === 'retry') {
+        handleMediaRetry(item.id, btn);
+      } else {
+        pendingDeleteItem = {
+          id:               item.id,
+          readUrl:          item.readUrl,
+          mediaType:        item.mediaType,
+          contentType:      item.contentType,
+          originalFileName: item.originalFileName,
+          uploadedAt:       item.uploadedAt,
+          notViewable:      true,
+        };
+        pendingDeleteTile = btn.closest('.media-tile');
+        openDeleteModal();
+      }
+    });
   });
 
   // Wire up admin delete buttons
@@ -817,4 +1010,10 @@ function closeLightbox() {
   el.lightboxVideo.load();
   document.body.style.overflow = '';
   lightboxIndex = -1;
+  if (deferredMediaItems) {
+    const items = deferredMediaItems;
+    deferredMediaItems = null;
+    lastMediaSignature = JSON.stringify(items.map(m => [m.id, mediaStatus(m)]));
+    renderMedia(items);
+  }
 }

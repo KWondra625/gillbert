@@ -37,6 +37,13 @@ function getCatchNumberFromUrl() {
   return new URLSearchParams(window.location.search).get('catchNumber');
 }
 
+// The catch page's back button goes where you came from (?from=list etc.); pass it through
+// so Edit → Save/Cancel doesn't reset it to Home. The catch page allowlists values.
+function catchDetailsUrl(catchNumber) {
+  const from = new URLSearchParams(window.location.search).get('from');
+  return `./catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}${from ? `&from=${encodeURIComponent(from)}` : ''}`;
+}
+
 // ── Load catch + lookups ─────────────────────────────────────────────────────
 
 async function loadEditCatch() {
@@ -51,7 +58,7 @@ async function loadEditCatch() {
   }
 
   el.retryBtn.classList.remove('hidden');
-  el.cancelLink.href = `./catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`;
+  el.cancelLink.href = catchDetailsUrl(catchNumber);
 
   try {
     const [lookupRes, catchRes] = await Promise.all([
@@ -102,7 +109,22 @@ async function loadEditCatch() {
   }
 }
 
+// The dropdowns only list Active records. If this catch's angler, species or water has
+// since been made inactive, add it back as an option so it stays selected: otherwise
+// the form opens blank there and can't be saved without picking something new.
+function keepCurrentChoice(selectEl, id, name) {
+  if (id == null || [...selectEl.options].some(o => o.value === String(id))) return;
+  const opt = document.createElement('option');
+  opt.value = id;
+  opt.textContent = `${name || 'Unknown'} (inactive)`;
+  selectEl.appendChild(opt);
+}
+
 function prefillForm(c) {
+  keepCurrentChoice(el.anglerId,      c.anglerId,      c.anglerName);
+  keepCurrentChoice(el.fishSpeciesId, c.fishSpeciesId, c.fishSpeciesName);
+  keepCurrentChoice(el.bodyOfWaterId, c.bodyOfWaterId, c.bodyOfWaterName);
+
   el.anglerId.value      = c.anglerId != null ? String(c.anglerId) : '';
   el.fishSpeciesId.value = c.fishSpeciesId != null ? String(c.fishSpeciesId) : '';
   el.bodyOfWaterId.value = c.bodyOfWaterId != null ? String(c.bodyOfWaterId) : '';
@@ -178,7 +200,7 @@ async function submit() {
       throw new Error(data.message || 'Unable to save changes. Please try again.');
     }
 
-    window.location.href = `./catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`;
+    window.location.href = catchDetailsUrl(catchNumber);
   } catch (err) {
     console.error('Save catch failed:', err);
     showState('formState', STATE_IDS);
