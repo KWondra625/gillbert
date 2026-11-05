@@ -1,5 +1,10 @@
 -- Drop + create (not REPLACE): servers have drifted in column order, which REPLACE can't change.
--- Nothing depends on this view; run inside a transaction so readers never see it missing.
+-- Nothing depends on this view. One transaction, so readers never see it missing.
+-- Dropping a view also drops its grants: the end of this script gives the new view the same
+-- read access as vw_catch_media_details (the app's database user), or every page that lists
+-- catches fails with "permission denied" (production, 2026-11-04 release, ~4 minutes).
+BEGIN;
+
 DROP VIEW IF EXISTS vw_catch_details;
 CREATE VIEW vw_catch_details AS
     SELECT 
@@ -85,3 +90,18 @@ CREATE VIEW vw_catch_details AS
         INNER JOIN bodies_of_water bow ON c.body_of_water_id = bow.id
     WHERE c.status = 'Active'
     ORDER BY c.caught_when DESC;
+
+-- Same SELECT grants as the media view (whoever the app user is on this server)
+DO $$
+DECLARE r record;
+BEGIN
+  FOR r IN SELECT DISTINCT grantee FROM information_schema.role_table_grants
+           WHERE table_name = 'vw_catch_media_details' AND privilege_type = 'SELECT'
+             AND grantee NOT IN ('postgres', 'PUBLIC', current_user)
+  LOOP
+    EXECUTE format('GRANT SELECT ON vw_catch_details TO %I', r.grantee);
+    RAISE NOTICE 'vw_catch_details: SELECT granted to %', r.grantee;
+  END LOOP;
+END $$;
+
+COMMIT;
