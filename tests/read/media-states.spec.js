@@ -834,6 +834,9 @@ test.describe('media activity page', () => {
     await expect(page.locator('#scanResult')).toContainText('Files with no record (1)');
     const attach = page.locator('#scanResult .row-action[data-action="attach"]');
     await attach.click();
+    // Armed, it asks for a second tap in blue (a primary action), not delete red
+    await expect(attach).toHaveText(/Tap again to attach/);
+    await expect(attach).toHaveCSS('background-color', 'rgb(31, 127, 214)');
     await attach.click();
     await expect.poll(() => committed).toEqual({
       catchNumber: 'Catch 26-001',
@@ -865,6 +868,7 @@ test.describe('media activity page', () => {
 
     const del = row.locator('[data-action="delete-orphan"]');
     await del.click();
+    await expect(del).toHaveCSS('background-color', 'rgb(180, 35, 24)'); // a delete stays red
     await del.click();
     await expect.poll(() => deleted).toEqual({ action: 'delete-orphan', container: 'angler-media', blobPath: 'anglers/13/ABCDEFGH12.jpg' });
     await expect(page.locator('#scanResult')).toContainText('Files with no record (0)');

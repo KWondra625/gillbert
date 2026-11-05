@@ -484,10 +484,16 @@ body {
   border-color: #fcd4d0;
 }
 
+/* "Tap again to …": blue like a primary button (e.g. Attach); red only for a delete */
 .row-action--armed {
+  background: #1f7fd6;
+  border-color: #1f7fd6;
+  color: white;
+}
+
+.row-action--danger.row-action--armed {
   background: #b42318;
   border-color: #b42318;
-  color: white;
 }
 
 .row-action:disabled {
