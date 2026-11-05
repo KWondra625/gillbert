@@ -220,7 +220,7 @@ test.describe('catch page media states', () => {
     await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`);
 
     await page.locator('.media-tile-action[data-action="retry"]').click();
-    expect(retried).toEqual({ mediaId: 5 });
+    await expect.poll(() => retried).toEqual({ mediaId: 5 });
     await expect(page.locator('.media-tile--pending')).toHaveCount(1);
   });
 
@@ -561,6 +561,57 @@ test.describe('upload page checks before uploading', () => {
   });
 });
 
+test.describe('upload page Retry edge cases', () => {
+  test.use({ allowConsoleErrors: true }); // the failures below log their errors
+
+  test('Retry does not record a file twice when the first answer was lost', async ({ page }) => {
+    const calls = await mockUploadFlow(page);
+    let firstCommit = true;
+    let recordedRow = null;
+    // The first commit writes the row, but its answer never arrives
+    await page.route(url => url.pathname.endsWith('/catch-media/commit'), route => {
+      if (!firstCommit) return route.fallback();
+      firstCommit = false;
+      const u = route.request().postDataJSON().uploads[0];
+      recordedRow = { id: 77, blobPath: u.blobPath.replace(/\.heic$/, '.jpg'), status: 'complete', displayStatus: 'complete' };
+      return route.abort('connectionreset');
+    });
+    await page.route(url => url.pathname.endsWith('/catch-media/get'), route =>
+      route.fulfill({ json: recordedRow ? [recordedRow] : [] }));
+    await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    await page.locator('#files').setInputFiles(path.join(MEDIA, 'photo.heic'));
+    await page.locator('#uploadBtn').click();
+    await expect(page.locator('#fileList .file-row').first()).toContainText('❌ Failed');
+
+    await page.locator('#retryBtn').click();
+    await expect(page.locator('#successState')).toBeVisible();
+    // Found the row the lost answer had written (converted to .jpg meanwhile): no second commit
+    expect(calls.commits).toEqual([]);
+    expect(calls.puts).toEqual(['photo.heic']);
+    await page.locator('#stayHereBtn').click();
+  });
+
+  test('a refused upload link (403) gets a new one on Retry', async ({ page }) => {
+    const calls = await mockUploadFlow(page);
+    let refused = false;
+    await page.route(`${FAKE_STORAGE}/put/**`, route => {
+      if (refused) return route.fallback();
+      refused = true;
+      return route.fulfill({ status: 403, body: 'AuthenticationFailed' });
+    });
+    await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    await page.locator('#files').setInputFiles(path.join(MEDIA, 'photo.jpg'));
+    await page.locator('#uploadBtn').click();
+    await expect(page.locator('#fileList .file-row').first()).toContainText('❌ Failed');
+    expect(calls.slotRequests).toHaveLength(1);
+
+    await page.locator('#retryBtn').click();
+    await expect(page.locator('#successState')).toBeVisible();
+    expect(calls.slotRequests).toHaveLength(2);
+    await page.locator('#stayHereBtn').click();
+  });
+});
+
 test.describe('upload page large files', () => {
   test.use({ allowConsoleErrors: true }); // the refused block logs its error
 
@@ -579,7 +630,7 @@ test.describe('upload page large files', () => {
       const id = atob(q.get('blockid'));
       if (id === 'block-000001' && !refusedOnce) {
         refusedOnce = true;
-        return route.fulfill({ status: 403, body: 'AuthenticationFailed' }); // a 4xx isn't retried on its own
+        return route.fulfill({ status: 400, body: 'InvalidHeaderValue' }); // a 4xx isn't retried on its own
       }
       sent.push(id);
       return route.fulfill({ status: 201, body: '' });

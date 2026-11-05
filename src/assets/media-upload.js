@@ -191,7 +191,9 @@ async function putToStorage(url, body, headers) {
       const text = await res.text();
       // 4xx (other than a timeout or throttling) won't get better by trying again
       if (res.status < 500 && res.status !== 408 && res.status !== 429) {
-        throw Object.assign(new Error(`Azure PUT failed: ${res.status} ${text}`), { final: true });
+        // 401/403: storage refused the upload link itself, so a retry needs a new one
+        throw Object.assign(new Error(`Azure PUT failed: ${res.status} ${text}`),
+          { final: true, linkRefused: res.status === 401 || res.status === 403 });
       }
       throw new Error(`Azure PUT failed: ${res.status}`);
     } catch (err) {
@@ -274,6 +276,25 @@ async function commitUpload(catchNumber, upload, uploadedByAnglerId) {
     throw new Error(data.message || `Couldn't record the upload (${res.status})`);
   }
   return data.files[0]; // { id, status: 'complete' | 'submitted' }
+}
+
+// Before recording a file again on Retry: was it recorded after all? The answer to the first
+// try can be lost (a dropped connection, an error after the row was written), and recording
+// it twice would show two tiles for one file. Matched by its path without the extension,
+// since conversion changes only the extension. null = not found, or couldn't check.
+async function findRecorded(catchNumber, blobPath) {
+  try {
+    const url = `${CATCH_MEDIA_GET_URL}?catchNumber=${encodeURIComponent(catchNumber)}`;
+    const res = await fetch(url, { headers: { 'X-API-Key': API_KEY } });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const items = Array.isArray(data) ? data : Array.isArray(data.media) ? data.media : [];
+    const stem = p => String(p || '').replace(/\.[^./]+$/, '');
+    const item = items.find(m => m && m.id && stem(m.blobPath) === stem(blobPath));
+    return item ? { id: item.id, status: item.displayStatus || item.status } : null;
+  } catch {
+    return null;
+  }
 }
 
 // Runs fn over items with at most `limit` in flight at once.
@@ -365,14 +386,17 @@ function startSuccessCountdown(catchNumber) {
 const CONVERT_POLL_MS = 10 * 1000;
 const CONVERT_POLL_LIMIT_MS = 10 * 60 * 1000;
 let watchingConversions = false;
+let watchStartedAt = 0;
 
 function watchConversions(catchNumber) {
-  if (watchingConversions || !fileJobs.some(j => j.stage === 'converting')) return;
+  if (!fileJobs.some(j => j.stage === 'converting')) return;
+  // Newly converting files (after a Retry) get the full 10 minutes too
+  watchStartedAt = Date.now();
+  if (watchingConversions) return;
   watchingConversions = true;
-  const startedAt = Date.now();
   const check = async () => {
     const pending = fileJobs.filter(j => j.stage === 'converting');
-    if (!pending.length || Date.now() - startedAt > CONVERT_POLL_LIMIT_MS) { watchingConversions = false; return; }
+    if (!pending.length || Date.now() - watchStartedAt > CONVERT_POLL_LIMIT_MS) { watchingConversions = false; return; }
     try {
       const url = `${CATCH_MEDIA_GET_URL}?catchNumber=${encodeURIComponent(catchNumber)}`;
       const res = await fetch(url, { headers: { 'X-API-Key': API_KEY } });
@@ -433,12 +457,23 @@ async function processJobs(catchNumber, jobs) {
       }
       setStage(job, 'recording');
       const { uploadUrl, ...upload } = job.slot;
-      const recorded = await commitUpload(catchNumber, upload, uploadedByAnglerId);
+      let recorded = job.commitTried ? await findRecorded(catchNumber, upload.blobPath) : null;
+      if (!recorded) {
+        job.commitTried = true;
+        recorded = await commitUpload(catchNumber, upload, uploadedByAnglerId);
+      }
       job.mediaId = recorded.id;
+      if (recorded.status === 'failed' || recorded.status === 'stuck') {
+        setStage(job, 'convertFailed');
+        log(`⚠️ ${job.file.name} couldn't be converted. Retry it from the catch page.`);
+        return;
+      }
       setStage(job, recorded.status === 'complete' ? 'complete' : 'converting');
       if (recorded.status !== 'complete') log(`⏳ ${job.file.name} is converting so everyone can see it.`);
     } catch (err) {
       console.error(err);
+      // Retry asks for a new link rather than sending the refused one again
+      if (err.linkRefused) { job.slot = null; job.blocksDone = null; }
       setStage(job, 'failed', String(err.message || err));
       log(`❌ ${job.file.name}: ${err.message || err}`);
     }

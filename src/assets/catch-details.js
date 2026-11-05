@@ -635,12 +635,14 @@ function isConverting(item) {
   return s === 'submitted' || s === 'processing';
 }
 
+// Returns whether a check was scheduled
 function scheduleMediaPoll(catchNumber, items) {
   clearTimeout(mediaPollTimer);
-  if (!items.some(isConverting)) { mediaPollStartedAt = null; return; }
+  if (!items.some(isConverting)) { mediaPollStartedAt = null; return false; }
   if (mediaPollStartedAt == null) mediaPollStartedAt = Date.now();
-  if (Date.now() - mediaPollStartedAt > MEDIA_POLL_LIMIT_MS) return;
+  if (Date.now() - mediaPollStartedAt > MEDIA_POLL_LIMIT_MS) return false;
   mediaPollTimer = setTimeout(() => loadCatchMedia(catchNumber, { quiet: true }), MEDIA_POLL_MS);
+  return true;
 }
 
 async function loadCatchMedia(catchNumber, { quiet = false } = {}) {
@@ -670,11 +672,11 @@ async function loadCatchMedia(catchNumber, { quiet = false } = {}) {
       mediaRefreshWarned = true;
       setStatus("Couldn't refresh the media just now; still checking.", true);
     }
-    if (lastMediaItems.some(isConverting)) {
-      scheduleMediaPoll(catchNumber, lastMediaItems);
+    if (scheduleMediaPoll(catchNumber, lastMediaItems)) {
+      // the usual check while files convert will try again
     } else if (mediaRefreshWarned && mediaRefreshRetries < MEDIA_REFRESH_RETRIES) {
-      // Nothing is converting, so the usual polling won't run; the list on screen may
-      // still be out of date (e.g. a deleted file), so try again a few times.
+      // The usual polling isn't running (nothing converting, or past its 10 minutes); the
+      // list on screen may still be out of date (e.g. a deleted file), so try a few times.
       mediaRefreshRetries++;
       clearTimeout(mediaPollTimer);
       mediaPollTimer = setTimeout(() => loadCatchMedia(catchNumber, { quiet: true }), MEDIA_POLL_MS);

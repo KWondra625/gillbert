@@ -304,7 +304,7 @@ function renderScan() {
     </li>`).join('');
 
   el.scanResult.innerHTML = `
-    <p class="scan-summary">Scanned ${formatDateTime(s.scannedAt)}: ${s.fileCount} files, ${s.rowCount} records.</p>
+    <p class="scan-summary">Scanned ${escapeHtml(formatDateTime(s.scannedAt))}: ${escapeHtml(s.fileCount ?? '?')} files, ${escapeHtml(s.rowCount ?? '?')} records.</p>
     <div class="scan-columns">
       <div>
         <h3>Files with no record (${orphans.length})</h3>
