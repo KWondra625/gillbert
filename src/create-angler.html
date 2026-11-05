@@ -48,11 +48,12 @@
 
       <form id="anglerForm" novalidate>
 
-        <!-- Name -->
+        <!-- Display name (stored as anglers.display_name; the field keeps id="name") -->
         <div class="field-group">
-          <label for="name">🎣 Name <span class="required-mark">*</span></label>
-          <input type="text" id="name" placeholder="e.g. Kurt" />
-          <p class="field-error hidden" id="nameError">Please enter a name.</p>
+          <label for="name">🎣 Display Name <span class="required-mark">*</span></label>
+          <input type="text" id="name" placeholder="e.g. Kurt W" />
+          <div class="field-hint">How this angler appears everywhere: catches, chat, Fish of Fame. First names and nicknames go in Aliases.</div>
+          <p class="field-error hidden" id="nameError">Please enter a display name.</p>
         </div>
 
         <!-- Status -->
