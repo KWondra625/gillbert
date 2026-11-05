@@ -352,6 +352,51 @@ test.describe('upload page results', () => {
     await expect(page.locator('#successMsg')).toContainText("1 file couldn't be converted");
   });
 
+  test('a quick conversion shows ✅ Done before the countdown hands off', async ({ page }) => {
+    const calls = await mockUploadFlow(page);
+    let checks = 0;
+    // The HEIC (record 1) has converted by the first check
+    await page.route(url => url.pathname.endsWith('/catch-media/get'), route => {
+      checks++;
+      return route.fulfill({ json: [mediaItem(1, { status: 'complete', displayStatus: 'complete' })] });
+    });
+    await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    await page.locator('#files').setInputFiles(path.join(MEDIA, 'photo.heic'));
+    await page.locator('#uploadBtn').click();
+    await expect(page.locator('#successState')).toBeVisible();
+
+    const row = page.locator('#successFiles .file-row');
+    await expect(row).toContainText('✅ Done', { timeout: 6_000 });
+    // ...while the 10 s countdown is still running
+    await expect(page.locator('#successRedirect')).toBeVisible();
+    expect(Number(await page.locator('#countdown').textContent())).toBeGreaterThan(3);
+    expect(checks).toBeGreaterThan(0);
+    expect(calls.commits).toEqual(['photo.heic']);
+    await page.locator('#stayHereBtn').click();
+  });
+
+  test('watching starts while the rest of the batch is still uploading', async ({ page }) => {
+    await mockUploadFlow(page);
+    let firstCheckAt = null;
+    let lastPutAt = null;
+    // The video's upload is slow; the HEIC is recorded long before it finishes
+    await page.route(`${FAKE_STORAGE}/put/**`, async route => {
+      if (route.request().url().includes('video.mp4')) await new Promise(r => setTimeout(r, 6_000));
+      lastPutAt = Date.now();
+      return route.fallback();
+    });
+    await page.route(url => url.pathname.endsWith('/catch-media/get'), route => {
+      firstCheckAt = firstCheckAt || Date.now();
+      return route.fulfill({ json: [] });
+    });
+    await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    await page.locator('#files').setInputFiles(['photo.heic', 'video.mp4'].map(f => path.join(MEDIA, f)));
+    await page.locator('#uploadBtn').click();
+    await expect(page.locator('#successState')).toBeVisible({ timeout: 20_000 });
+    expect(firstCheckAt, 'a conversion check ran before the video finished uploading').toBeLessThan(lastPutAt);
+    await page.locator('#stayHereBtn').click();
+  });
+
   test('Go to Catch and Stay Here are full-width with space between them', async ({ page }) => {
     await mockUploadFlow(page);
     await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
