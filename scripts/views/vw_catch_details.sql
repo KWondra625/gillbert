@@ -14,7 +14,7 @@ CREATE VIEW vw_catch_details AS
         c.record_source AS record_source,
         
         a.id AS angler_id,
-        a.name AS angler_name,
+        a.display_name AS angler_name,
         
         fs.id AS fish_species_id,
         COALESCE(fs.display_name_override, fs.name) AS fish_species_name,
@@ -32,7 +32,7 @@ CREATE VIEW vw_catch_details AS
         c.notes AS notes,
 
         -- Headline (without date/time)
-        a.name || '''s '
+        a.display_name || '''s '
         || CASE WHEN c.length_in_inches > 0 THEN c.length_in_inches::TEXT || 'in ' ELSE '' END
         || COALESCE(fs.display_name_override, fs.name)
         || CASE WHEN bow.name IS NOT NULL THEN ' caught on ' || bow.name ELSE '' END
@@ -40,7 +40,7 @@ CREATE VIEW vw_catch_details AS
         || '.' AS headline,
 
         -- Full Summary (with date/time)
-        a.name || '''s '
+        a.display_name || '''s '
         || CASE WHEN c.length_in_inches > 0 THEN c.length_in_inches::TEXT || 'in ' ELSE '' END
         || COALESCE(fs.display_name_override, fs.name)
         || CASE WHEN bow.name IS NOT NULL THEN ' caught on ' || bow.name ELSE '' END
@@ -57,10 +57,10 @@ CREATE VIEW vw_catch_details AS
         END AS isUpdatedAfterVerification,
 
         c.created_by_angler_id AS created_by_angler_id,
-        a2.name as created_by_angler_name,
+        a2.display_name as created_by_angler_name,
         c.created_at AS created_at,
         c.updated_by_angler_id AS updated_by_angler_id,
-        a3.name as updated_by_angler_name,
+        a3.display_name as updated_by_angler_name,
         c.updated_at AS updated_at,
 
         -- Viewable media only; files still converting are counted separately below.
