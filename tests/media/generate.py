@@ -1,8 +1,9 @@
 """Makes the small media files the upload tests use. Run once; the output is committed.
 
 Needs: pip install pillow pillow-heif imageio-ffmpeg   (in a throwaway venv is fine)
-Real phone files (an iPhone HEIC and MOV, ideally one portrait) are better tests of the
-conversion and rotation paths; drop them in this folder as phone-*.heic / phone-*.mov.
+Phone-like stand-ins (iPhone HEIC/MOV layout, Samsung HDR video) come from
+generate_phone_like.py. Real phone files are better still: drop them in phone/ (git-ignored)
+and run the media tests with PHONE_MEDIA=1.
 """
 import subprocess
 from pathlib import Path
@@ -42,6 +43,19 @@ subprocess.run([ffmpeg, '-y', '-loglevel', 'error', *source, *encode, '-f', 'mov
 # Like a phone held upright: landscape pixels plus a rotation flag the player must honor.
 subprocess.run([ffmpeg, '-y', '-loglevel', 'error', '-display_rotation', '90', '-i', HERE / 'video.mov',
                 '-c', 'copy', HERE / 'video-portrait.mov'], check=True)
+# Like an Android phone: HEVC in an MP4. The site probes MP4s and converts only non-H.264 ones.
+subprocess.run([ffmpeg, '-y', '-loglevel', 'error', *source, '-c:v', 'libx265', '-tag:v', 'hvc1',
+                '-pix_fmt', 'yuv420p', '-crf', '32', '-c:a', 'aac', '-b:a', '64k', '-shortest',
+                HERE / 'video-hevc.mp4'], check=True)
+# Like a recent phone's HDR video: 10-bit HEVC with HLG colour. Must come out as 8-bit H.264,
+# since 10-bit H.264 ("High 10") doesn't play on most browsers and phones.
+subprocess.run([ffmpeg, '-y', '-loglevel', 'error', *source, '-c:v', 'libx265', '-tag:v', 'hvc1',
+                '-pix_fmt', 'yuv420p10le', '-color_primaries', 'bt2020', '-color_trc', 'arib-std-b67',
+                '-colorspace', 'bt2020nc', '-crf', '32', '-c:a', 'aac', '-b:a', '64k', '-shortest',
+                HERE / 'video-hdr.mp4'], check=True)
+# 4K: shrunk to 1080p on the server.
+subprocess.run([ffmpeg, '-y', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc=size=3840x2160:rate=24:duration=2',
+                '-f', 'lavfi', '-i', 'sine=frequency=440:duration=2', *encode, HERE / 'video-4k.mp4'], check=True)
 
 
 # Not an image at all, just text with a .heic name: conversion must fail on it.

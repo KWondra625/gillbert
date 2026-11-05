@@ -30,6 +30,6 @@ test('a media lookup returns only that catch\'s media', async () => {
   const withMedia = (await getCatches()).find(c => Number(c.catchMediaCount) > 0);
   test.skip(!withMedia, 'no Staging catch has media');
   const media = await getCatchMedia(withMedia.catchNumber);
-  expect(media.length).toBe(Number(withMedia.catchMediaCount));
+  expect(media.filter(m => m.displayStatus === 'complete').length).toBe(Number(withMedia.catchMediaCount));
   for (const m of media) expect(m.catchNumber).toBe(withMedia.catchNumber);
 });

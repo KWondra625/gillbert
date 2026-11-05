@@ -1,6 +1,6 @@
 // Layer 1, read-only: the catches listing and catch detail pages, checked against
 // what the Staging API says the data is.
-const { test, expect, unlockAdmin } = require('../support/fixtures');
+const { test, expect, unlockAdmin, STAGING_STORAGE_HOST } = require('../support/fixtures');
 const { getCatches, getLookups, getCatchMedia } = require('../support/staging-api');
 
 const PER_PAGE = 24;
@@ -132,6 +132,29 @@ test.describe('catches listing', () => {
   });
 });
 
+test.describe('catch card dates', () => {
+  // Built in the browser's own time zone, so "Today"/"Yesterday" and the time match what it shows
+  test('are compact: short month, year only for older catches', async ({ page }) => {
+    const dates = await page.evaluate(() => {
+      const at = (daysAgo, h, m) => { const d = new Date(Date.now() - daysAgo * 86400000); d.setHours(h, m, 0, 0); return d.toISOString(); };
+      return { recent: at(40, 12, 27), old: at(400, 13, 15), recentNoTime: at(20, 0, 0), oldNoTime: at(500, 0, 0) };
+    });
+    const [first] = catches;
+    const order = ['recent', 'old', 'recentNoTime', 'oldNoTime'];
+    await page.route(url => url.pathname.endsWith('/get-catches'), route => route.fulfill({ json:
+      order.map((k, i) => ({ ...first, catchNumber: `Catch 99-00${i}`, caughtWhen: dates[k] })) }));
+    await page.goto('catches-listing.html');
+
+    const when = page.locator('#catchesContainer .catch-card .catch-field:has(.field-label:text("When")) .field-value');
+    await expect(when).toHaveCount(4);
+    const texts = Object.fromEntries(await Promise.all(order.map(async (k, i) => [k, (await when.nth(i).textContent()).trim()])));
+    expect(texts.recent).toMatch(/^[A-Z][a-z]{2} \d{1,2} at 12:27 PM$/);         // e.g. "Sep 23 at 12:27 PM"
+    expect(texts.old).toMatch(/^[A-Z][a-z]{2} \d{1,2}, \d{4} at 1:15 PM$/);      // e.g. "Sep 28, 2025 at 1:15 PM"
+    expect(texts.recentNoTime).toMatch(/^[A-Z][a-z]{2} \d{1,2}$/);                // no year, no made-up time
+    expect(texts.oldNoTime).toMatch(/^[A-Z][a-z]{2} \d{1,2}, \d{4}$/);
+  });
+});
+
 test.describe('catch detail', () => {
   test('shows the catch\'s angler, species and water', async ({ page }) => {
     const c = catches[0];
@@ -148,9 +171,11 @@ test.describe('catch detail', () => {
     test.skip(!withMedia, 'no Staging catch has media');
     await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(withMedia.catchNumber)}`);
 
+    // One tile per file, including ⏳ converting and ⚠️ failed ones
+    const all = await getCatchMedia(withMedia.catchNumber);
     const tiles = page.locator('.media-tile');
     await expect(tiles.first()).toBeVisible();
-    await expect(tiles).toHaveCount(Number(withMedia.catchMediaCount));
+    await expect(tiles).toHaveCount(all.length);
 
     const photo = page.locator('.media-tile--photo').first();
     test.skip(await photo.count() === 0, 'that catch only has videos');
@@ -165,7 +190,7 @@ test.describe('catch detail', () => {
     let best = null;
     for (const c of catches.filter(c => Number(c.catchMediaCount) > 0)) {
       for (const m of await getCatchMedia(c.catchNumber)) {
-        if (m.contentType === 'video/mp4' && (!best || m.fileSizeInBytes < best.m.fileSizeInBytes)) best = { c, m };
+        if (m.contentType === 'video/mp4' && m.displayStatus === 'complete' && (!best || m.fileSizeInBytes < best.m.fileSizeInBytes)) best = { c, m };
       }
     }
     test.skip(!best, 'no Staging catch has an MP4 video');
@@ -181,6 +206,47 @@ test.describe('catch detail', () => {
     expect(await video.evaluate(v => v.duration)).toBeGreaterThan(0);
     await page.locator('#lightboxClose').click();
     await expect(page.locator('#lightbox')).toBeHidden();
+  });
+
+  test("a video's delete preview shows a frame, not a black box", async ({ page }) => {
+    // A video in Staging's own storage (which answers range requests); read-only: cancelled
+    let target = null;
+    for (const c of catches.filter(c => Number(c.catchMediaCount) > 0)) {
+      const v = (await getCatchMedia(c.catchNumber)).find(m => m.mediaType === 'Video' && m.displayStatus === 'complete'
+        && m.readUrl.includes(STAGING_STORAGE_HOST));
+      if (v) { target = { c, v }; break; }
+    }
+    test.skip(!target, 'no video in Staging storage');
+    await unlockAdmin(page);
+    await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(target.c.catchNumber)}`);
+    const tile = page.locator(`.media-tile--video[data-media-id="${target.v.id}"]`);
+    await page.locator('#manageMediaBtn').click(); // Manage Media shows the delete buttons
+    await tile.locator('.media-delete-btn').click();
+
+    const preview = page.locator('#deleteMediaModal video');
+    // Every browser: the preview loads (a browser that refuses "#t=0.1" falls back to the plain URL)
+    await expect.poll(() => preview.evaluate(v => v.error ? `error ${v.error.code}` : v.readyState >= 1),
+      { timeout: 30_000 }).toBe(true);
+    // Chrome (desktop + Android): it jumped to 0.1 s and has that frame ready, so no black box.
+    // Playwright's WebKit refuses the fragment; real Safari supports it but can't be checked here.
+    if (test.info().project.name !== 'iphone-safari') {
+      await expect.poll(() => preview.evaluate(v => v.readyState >= 2 && v.currentTime > 0), { timeout: 30_000 }).toBe(true);
+    }
+    await page.locator('#deleteMediaCancel').click();
+  });
+
+  test('Upload Media and Edit pass along where you came from, so the way back keeps it', async ({ page }) => {
+    const c = catches[0];
+    await unlockAdmin(page);
+    await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(c.catchNumber)}&from=list`);
+    await expect(page.locator('.detail-upload-btn')).toHaveAttribute('href', /&from=list$/);
+    await expect(page.locator('#editCatchLink')).toHaveAttribute('href', /&from=list$/);
+    // Edit's Cancel leads back to the catch with the same back button target
+    await page.goto(`edit-catch.html?catchNumber=${encodeURIComponent(c.catchNumber)}&from=list`);
+    await expect(page.locator('#cancelLink')).toHaveAttribute('href', /catch-details\.html\?catchNumber=.*&from=list$/);
+    await page.locator('#cancelLink').click();
+    await expect(page.locator('.top-home-link')).toHaveAttribute('href', './catches-listing.html');
+    await expect(page.locator('.top-home-link')).toHaveText('← Catches');
   });
 
   test('hides Edit from a visitor and shows it to an admin', async ({ page }) => {

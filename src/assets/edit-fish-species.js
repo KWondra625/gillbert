@@ -178,7 +178,7 @@ async function submit() {
     let data;
     try { data = await res.json(); } catch { data = {}; }
 
-    if (!res.ok || data.success === false) {
+    if (!res.ok || !data.success) {
       throw new Error(data.message || 'Unable to save changes. Please try again.');
     }
 

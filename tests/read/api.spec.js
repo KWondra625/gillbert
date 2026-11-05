@@ -48,5 +48,6 @@ test('catch-media/get returns the media of a catch that has some', async () => {
   const withMedia = (await getCatches()).find(c => Number(c.catchMediaCount) > 0);
   test.skip(!withMedia, 'no Staging catch has media');
   const list = await getCatchMedia(withMedia.catchNumber);
-  expect(list.length).toBe(Number(withMedia.catchMediaCount));
+  // The 📷 count is the viewable (complete) files; the list also has converting or failed ones
+  expect(list.filter(m => m.displayStatus === 'complete').length).toBe(Number(withMedia.catchMediaCount));
 });
