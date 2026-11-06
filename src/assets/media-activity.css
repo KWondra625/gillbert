@@ -484,10 +484,16 @@ body {
   border-color: #fcd4d0;
 }
 
+/* "Tap again to …": blue like a primary button (e.g. Attach); red only for a delete */
 .row-action--armed {
+  background: #1f7fd6;
+  border-color: #1f7fd6;
+  color: white;
+}
+
+.row-action--danger.row-action--armed {
   background: #b42318;
   border-color: #b42318;
-  color: white;
 }
 
 .row-action:disabled {
@@ -639,6 +645,37 @@ body {
   margin: 12px 0 0 0;
   font-size: 13px;
   color: #555;
+}
+
+/* A look at a file with no record before deciding what to do with it */
+.orphan-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.orphan-thumb {
+  display: block;
+  flex: 0 0 auto;
+  line-height: 0;
+}
+
+.orphan-thumb img,
+.orphan-thumb video {
+  width: 96px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e3eefc;
+  background: #eef3fa;
+}
+
+.orphan-open {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f7fd6;
+  text-decoration: none;
 }
 
 .media-row--recent {

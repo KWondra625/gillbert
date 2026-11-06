@@ -352,6 +352,51 @@ test.describe('upload page results', () => {
     await expect(page.locator('#successMsg')).toContainText("1 file couldn't be converted");
   });
 
+  test('a quick conversion shows ✅ Done before the countdown hands off', async ({ page }) => {
+    const calls = await mockUploadFlow(page);
+    let checks = 0;
+    // The HEIC (record 1) has converted by the first check
+    await page.route(url => url.pathname.endsWith('/catch-media/get'), route => {
+      checks++;
+      return route.fulfill({ json: [mediaItem(1, { status: 'complete', displayStatus: 'complete' })] });
+    });
+    await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    await page.locator('#files').setInputFiles(path.join(MEDIA, 'photo.heic'));
+    await page.locator('#uploadBtn').click();
+    await expect(page.locator('#successState')).toBeVisible();
+
+    const row = page.locator('#successFiles .file-row');
+    await expect(row).toContainText('✅ Done', { timeout: 6_000 });
+    // ...while the 10 s countdown is still running
+    await expect(page.locator('#successRedirect')).toBeVisible();
+    expect(Number(await page.locator('#countdown').textContent())).toBeGreaterThan(3);
+    expect(checks).toBeGreaterThan(0);
+    expect(calls.commits).toEqual(['photo.heic']);
+    await page.locator('#stayHereBtn').click();
+  });
+
+  test('watching starts while the rest of the batch is still uploading', async ({ page }) => {
+    await mockUploadFlow(page);
+    let firstCheckAt = null;
+    let lastPutAt = null;
+    // The video's upload is slow; the HEIC is recorded long before it finishes
+    await page.route(`${FAKE_STORAGE}/put/**`, async route => {
+      if (route.request().url().includes('video.mp4')) await new Promise(r => setTimeout(r, 6_000));
+      lastPutAt = Date.now();
+      return route.fallback();
+    });
+    await page.route(url => url.pathname.endsWith('/catch-media/get'), route => {
+      firstCheckAt = firstCheckAt || Date.now();
+      return route.fulfill({ json: [] });
+    });
+    await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    await page.locator('#files').setInputFiles(['photo.heic', 'video.mp4'].map(f => path.join(MEDIA, f)));
+    await page.locator('#uploadBtn').click();
+    await expect(page.locator('#successState')).toBeVisible({ timeout: 20_000 });
+    expect(firstCheckAt, 'a conversion check ran before the video finished uploading').toBeLessThan(lastPutAt);
+    await page.locator('#stayHereBtn').click();
+  });
+
   test('Go to Catch and Stay Here are full-width with space between them', async ({ page }) => {
     await mockUploadFlow(page);
     await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
@@ -789,6 +834,9 @@ test.describe('media activity page', () => {
     await expect(page.locator('#scanResult')).toContainText('Files with no record (1)');
     const attach = page.locator('#scanResult .row-action[data-action="attach"]');
     await attach.click();
+    // Armed, it asks for a second tap in blue (a primary action), not delete red
+    await expect(attach).toHaveText(/Tap again to attach/);
+    await expect(attach).toHaveCSS('background-color', 'rgb(31, 127, 214)');
     await attach.click();
     await expect.poll(() => committed).toEqual({
       catchNumber: 'Catch 26-001',
@@ -820,11 +868,44 @@ test.describe('media activity page', () => {
 
     const del = row.locator('[data-action="delete-orphan"]');
     await del.click();
+    await expect(del).toHaveCSS('background-color', 'rgb(180, 35, 24)'); // a delete stays red
     await del.click();
     await expect.poll(() => deleted).toEqual({ action: 'delete-orphan', container: 'angler-media', blobPath: 'anglers/13/ABCDEFGH12.jpg' });
     await expect(page.locator('#scanResult')).toContainText('Files with no record (0)');
     // Still one record with no file
     await expect(page.locator('#statStorage')).toHaveText('1 issue');
+  });
+
+  test('files with no record can be previewed and opened, when the scan gives a link', async ({ page }) => {
+    await unlockAdmin(page);
+    await mockMediaList(page, { items: [mediaItem(30)] });
+    const old = 'Tue, 27 Oct 2026 01:00:00 GMT';
+    await page.route(url => url.pathname.endsWith('/catch-media/admin'), route => route.fulfill({ json: { ...cleanScan, orphanFiles: [
+      { blobPath: 'catches/Catch-26-001/PHOTO00001.jpg', contentType: 'image/jpeg', readUrl: `${FAKE_STORAGE}/orphan/PHOTO00001.jpg`, lastModified: old, catchNumber: 'Catch 26-001' },
+      { blobPath: 'catches/Catch-26-001/VIDEO00001.mp4', contentType: 'video/mp4', readUrl: `${FAKE_STORAGE}/orphan/VIDEO00001.mp4`, lastModified: old, catchNumber: 'Catch 26-001' },
+      { blobPath: 'catches/Catch-26-001/HEIC000001.heic', contentType: 'image/heic', readUrl: `${FAKE_STORAGE}/orphan/HEIC000001.heic`, lastModified: old, catchNumber: 'Catch 26-001' },
+      { blobPath: 'catches/Catch-26-001/OLDSCAN001.jpg', lastModified: old, catchNumber: 'Catch 26-001' }, // a scan without links
+      { blobPath: 'catches/Catch-26-001/BADLINK001.jpg', contentType: 'image/jpeg', readUrl: 'javascript:alert(1)', lastModified: old, catchNumber: 'Catch 26-001' },
+    ] } }));
+    await page.goto('media-activity.html');
+    await page.locator('#storageTab').click();
+
+    const rows = page.locator('#scanResult .media-row');
+    await expect(rows).toHaveCount(5);
+    // Photo: thumbnail + link, both opening the file in a new tab
+    await expect(rows.nth(0).locator('.orphan-thumb img')).toHaveAttribute('src', `${FAKE_STORAGE}/orphan/PHOTO00001.jpg`);
+    await expect(rows.nth(0).locator('.orphan-open')).toHaveAttribute('href', `${FAKE_STORAGE}/orphan/PHOTO00001.jpg`);
+    await expect(rows.nth(0).locator('.orphan-open')).toHaveAttribute('target', '_blank');
+    // One link per file for keyboards and screen readers, named after the file
+    await expect(rows.nth(0).locator('.orphan-thumb')).toHaveAttribute('tabindex', '-1');
+    await expect(rows.nth(0).locator('.orphan-open')).toHaveAccessibleName(/PHOTO00001\.jpg \(opens in a new tab\)/);
+    // MP4: a first frame; HEIC: a link only (browsers can't show it)
+    await expect(rows.nth(1).locator('.orphan-thumb video')).toHaveAttribute('src', /VIDEO00001\.mp4#t=0\.1$/);
+    await expect(rows.nth(2).locator('.orphan-thumb')).toHaveCount(0);
+    await expect(rows.nth(2).locator('.orphan-open')).toHaveText('👁️ Open file ↗');
+    // No link from the scan, or a link that isn't https: nothing to click
+    await expect(rows.nth(3).locator('.orphan-preview')).toHaveCount(0);
+    await expect(rows.nth(4).locator('.orphan-preview')).toHaveCount(0);
   });
 
   test('the storage check runs on load, and a file from the last hour isn\'t counted as a problem yet', async ({ page }) => {

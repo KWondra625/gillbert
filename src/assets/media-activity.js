@@ -253,6 +253,29 @@ el.showMoreBtn.addEventListener('click', () => {
 
 // ── Storage check (orphans) ────────────────────────────────────────────
 
+// A look at a file with no record, to decide attach or delete: a thumbnail for photos a
+// browser can show, a first frame for MP4 videos, and always a link to open the file (HEIC
+// and MOV download instead). The scan supplies the link; an older scan without one shows none.
+// The thumbnail is a mouse/touch shortcut only: keyboards and screen readers get the one
+// "Open file" link per file, named after the file.
+const PREVIEW_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+function orphanPreview(f) {
+  if (!/^https:\/\//.test(f.readUrl || '')) return '';
+  const url = escapeHtml(f.readUrl);
+  const type = String(f.contentType || '').toLowerCase();
+  const thumb = PREVIEW_IMAGE_TYPES.includes(type)
+    ? `<img src="${url}" alt="" loading="lazy">`
+    : type === 'video/mp4'
+      ? `<video src="${url}#t=0.1" preload="metadata" muted playsinline></video>`
+      : '';
+  return `
+      <div class="orphan-preview">
+        ${thumb ? `<a class="orphan-thumb" href="${url}" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true">${thumb}</a>` : ''}
+        <a class="orphan-open" href="${url}" target="_blank" rel="noopener" aria-label="Open ${escapeHtml(f.blobPath)} (opens in a new tab)">👁️ Open file ↗</a>
+      </div>`;
+}
+
 let lastScan = null;
 
 // A file written in the last hour may be an upload that's still running (its record is
@@ -289,6 +312,7 @@ function renderScan() {
       <div class="row-file">${escapeHtml(f.blobPath)}</div>
       <div class="row-meta">${escapeHtml([owner, formatDateTime(f.lastModified), formatSize(f.sizeBytes)].filter(Boolean).join(' · '))}</div>
       ${recent ? '<div class="row-meta">⏳ Added in the last hour: it may be an upload that is still running. Scan again later before acting on it.</div>' : ''}
+      ${orphanPreview(f)}
       <div class="row-actions">${attach}
         <button class="row-action row-action--danger" data-orphan="${i}" data-action="delete-orphan" data-label="🗑️ Delete file">🗑️ Delete file</button>
       </div>

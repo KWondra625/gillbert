@@ -379,10 +379,14 @@ function startSuccessCountdown(catchNumber) {
   }, 1000);
 }
 
-// While the page stays open, re-check converting files every 10 s and flip their rows to
-// ✅ Done (or ⚠️) as they finish, like the catch page does. Gives up after 10 minutes; the
-// catch page and Media Activity have the final word after that. One loop at a time: a
-// retry that adds converting files joins the loop already running.
+// While the page stays open, re-check converting files and flip their rows to ✅ Done (or ⚠️)
+// as they finish, like the catch page does. Watching starts as soon as a file is recorded as
+// converting (not after the whole batch): the loop's first check is after 2 s (a photo often
+// converts in a few seconds, well before the 10 s hand-off), then every 10 s. Gives up after 10 minutes; the
+// catch page and Media Activity have the final word after that. One loop at a time: files
+// that start converting later (another in the batch, or a retry) join the loop already running,
+// at its next 10 s check.
+const CONVERT_FIRST_CHECK_MS = 2 * 1000;
 const CONVERT_POLL_MS = 10 * 1000;
 const CONVERT_POLL_LIMIT_MS = 10 * 60 * 1000;
 let watchingConversions = false;
@@ -421,7 +425,7 @@ function watchConversions(catchNumber) {
     }
     setTimeout(check, CONVERT_POLL_MS);
   };
-  setTimeout(check, CONVERT_POLL_MS);
+  setTimeout(check, CONVERT_FIRST_CHECK_MS);
 }
 
 el.stayHereBtn.addEventListener('click', () => {
@@ -469,7 +473,10 @@ async function processJobs(catchNumber, jobs) {
         return;
       }
       setStage(job, recorded.status === 'complete' ? 'complete' : 'converting');
-      if (recorded.status !== 'complete') log(`⏳ ${job.file.name} is converting so everyone can see it.`);
+      if (recorded.status !== 'complete') {
+        log(`⏳ ${job.file.name} is converting so everyone can see it.`);
+        watchConversions(catchNumber); // while the rest of the batch is still uploading
+      }
     } catch (err) {
       console.error(err);
       // Retry asks for a new link rather than sending the refused one again
