@@ -40,7 +40,8 @@ services:
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
       - N8N_HOST=${N8N_HOST}
       - N8N_PROTOCOL=https
-      - WEBHOOK_URL=https://${N8N_HOST}/
+      # Base URL for test and production webhooks (renamed from WEBHOOK_URL in n8n 2.4x)
+      - N8N_WEBHOOK_URL=https://${N8N_HOST}/
       - GENERIC_TIMEZONE=${TZ}
       - TZ=${TZ}
       - N8N_NODE_FUNCTION_ALLOW_BUILTIN=crypto,child_process

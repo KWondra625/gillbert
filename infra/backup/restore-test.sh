@@ -48,8 +48,9 @@ for spec in $specs "n8n-postgres:$N8N_PG_USER:n8n"; do
   docker exec "$live" psql -U "$user" -d "$db" -At -F' ' -c "$COUNTS" > "$WORK/live_$db"
   docker exec "$PG"   psql -U postgres -d "$db" -At -F' ' -c "$COUNTS" > "$WORK/restored_$db"
   tables=$(wc -l < "$WORK/live_$db"); rows=$(awk '{s+=$2} END {print s}' "$WORK/restored_$db")
-  # n8n's execution/insights tables grow with every run after the backup, so they're left out of the compare
-  for f in live restored; do grep -vE '\.(execution_|insights_)' "$WORK/${f}_$db" > "$WORK/${f}_$db.cmp" || true; done
+  # n8n's run-time tables change with every run after the backup, so they're left out of the compare:
+  # execution history and insights, plus (n8n 2.4x) the schedule queue and the statistics buffer
+  for f in live restored; do grep -vE '\.(execution_|insights_|scheduled_task |workflow_statistics_delta )' "$WORK/${f}_$db" > "$WORK/${f}_$db.cmp" || true; done
   if diff -q "$WORK/live_$db.cmp" "$WORK/restored_$db.cmp" >/dev/null; then
     echo "✅ $db: $tables tables, $rows rows, all counts match live (n8n execution history excluded)"
   else
