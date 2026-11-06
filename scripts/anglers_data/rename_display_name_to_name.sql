@@ -1,6 +1,7 @@
 -- Undo for rename_name_to_display_name.sql (#19): puts anglers.display_name back to
 -- anglers.name. Only for a rollback: the n8n steps must go back to their pre-rename
--- versions (backups saved by media_rework/deploy_angler_rename.py) at the same time.
+-- versions at the same time. The n8n script and its backups are kept outside the repo;
+-- the release runbook (Run Release - November Follow-ups) has the restore command.
 -- Safe to re-run.
 
 BEGIN;

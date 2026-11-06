@@ -1,3 +1,5 @@
+-- HISTORICAL: already ran, written before #19 renamed anglers.name to anglers.display_name
+-- (2026-11). Don't re-run as is: it uses the old column name.
 -- One-time cleanup: anglers.aliases was populated from the original
 -- Airtable import as a single-element text[] array whose one element is a
 -- JSON-stringified array (e.g. the stored array is {'["Wondra"]'}, not the

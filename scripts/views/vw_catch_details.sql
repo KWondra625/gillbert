@@ -1,9 +1,18 @@
 -- Drop + create (not REPLACE): servers have drifted in column order, which REPLACE can't change.
 -- Nothing depends on this view. One transaction, so readers never see it missing.
--- Dropping a view also drops its grants: the end of this script gives the new view the same
--- read access as vw_catch_media_details (the app's database user), or every page that lists
--- catches fails with "permission denied" (production, 2026-11-04 release, ~4 minutes).
+-- Dropping a view also drops its grants: this script notes who can read the view (and the
+-- media view, in case this view is brand new) before the drop, and grants them read access
+-- again at the end. Without that, every page that lists catches fails with "permission
+-- denied" (production, 2026-11-04 release, ~4 minutes).
 BEGIN;
+
+-- Who reads these views today (the app's database user, and any other reader role)
+CREATE TEMP TABLE keep_view_readers ON COMMIT DROP AS
+    SELECT DISTINCT grantee FROM information_schema.role_table_grants
+    WHERE table_schema = current_schema()
+      AND table_name IN ('vw_catch_details', 'vw_catch_media_details')
+      AND privilege_type = 'SELECT'
+      AND grantee NOT IN ('postgres', 'PUBLIC', current_user);
 
 DROP VIEW IF EXISTS vw_catch_details;
 CREATE VIEW vw_catch_details AS
@@ -91,17 +100,17 @@ CREATE VIEW vw_catch_details AS
     WHERE c.status = 'Active'
     ORDER BY c.caught_when DESC;
 
--- Same SELECT grants as the media view (whoever the app user is on this server)
+-- Give every reader noted above its read access back
 DO $$
 DECLARE r record;
 BEGIN
-  FOR r IN SELECT DISTINCT grantee FROM information_schema.role_table_grants
-           WHERE table_name = 'vw_catch_media_details' AND privilege_type = 'SELECT'
-             AND grantee NOT IN ('postgres', 'PUBLIC', current_user)
-  LOOP
+  FOR r IN SELECT grantee FROM keep_view_readers LOOP
     EXECUTE format('GRANT SELECT ON vw_catch_details TO %I', r.grantee);
     RAISE NOTICE 'vw_catch_details: SELECT granted to %', r.grantee;
   END LOOP;
+  IF NOT FOUND THEN
+    RAISE WARNING 'vw_catch_details: no reader roles found, nobody but the owner can read the view: check grants before the site uses it';
+  END IF;
 END $$;
 
 COMMIT;

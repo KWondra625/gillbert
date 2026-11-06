@@ -4,7 +4,7 @@
 // the public link set by the server. Both servers have these checks since 2026-11-04.
 const { test, expect } = require('../support/fixtures');
 const { getCatchMedia } = require('../support/staging-api');
-const { requireStagingWrites, ensureTestCatch, apiPost } = require('../support/test-data');
+const { requireStagingWrites, ensureTestCatch, apiPost, RUN_ID } = require('../support/test-data');
 
 requireStagingWrites();
 test.describe.configure({ mode: 'serial' });
@@ -52,12 +52,16 @@ test('commit: refused for a path the slot step would never issue', async () => {
 
 test('commit: the server sets the public link and type, whatever the browser sends', async () => {
   const folder = target.catchNumber.replace(/\s+/g, '-');
-  const blobPath = `catches/${folder}/E2ESERVERLINK01.png`;
+  // A new name each run, so a run that died before its clean-up can't trip the next one
+  // (the server only accepts 8-24 capital letters and digits here)
+  const stem = `E2ELINK${String(RUN_ID).replace(/[^A-Za-z0-9]/g, '')}`.toUpperCase().padEnd(8, '0').slice(0, 24);
+  const blobPath = `catches/${folder}/${stem}.png`;
   await apiPost('catch-media/commit', {
     catchNumber: target.catchNumber, uploadedByAnglerId: null,
     uploads: [{ blobPath, readUrl: 'https://example.com/elsewhere.png', contentType: 'text/html', originalName: 'x.png', size: 1, mediaType: 'Video' }],
   });
   const row = (await getCatchMedia(target.catchNumber)).find(m => m.blobPath === blobPath);
+  expect(row, 'the commit created a record').toBeTruthy();
   expect(row.readUrl).toBe(`https://${process.env.STAGING_STORAGE_ACCOUNT}.blob.core.windows.net/catch-media/${blobPath}`);
   expect(row.contentType).toBe('image/png');
   expect(row.mediaType).toBe('Photo');
