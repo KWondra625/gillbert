@@ -77,3 +77,21 @@ for (const s of SECTIONS) {
     });
   });
 }
+
+// #19: anglers.name became anglers.display_name. The forms say so; the API still sends
+// each angler's display name as "name", so every page that lists anglers is unchanged.
+test('the angler forms ask for a display name, and the API still answers with names', async ({ page }) => {
+  await unlockAdmin(page);
+  const data = await apiGet('anglers/get');
+  const anglers = (Array.isArray(data) ? data : Object.values(data).find(Array.isArray) || []).filter(a => a && a.id);
+  expect(anglers.length).toBeGreaterThan(0);
+  expect(anglers.every(a => typeof a.name === 'string' && a.name.trim()), 'every angler has a name').toBe(true);
+
+  for (const url of ['create-angler.html', `edit-angler.html?id=${anglers[0].id}`]) {
+    await page.goto(url);
+    await expect(page.locator('label[for="name"]')).toContainText('Display Name');
+    await expect(page.locator('#name')).toHaveAttribute('placeholder', 'e.g. Kurt W');
+    await page.waitForLoadState('networkidle'); // let the page finish its own loads before moving on
+  }
+  await expect(page.locator('#name')).toHaveValue(anglers[0].name);
+});

@@ -1,3 +1,5 @@
+-- HISTORICAL: already ran, written before #19 renamed anglers.name to anglers.display_name
+-- (2026-11). Don't re-run as is: it uses the old column name.
 -- One-time: update angler names to a friendlier/more disambiguated display
 -- format (e.g. "Kurt" -> "Kurt W"), and backfill each angler's bare first
 -- name into aliases so Catch Chat's exact-match Lookup Angler node still

@@ -52,6 +52,9 @@ services:
       # per-server settings below. Code nodes can already run shell commands (child_process), so this
       # adds no real exposure; the guard is that only Kurt edits workflows.
       - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      # Code-node time limit (default 300 s). Converting a long phone video (Convert Media) takes
+      # up to ~10 minutes; 30 minutes leaves room. Added on the server at the media release (2026-11-04).
+      - N8N_RUNNERS_TASK_TIMEOUT=1800
       # Gillbert per-server settings (values in .env). Each environment has its own storage account,
       # so a production DB copied to Staging can never write to production media.
       - GILLBERT_AZURE_STORAGE_ACCOUNT=${GILLBERT_AZURE_STORAGE_ACCOUNT}
@@ -85,7 +88,7 @@ services:
   # Public entry point. Outbound-only connection to Cloudflare; no ports opened on this box.
   # The tunnel's routes (configured in the Cloudflare dashboard) point at http://n8n:5678 over the compose network.
   cloudflared:
-    image: cloudflare/cloudflared:2026.9.3
+    image: cloudflare/cloudflared:2026.10.4
     container_name: cloudflared
     restart: unless-stopped
     command: tunnel --no-autoupdate run
