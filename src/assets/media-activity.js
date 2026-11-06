@@ -256,6 +256,8 @@ el.showMoreBtn.addEventListener('click', () => {
 // A look at a file with no record, to decide attach or delete: a thumbnail for photos a
 // browser can show, a first frame for MP4 videos, and always a link to open the file (HEIC
 // and MOV download instead). The scan supplies the link; an older scan without one shows none.
+// The thumbnail is a mouse/touch shortcut only: keyboards and screen readers get the one
+// "Open file" link per file, named after the file.
 const PREVIEW_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
 function orphanPreview(f) {
@@ -269,8 +271,8 @@ function orphanPreview(f) {
       : '';
   return `
       <div class="orphan-preview">
-        ${thumb ? `<a class="orphan-thumb" href="${url}" target="_blank" rel="noopener" aria-label="Open this file">${thumb}</a>` : ''}
-        <a class="orphan-open" href="${url}" target="_blank" rel="noopener">👁️ Open file ↗</a>
+        ${thumb ? `<a class="orphan-thumb" href="${url}" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true">${thumb}</a>` : ''}
+        <a class="orphan-open" href="${url}" target="_blank" rel="noopener" aria-label="Open ${escapeHtml(f.blobPath)} (opens in a new tab)">👁️ Open file ↗</a>
       </div>`;
 }
 

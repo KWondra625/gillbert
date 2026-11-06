@@ -896,6 +896,9 @@ test.describe('media activity page', () => {
     await expect(rows.nth(0).locator('.orphan-thumb img')).toHaveAttribute('src', `${FAKE_STORAGE}/orphan/PHOTO00001.jpg`);
     await expect(rows.nth(0).locator('.orphan-open')).toHaveAttribute('href', `${FAKE_STORAGE}/orphan/PHOTO00001.jpg`);
     await expect(rows.nth(0).locator('.orphan-open')).toHaveAttribute('target', '_blank');
+    // One link per file for keyboards and screen readers, named after the file
+    await expect(rows.nth(0).locator('.orphan-thumb')).toHaveAttribute('tabindex', '-1');
+    await expect(rows.nth(0).locator('.orphan-open')).toHaveAccessibleName(/PHOTO00001\.jpg \(opens in a new tab\)/);
     // MP4: a first frame; HEIC: a link only (browsers can't show it)
     await expect(rows.nth(1).locator('.orphan-thumb video')).toHaveAttribute('src', /VIDEO00001\.mp4#t=0\.1$/);
     await expect(rows.nth(2).locator('.orphan-thumb')).toHaveCount(0);
