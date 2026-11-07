@@ -193,3 +193,93 @@ body {
     font-size: 18px;
   }
 }
+
+/* Bottom-sheet modal: same pattern as the other pages' ri-modal (Admin Access, Catch Details) */
+.ri-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 900;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.ri-modal.open {
+  display: flex;
+}
+
+.ri-modal-sheet {
+  width: 100%;
+  max-width: 700px;
+  background: white;
+  border-radius: 16px 16px 0 0;
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.22s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.ri-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ri-modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.ri-modal-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  line-height: 1;
+  color: #aaa;
+  cursor: pointer;
+  padding: 0;
+}
+
+.ri-modal-close:hover {
+  color: #555;
+}
+
+.ri-modal-body {
+  padding: 12px 20px 8px;
+}
+
+/* The Apple easter egg */
+.apple-roast {
+  margin: 0 0 10px 0;
+  font-size: 15px;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.apple-modal-actions {
+  margin-top: 16px;
+}
+
+.secondary-button {
+  display: block;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-weight: 700;
+  text-decoration: none;
+  text-align: center;
+  background: white;
+  color: #15803d;   /* readable green text; Android green stays on the border */
+  border: 2px solid #3DDC84;
+}
+
+.secondary-button:active {
+  transform: scale(0.98);
+}

@@ -26,3 +26,17 @@ test('notifications.html points a local copy at Staging ntfy', async ({ page }) 
   await expect(page.locator('#serverUrl')).toHaveText('https://ntfy-lab01.builtbykw.net');
   await expect(page.locator('#topicName')).toHaveText('gillbert-catches');
 });
+
+test('notifications.html: the App Store badge opens the Apple easter egg first', async ({ page }) => {
+  await page.goto('notifications.html');
+  const modal = page.locator('#appleModal');
+  await expect(modal).toBeHidden();
+  await page.locator('#appStoreBadge').click();
+  await expect(modal).toBeVisible();
+  await expect(modal).toContainText("The fish don't judge you, but we do.");
+  await expect(page.locator('#appleModalStore')).toHaveAttribute('href', 'https://apps.apple.com/us/app/ntfy/id1625396347');
+  await expect(modal.locator('a.secondary-button')).toHaveAttribute('href', 'https://www.android.com/switch/');
+  if (process.env.SHOT) { await page.waitForTimeout(400); await page.screenshot({ path: process.env.SHOT }); }
+  await page.keyboard.press('Escape');
+  await expect(modal).toBeHidden();
+});

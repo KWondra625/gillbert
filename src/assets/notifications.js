@@ -24,3 +24,23 @@ document.querySelectorAll('.copy-button').forEach((button) => {
     setTimeout(() => { button.textContent = 'Copy'; }, 2000);
   });
 });
+
+// Easter egg: the App Store badge opens a little roast first. Its href stays real, so without
+// this script it just goes to the App Store; with it, the App Store is still the primary button.
+(() => {
+  const badge = document.getElementById('appStoreBadge');
+  const modal = document.getElementById('appleModal');
+  const close = document.getElementById('appleModalClose');
+  const store = document.getElementById('appleModalStore');
+
+  const openModal  = () => { modal.classList.add('open'); store.focus(); };
+  const closeModal = () => { modal.classList.remove('open'); badge.focus(); };
+
+  badge.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
+  close.addEventListener('click', closeModal);
+  store.addEventListener('click', () => modal.classList.remove('open'));
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
+  });
+})();
