@@ -10,3 +10,4 @@ __pycache__/
 reverse_dryrun/
 reverse_backup/
 media_rework/
+notifications/snapshots/

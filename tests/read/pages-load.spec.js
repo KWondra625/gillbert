@@ -9,7 +9,7 @@ const PAGES = [
   'fish-of-fame.html', 'anglers-listing.html', 'create-angler.html', 'edit-angler.html',
   'fish-species-listing.html', 'create-fish-species.html', 'edit-fish-species.html',
   'bodies-of-water-listing.html', 'create-body-of-water.html', 'edit-body-of-water.html',
-  'me.html', 'under-the-hood.html', 'media-activity.html', 'whats-new.html', 'features-functionality.html',
+  'me.html', 'under-the-hood.html', 'media-activity.html', 'whats-new.html', 'features-functionality.html', 'notifications.html',
 ];
 
 for (const path of PAGES) {
@@ -19,3 +19,10 @@ for (const path of PAGES) {
     await page.waitForLoadState('networkidle');
   });
 }
+
+test('notifications.html points a local copy at Staging ntfy', async ({ page }) => {
+  await page.goto('notifications.html');
+  await expect(page.locator('#subscribeLink')).toHaveAttribute('href', 'ntfy://ntfy-lab01.builtbykw.net/gillbert-catches');
+  await expect(page.locator('#serverUrl')).toHaveText('https://ntfy-lab01.builtbykw.net');
+  await expect(page.locator('#topicName')).toHaveText('gillbert-catches');
+});
