@@ -52,178 +52,182 @@
   margin-bottom: 16px;
 }
 
+/* No message: take no room above the catches */
+.status:empty {
+  min-height: 0;
+  margin-bottom: 0;
+}
+
 .loading-indicator {
   display: none;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
-/* Catches Grid */
+/* ── Catches, in day groups ──────────────────────────────────────────────────
+ * Each group: a heading on the sky (Today, Yesterday, This week, then by month), then
+ * its cards. Clear space between groups. */
+.catch-groups {
+  display: grid;
+  gap: 28px;
+  margin-bottom: 40px;
+}
+
+.catch-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 2px 10px;
+  color: var(--gb-on-sky);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.catch-group-head small {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  opacity: 0.85;
+}
+
+/* a thin line out to the edge, so the heading reads as a divider */
+.catch-group-head::after {
+  content: "";
+  flex: 1;
+  align-self: center;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.45);
+}
+
 .catches-grid {
-  isolation: isolate;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 24px;
-  margin-bottom: 48px;
+  gap: 12px;
 }
 
+/* ── One catch: the whole card opens it ── */
+/* A column, so cards side by side on wide screens keep their bottom row at the bottom */
 .catch-card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  transition: transform 0.2s, box-shadow 0.2s;
   display: flex;
   flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--gb-radius-card);
+  background: var(--gb-surface);
+  color: var(--gb-ink);
+  box-shadow: var(--gb-shadow-card);
+  text-decoration: none;
+  transition: transform 0.15s;
 }
 
-.catch-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+.catch-card:active {
+  transform: scale(0.98);
 }
 
-.catch-card-header {
-  background: var(--gb-page-bg);
-  padding: 16px;
-  color: white;
+.catch-card:focus-visible {
+  outline: 3px solid var(--gb-on-sky);
+  outline-offset: 2px;
 }
 
-.catch-header-row {
+.catch-card-top {
   display: flex;
   align-items: center;
-  gap: 10px;
-  /* Same height with or without the angler's photo, so cards line up */
-  min-height: 40px;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--gb-muted);
 }
 
-/* The angler's profile photo, before the catch number (#27) */
-.catch-angler-photo {
-  width: 36px;
-  height: 36px;
+.catch-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   object-fit: cover;
-  flex-shrink: 0;
-  border: 2px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
 }
 
-.catch-id {
-  margin: 0;
-  font-size: 24px;
+.catch-angler {
+  color: var(--gb-ink-2);
   font-weight: 700;
-  word-break: break-word;
-  flex: 1 1 auto;
-  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.catch-badges {
+.catch-when {
+  white-space: nowrap;
+}
+
+.catch-what {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.catch-what span {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gb-muted);
+  letter-spacing: 0;
+}
+
+.catch-card-foot {
+  margin-top: auto;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--gb-muted);
 }
 
-.field-value.field-value--fresh {
-  color: #E8650A;
-  font-weight: 600;
+.catch-card-foot .catch-id {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
 }
 
-.badge-new {
-  font-size: 18px;
+.catch-card-foot em {
+  font-style: normal;
+  font-size: 20px;
   line-height: 1;
+  font-weight: 800;
+  color: var(--gb-accent-strong);
 }
 
-.badge-media {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 3px 9px;
-  background: white;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--gb-accent);
-  line-height: 1.4;
-}
-
+.badge-media,
+.badge-new,
 .badge-pending {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  padding: 3px 9px;
-  background: #fff8e6;
-  border-radius: 20px;
-  font-size: 13px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
   font-weight: 700;
-  color: #d98c00;
   line-height: 1.4;
 }
 
-.catch-card-body {
-  padding: 20px;
-  flex-grow: 1;
-}
-
-.catch-field {
-  display: flex;
-  margin-bottom: 12px;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.catch-field:last-of-type {
-  margin-bottom: 0;
-}
-
-.catch-pending-row {
-  margin-top: 12px;
-  text-align: center;
-}
-
-.field-label {
-  font-weight: 600;
-  color: var(--gb-accent);
-  min-width: 100px;
-  flex-shrink: 0;
-}
-
-.field-value {
-  color: var(--gb-ink-2);
-  word-break: break-word;
-}
-
-.catch-summary {
-  margin-top: 16px;
-  padding: 12px;
+.badge-media {
   background: var(--gb-accent-soft);
-  border-left: 4px solid var(--gb-accent);
-  border-radius: 4px;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--gb-ink-2);
+  color: var(--gb-accent-strong);
 }
 
-.catch-summary p {
-  margin: 0;
+.badge-new {
+  background: #ffe9d6;
+  color: #b04f00;
 }
 
-.catch-card-footer {
-  padding: 12px 20px;
-  border-top: 1px solid var(--gb-line-soft);
-  background: #fafafa;
-  text-align: center;
-}
-
-/* 📷 / ⏳ ride inside the View Details button (#27), as small white pills on its gradient */
-.card-button .badge-media {
-  padding: 1px 8px;
-  background: rgba(255, 255, 255, 0.95);
-  color: #1f8ad6;
-  font-size: 12px;
-}
-
-.card-button {
-  gap: 8px;
-  padding: 10px 16px;
+.badge-pending {
+  background: #fff8e6;
+  color: #b07000;
 }
 
 /* Empty State */
@@ -297,11 +301,6 @@
 /* Back Button */
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
-  .catches-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-
   .pagination-container {
     gap: 12px;
   }
@@ -322,17 +321,8 @@
     padding: 12px;
   }
 
-  .catch-card-body {
-    padding: 16px;
-  }
-
-  .field-label {
-    min-width: 80px;
-    font-size: 13px;
-  }
-
-  .field-value {
-    font-size: 13px;
+  .catches-grid {
+    grid-template-columns: 1fr;
   }
 }
 

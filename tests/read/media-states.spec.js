@@ -972,7 +972,7 @@ test.describe('media badges', () => {
       { ...first, catchMediaCount: 2, catchMediaProcessingCount: 3 },
     ] }));
     await page.goto('catches-listing.html');
-    const badges = page.locator('#catchesContainer .catch-card').first().locator('.card-button');
+    const badges = page.locator('#catchesContainer .catch-card').first().locator('.catch-card-foot');
     await expect(badges).toContainText('📷 2');
     await expect(badges.locator('.badge-media--converting')).toHaveText('⏳ 3');
   });
@@ -983,7 +983,7 @@ test.describe('media badges', () => {
       { ...first, catchMediaCount: 1, catchMediaProcessingCount: 1 },
     ] }));
     await page.goto('catches-listing.html');
-    const badges = page.locator('#catchesContainer .catch-card').first().locator('.card-button .badge-media');
+    const badges = page.locator('#catchesContainer .catch-card').first().locator('.catch-card-foot .badge-media');
     await expect(badges).toHaveText(['📷', '⏳']);
   });
 
@@ -1003,7 +1003,7 @@ test.describe('media badges', () => {
     await page.clock.install();
     await mockCounts(page, [first], state);
     await page.goto('catches-listing.html');
-    const badges = page.locator('#catchesContainer .catch-card').first().locator('.card-button .badge-media');
+    const badges = page.locator('#catchesContainer .catch-card').first().locator('.catch-card-foot .badge-media');
     await expect(badges).toHaveText(['📷', '⏳ 2']);
 
     state.media = 3; state.converting = 0; // both finished
@@ -1020,7 +1020,7 @@ test.describe('media badges', () => {
     const state = { media: 1, converting: 0, requests: 0 };
     await mockCounts(page, [first], state);
     await page.goto('catches-listing.html');
-    const badges = page.locator('#catchesContainer .catch-card').first().locator('.card-button .badge-media');
+    const badges = page.locator('#catchesContainer .catch-card').first().locator('.catch-card-foot .badge-media');
     await expect(badges).toHaveText(['📷']);
 
     // What the browser fires when it restores the page from its back/forward cache
@@ -1042,7 +1042,7 @@ test.describe('media badges', () => {
     await expect(badges).toHaveText(['📷 2', '⏳ 2']);
   });
 
-  test("each card shows its angler's photo in the header and 📷 / ⏳ inside View Details (#27)", async ({ page }) => {
+  test("each card shows its angler's photo (or initials) on top and 📷 / ⏳ at the bottom", async ({ page }) => {
     const [first] = await getCatches();
     const lookups = await getLookups();
     await page.route(url => url.pathname.endsWith('/get-lookup-data'), route => route.fulfill({ json: [{ ...lookups,
@@ -1059,15 +1059,16 @@ test.describe('media badges', () => {
 
     const cards = page.locator('#catchesContainer .catch-card');
     await expect(cards).toHaveCount(2);
-    await expect(cards.nth(0).locator('.catch-angler-photo')).toHaveAttribute('src', `${FAKE_STORAGE}/face.jpg`);
-    await expect(cards.nth(1).locator('.catch-angler-photo'), 'no empty circle without a photo').toHaveCount(0);
-    // Badges ride inside the View Details button; the header keeps only 🆕
-    await expect(cards.nth(0).locator('.card-button .badge-media')).toHaveText(['📷 3', '⏳']);
-    await expect(cards.nth(0).locator('.catch-badges .badge-media')).toHaveCount(0);
-    await expect(cards.nth(0).locator('.catch-badges')).toContainText('🆕');
-    // Headers line up whether or not there's a photo
-    const h = await Promise.all([0, 1].map(i => cards.nth(i).locator('.catch-card-header').evaluate(e => e.offsetHeight)));
-    expect(Math.abs(h[0] - h[1]), `header heights ${h.join(' vs ')}`).toBeLessThanOrEqual(1);
+    await expect(cards.nth(0).locator('img.catch-avatar')).toHaveAttribute('src', `${FAKE_STORAGE}/face.jpg`);
+    // No photo: their initials instead, never an empty circle
+    await expect(cards.nth(1).locator('img.catch-avatar')).toHaveCount(0);
+    await expect(cards.nth(1).locator('span.catch-avatar')).toHaveText('NP');
+    await expect(cards.nth(0).locator('.catch-card-foot .badge-media')).toHaveText(['📷 3', '⏳']);
+    await expect(cards.nth(0).locator('.catch-card-foot .badge-new')).toBeVisible();
+    await expect(cards.nth(1).locator('.badge-new')).toHaveCount(0);
+    // The top rows line up whether or not there's a photo
+    const h = await Promise.all([0, 1].map(i => cards.nth(i).locator('.catch-card-top').evaluate(e => e.offsetHeight)));
+    expect(Math.abs(h[0] - h[1]), `top heights ${h.join(' vs ')}`).toBeLessThanOrEqual(1);
   });
 
   test('Fish of Fame shows the same 📷 and ⏳ counts', async ({ page }) => {

@@ -45,15 +45,9 @@ function agoLong(ms) {
   return `${Math.round(days / 30)} months ago`;
 }
 
-// Angler photo, or their initials on a color picked from their id
-const AVATAR_COLORS = ['#2f6b47', '#8a4fbf', '#c2552c', '#1f7fd1', '#9a7a12', '#b0386a', '#3d7f86'];
+// Angler photo, or their initials on their color (avatar.js, shared with Browse Catches)
 function avatarHtml(angler, name) {
-  if (angler && angler.profilePhotoReadUrl) {
-    return `<img class="avatar" src="${encodeURI(angler.profilePhotoReadUrl)}" alt="">`;
-  }
-  const initials = String(name || '?').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
-  const color = AVATAR_COLORS[Math.abs(Number(angler?.id) || initials.charCodeAt(0)) % AVATAR_COLORS.length];
-  return `<span class="avatar" style="background:${color}" aria-hidden="true">${escapeHtml(initials)}</span>`;
+  return GillbertAvatar.html(angler, name);
 }
 
 // ── Hero: tap the flag (or bobber) to see it again ──────────────────────────
