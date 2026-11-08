@@ -6,7 +6,7 @@
 # are copied over the image's own, so an older builder would replace newer system libraries
 # (libstdc++, musl, OpenSSL) with older ones and Node can fail to start. Check on every upgrade:
 #   docker run --rm --entrypoint sh n8nio/n8n:<version> -c "grep VERSION_ID /etc/os-release"
-# 2.15.1 = Alpine 3.22, 2.46.6 = Alpine 3.24 (Node 24 -> 26).
+# n8n 2.46.6 = Alpine 3.24 (Node 26).
 FROM alpine:3.24 AS ffmpeg-builder
 RUN apk add --no-cache ffmpeg curl imagemagick libheif
 

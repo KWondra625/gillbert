@@ -27,7 +27,7 @@ services:
 
   n8n:
     build: .
-    image: n8n-custom
+    image: n8n-custom:2.46.6   # versioned like the Pi: building a new version leaves the old image in place for roll-back
     container_name: n8n
     restart: unless-stopped
     environment:

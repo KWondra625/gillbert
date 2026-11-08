@@ -52,7 +52,7 @@ for spec in $specs "n8n-postgres:$N8N_PG_USER:n8n"; do
   # execution history and insights, plus (n8n 2.4x) the schedule queue and the statistics buffer
   for f in live restored; do grep -vE '\.(execution_|insights_|scheduled_task |workflow_statistics_delta )' "$WORK/${f}_$db" > "$WORK/${f}_$db.cmp" || true; done
   if diff -q "$WORK/live_$db.cmp" "$WORK/restored_$db.cmp" >/dev/null; then
-    echo "✅ $db: $tables tables, $rows rows, all counts match live (n8n execution history excluded)"
+    echo "✅ $db: $tables tables, $rows rows, all counts match live (n8n run-time tables excluded)"
   else
     echo "⚠️  $db: differences (live < > restored):"; diff "$WORK/live_$db.cmp" "$WORK/restored_$db.cmp" | grep '^[<>]' | head -20 || true; fail=1
   fi

@@ -27,7 +27,6 @@ services:
 
   n8n:
     # Pre-built from this folder's Dockerfile: docker build -t n8n-custom:2.46.6 .
-    # The previous image stays on the server for a roll-back (n8n-custom:cutover = n8n 2.15.1).
     image: n8n-custom:2.46.6
     container_name: n8n
     restart: unless-stopped
@@ -45,6 +44,7 @@ services:
       # Base URL for test and production webhooks (renamed from WEBHOOK_URL in n8n 2.4x)
       - N8N_WEBHOOK_URL=https://${N8N_HOST}/
       - GENERIC_TIMEZONE=${TZ}
+      - TZ=${TZ}   # same as production: Code nodes and the tools they run use local time
       - N8N_NODE_FUNCTION_ALLOW_BUILTIN=crypto,child_process
       - NODE_FUNCTION_ALLOW_BUILTIN=crypto,child_process
       - N8N_RUNNERS_TASK_TIMEOUT=1800   # media conversions; matches the 30-min "stuck" rule
