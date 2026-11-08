@@ -86,8 +86,40 @@ services:
       timeout: 5s
       retries: 5
 
+  # Gillbert new-catch notifications. n8n posts on the compose network (http://ntfy:80); phones reach it
+  # through the tunnel (ntfy.builtbykw.net → http://ntfy:80). No ports opened on this box.
+  # Secrets live in .env (notifications/ntfy_secrets.sh).
+  ntfy:
+    image: binwiederhier/ntfy:v2.37.2
+    container_name: ntfy
+    restart: unless-stopped
+    command: serve
+    environment:
+      TZ: ${TZ}
+      NTFY_BASE_URL: https://ntfy.builtbykw.net
+      NTFY_BEHIND_PROXY: "true"
+      NTFY_CACHE_FILE: /var/lib/ntfy/cache.db
+      NTFY_CACHE_DURATION: 72h
+      NTFY_AUTH_FILE: /var/lib/ntfy/auth.db
+      # Nobody gets in by default; anyone may read the catches topic; only n8n may post.
+      NTFY_AUTH_DEFAULT_ACCESS: deny-all
+      NTFY_AUTH_USERS: "n8n-publisher:${NTFY_PUBLISHER_HASH}:user"
+      NTFY_AUTH_ACCESS: "*:gillbert-catches:ro,n8n-publisher:gillbert-catches:wo"
+      NTFY_AUTH_TOKENS: "n8n-publisher:${NTFY_PUBLISHER_TOKEN}:n8n Gillbert"
+      NTFY_ENABLE_SIGNUP: "false"
+      NTFY_ENABLE_LOGIN: "false"
+      # iPhones: ntfy.sh relays a content-free wake-up through Apple's push service
+      NTFY_UPSTREAM_BASE_URL: https://ntfy.sh
+    volumes:
+      - ntfy-data:/var/lib/ntfy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --tries=1 http://localhost:80/v1/health -O - | grep -q '\"healthy\":true'"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+
   # Public entry point. Outbound-only connection to Cloudflare; no ports opened on this box.
-  # The tunnel's routes (configured in the Cloudflare dashboard) point at http://n8n:5678 over the compose network.
+  # The tunnel's routes (configured in the Cloudflare dashboard) point at http://n8n:5678 and http://ntfy:80 over the compose network.
   cloudflared:
     image: cloudflare/cloudflared:2026.10.4
     container_name: cloudflared
@@ -102,3 +134,4 @@ volumes:
   n8n-data:
   n8n-postgres-data:
   data-postgres-data:
+  ntfy-data:

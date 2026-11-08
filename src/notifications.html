@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gillbert - Catch Notifications</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/notifications.css" />
+  <link rel="stylesheet" href="./assets/top-home-link.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="top-nav">
+      <a href="./index.html" class="top-home-link" aria-label="Go back to Home">← Home</a>
+    </div>
+
+    <div class="header">
+      <h1>🔔 Catch Notifications</h1>
+      <p>Get a buzz on your phone every time someone logs a new catch.</p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header"><span class="step-number">1</span><span class="step-title">Get the ntfy app</span></div>
+      <p>Gillbert sends notifications through <strong>ntfy</strong>, a free app with no account and no sign-up.</p>
+      <div class="store-links">
+        <!-- Official badges, unmodified (Apple: App Store first; Google's PNG keeps its own transparent margin) -->
+        <a class="store-badge" id="appStoreBadge" href="https://apps.apple.com/us/app/ntfy/id1625396347" target="_blank" rel="noopener">
+          <img src="./assets/badges/app-store-badge.svg" alt="Download ntfy on the App Store" class="badge-apple" />
+        </a>
+        <a class="store-badge" href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank" rel="noopener">
+          <img src="./assets/badges/google-play-badge.png" alt="Get ntfy on Google Play" class="badge-google" />
+        </a>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header"><span class="step-number">2</span><span class="step-title">Subscribe to Gillbert's catches</span></div>
+      <p>On your phone, tap the button. It opens ntfy and subscribes you.</p>
+      <a class="primary-button" id="subscribeLink" href="ntfy://ntfy.builtbykw.net/gillbert-catches">Subscribe in the ntfy app</a>
+      <details class="manual-steps">
+        <summary>Button didn't work? Add it by hand</summary>
+        <ol>
+          <li>In ntfy, tap <strong>+</strong> to add a subscription.</li>
+          <li>Topic name: <code class="copyable" id="topicName">gillbert-catches</code> <button class="copy-button" data-copy="topicName" type="button">Copy</button></li>
+          <li>Turn on <strong>Use another server</strong> and enter: <code class="copyable" id="serverUrl">https://ntfy.builtbykw.net</code> <button class="copy-button" data-copy="serverUrl" type="button">Copy</button></li>
+          <li>Tap <strong>Subscribe</strong>.</li>
+        </ol>
+      </details>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header"><span class="step-number">3</span><span class="step-title">Allow notifications</span></div>
+      <p>When your phone asks whether ntfy may send notifications, tap <strong>Allow</strong>.</p>
+      <p>On Android, ntfy keeps a small "listening" notification so new catches arrive right away. That's normal.</p>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header"><span class="step-number">4</span><span class="step-title">That's it</span></div>
+      <p>Each new catch shows who caught what. Tap the notification to open the catch in Gillbert for the rest.</p>
+      <p>Edits to existing catches don't send notifications. To stop them, delete the subscription in ntfy.</p>
+    </div>
+
+    <a href="./index.html" class="back-button">← Back to Home</a>
+
+    <!-- Easter egg for the iPhone crowd (Kurt, 2026-11-06). The App Store stays one tap away. -->
+    <div id="appleModal" class="ri-modal" role="dialog" aria-modal="true" aria-labelledby="appleModalTitle">
+      <div class="ri-modal-sheet">
+        <div class="ri-modal-header">
+          <span class="ri-modal-title" id="appleModalTitle">Apple user, huh? 🙄</span>
+          <button class="ri-modal-close" id="appleModalClose" type="button" aria-label="Close">&times;</button>
+        </div>
+        <div class="ri-modal-body">
+          <p class="apple-roast">I guess we all make some mistakes… The fish don't judge you, but we do.</p>
+          <p class="apple-roast">Gillbert will still send you notifications… but honestly, it's not too late to let that phone sleep with the fishes at the bottom of the lake and join the far superior Android crowd.</p>
+          <div class="apple-modal-actions">
+            <a class="primary-button" id="appleModalStore" href="https://apps.apple.com/us/app/ntfy/id1625396347" target="_blank" rel="noopener">Fine, take me to the App Store</a>
+            <a class="secondary-button" href="https://www.android.com/switch/" target="_blank" rel="noopener">Show me the light (switch to Android)</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./assets/config.js"></script>
+  <script src="./assets/notifications.js"></script>
+</body>
+</html>

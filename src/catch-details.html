@@ -36,6 +36,23 @@
       </div>
     </div>
 
+    <!-- Catch not found (a stale or mistyped link): a light-hearted way back -->
+    <div id="lostCatchModal" class="ri-modal" role="dialog" aria-modal="true" aria-labelledby="lostCatchTitle">
+      <div class="ri-modal-sheet">
+        <div class="ri-modal-header">
+          <span class="ri-modal-title lost-catch-title" id="lostCatchTitle"></span>
+          <button class="ri-modal-close" id="lostCatchClose" type="button" aria-label="Close">&times;</button>
+        </div>
+        <div class="ri-modal-body">
+          <p class="lost-catch-text" id="lostCatchText"></p>
+          <div class="lost-catch-actions">
+            <a href="./catches-listing.html" class="lost-catch-btn lost-catch-btn--primary" id="lostCatchBrowse">🐟 Browse catches</a>
+            <a href="./index.html" class="lost-catch-btn lost-catch-btn--secondary">🏠 Back to home</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Delete Media Confirmation Modal -->
     <div id="deleteMediaModal" class="dm-modal" role="dialog" aria-modal="true" aria-label="Delete Media">
       <div class="dm-modal-sheet">

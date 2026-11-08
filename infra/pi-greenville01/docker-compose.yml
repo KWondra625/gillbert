@@ -189,6 +189,39 @@ services:
     environment:
       - TZ=America/Chicago
 
+  ntfy:
+    # Gillbert new-catch notifications (Staging). n8n posts on the internal network
+    # (http://ntfy:80); phones reach it through the tunnel. Secrets live in .env.
+    image: binwiederhier/ntfy:v2.37.2
+    container_name: ntfy
+    restart: unless-stopped
+    command: serve
+    ports:
+      - "127.0.0.1:2586:80"   # local only: the tunnel (host network) is the one caller
+    environment:
+      TZ: ${TZ}
+      NTFY_BASE_URL: https://ntfy-lab01.builtbykw.net
+      NTFY_BEHIND_PROXY: "true"
+      NTFY_CACHE_FILE: /var/lib/ntfy/cache.db
+      NTFY_CACHE_DURATION: 72h
+      NTFY_AUTH_FILE: /var/lib/ntfy/auth.db
+      # Nobody gets in by default; anyone may read the catches topic; only n8n may post.
+      NTFY_AUTH_DEFAULT_ACCESS: deny-all
+      NTFY_AUTH_USERS: "n8n-publisher:${NTFY_PUBLISHER_HASH}:user"
+      NTFY_AUTH_ACCESS: "*:gillbert-catches:ro,n8n-publisher:gillbert-catches:wo"
+      NTFY_AUTH_TOKENS: "n8n-publisher:${NTFY_PUBLISHER_TOKEN}:n8n Gillbert"
+      NTFY_ENABLE_SIGNUP: "false"
+      NTFY_ENABLE_LOGIN: "false"
+      # iPhones: ntfy.sh relays a content-free wake-up through Apple's push service
+      NTFY_UPSTREAM_BASE_URL: https://ntfy.sh
+    volumes:
+      - /mnt/pi5_nas_drive_1/docker-data/ntfy:/var/lib/ntfy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --tries=1 http://localhost:80/v1/health -O - | grep -q '\"healthy\":true'"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+
 volumes:
   n8n-data:
   firefox-data:

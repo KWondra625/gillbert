@@ -242,10 +242,11 @@ async function loadCatchDetails(catchNumber) {
       catchData = data;
     }
 
-    if (!catchData) {
-      setStatus("Catch not found.", true);
+    // A catch number that doesn't exist comes back as one record with every field empty
+    if (!catchData || catchData.id == null || !catchData.catchNumber) {
       hideLoading();
-      return;
+      showLostCatch(catchNumber);
+      return false;
     }
 
     await (window.adminIdentityCheck || Promise.resolve());
@@ -265,11 +266,48 @@ async function loadCatchDetails(catchNumber) {
 
     renderDetails(catchData);
     hideLoading();
+    return true;
   } catch (err) {
     console.error(err);
     setStatus("Failed to load catch details ❌", true);
     hideLoading();
   }
+}
+
+// Catch not found: one of a few fishing excuses, picked at random, with a way back
+const LOST_CATCH_LINES = [
+  'That one shook the line! 🎣',
+  'Whoops, it jumped off the line! 🐟',
+  'Someone forgot to grab the net… 🥅',
+];
+
+function showLostCatch(catchNumber) {
+  const modal = document.getElementById('lostCatchModal');
+  document.getElementById('lostCatchTitle').textContent =
+    LOST_CATCH_LINES[Math.floor(Math.random() * LOST_CATCH_LINES.length)];
+  // With a number: name it. Without one (a link missing ?catchNumber=), say so.
+  const text = document.getElementById('lostCatchText');
+  if (catchNumber) {
+    const strong = document.createElement('strong');
+    strong.id = 'lostCatchNumber';
+    strong.textContent = catchNumber;
+    text.replaceChildren("We couldn't find ", strong,
+      ' in the record books. Maybe it was released, or the link got a little tangled.');
+  } else {
+    text.textContent = "That link didn't say which catch to show, so there's nothing on the line. Pick one from the catch log instead.";
+  }
+  document.title = 'Catch not found · Gillbert';
+  setStatus('That catch got away. 🎣', true);
+
+  const close = () => modal.classList.remove('open');
+  document.getElementById('lostCatchClose').addEventListener('click', close);
+  modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('open')) close();
+  });
+
+  modal.classList.add('open');
+  document.getElementById('lostCatchBrowse').focus();
 }
 
 function renderDetails(catchData) {
@@ -434,18 +472,12 @@ window.addEventListener("DOMContentLoaded", () => {
   const catchNumber = getCatchNumberFromUrl();
 
   if (!catchNumber) {
-    setStatus("No catch number provided.", true);
-    el.detailsContainer.innerHTML = `
-      <div class="detail-card">
-        <div class="detail-card-body">
-          <p style="text-align:center;color:#999;">Please return to the listing and select a catch.</p>
-        </div>
-      </div>`;
+    showLostCatch(null);
     return;
   }
 
   // Render catch details first (card must exist for media container), then fetch media
-  loadCatchDetails(catchNumber).then(() => loadCatchMedia(catchNumber));
+  loadCatchDetails(catchNumber).then((found) => { if (found) loadCatchMedia(catchNumber); });
 
   // Lightbox close/navigate handlers
   el.lightboxClose.addEventListener('click', closeLightbox);

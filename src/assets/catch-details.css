@@ -1107,3 +1107,47 @@ body {
     max-width: 960px;
   }
 }
+
+/* ─── Catch not found ("that one got away") ─────── */
+.lost-catch-title {
+  font-size: 18px;
+  color: #1e293b;
+}
+
+.lost-catch-text {
+  margin: 4px 0 16px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #334155;
+}
+
+.lost-catch-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 8px;
+}
+
+.lost-catch-btn {
+  display: block;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-weight: 700;
+  text-decoration: none;
+  text-align: center;
+}
+
+.lost-catch-btn--primary {
+  background: #4FACFE;
+  color: white;
+}
+
+.lost-catch-btn--secondary {
+  background: white;
+  color: #4FACFE;
+  border: 2px solid #4FACFE;
+}
+
+.lost-catch-btn:active {
+  transform: scale(0.98);
+}
