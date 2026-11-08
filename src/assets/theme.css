@@ -44,6 +44,21 @@
   /* Ticker strip */
   --gb-ticker-bg: #0d2a44;
   --gb-ticker-ink: #ffffff;
+  --gb-signal-soft: #ffd0a8;         /* the ticker's quiet-day message */
+
+  /* The tackle box (open water): green plastic, orange latch, tan trays */
+  --gb-box-bg: #2f6b47;
+  --gb-box-ink: #ffffff;
+  --gb-box-lid: #f28c28;
+  --gb-box-sheet: #24563a;
+  --gb-box-sheet-head: #24563a;
+  --gb-box-sheet-ink: #ffffff;
+  --gb-box-tray: #f4efe2;
+  --gb-box-tray-ink: #26301f;
+  --gb-box-tray-edge: #e2d8bf;
+  --gb-box-tray-hover: #ebe3cf;
+  --gb-box-admin: #ffe9c9;
+  --gb-box-admin-edge: #f2c98c;
 
   /* Status: the same in every look */
   --gb-danger: #e74c3c;
@@ -62,4 +77,18 @@
 :root[data-water="hard"] {
   --gb-sky-1: #5f93cf;
   --gb-sky-2: #bfe7f6;
+
+  /* The ice shack: frosted white and icy blue */
+  --gb-box-bg: #e9f4fb;
+  --gb-box-ink: #1f4a6e;
+  --gb-box-lid: #8fc6ea;
+  --gb-box-sheet: linear-gradient(#f4fafe, #e1eff8);
+  --gb-box-sheet-head: #f4fafe;
+  --gb-box-sheet-ink: #17324a;
+  --gb-box-tray: #ffffff;
+  --gb-box-tray-ink: #17324a;
+  --gb-box-tray-edge: #cfe4f2;
+  --gb-box-tray-hover: #eef6fc;
+  --gb-box-admin: #fff4e0;
+  --gb-box-admin-edge: #f5d7a4;
 }

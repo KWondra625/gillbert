@@ -11,116 +11,139 @@
   <link rel="stylesheet" href="./assets/index.css" />
 </head>
 <body>
-  <div class="container">
-    <div class="header" id="adminTapTarget">
-      <h1>Gillbert</h1>
-      <p>📖 Our crew's fishing record book. Log catches, browse history, and ask our AI-powered friend Gillbert anything. 🐟</p>
-    </div>
+  <div class="home">
+    <header class="home-top">
+      <div class="home-brand">
+        <!-- Five quick taps on the name open the admin PIN (admin.js) -->
+        <h1 class="wordmark" id="adminTapTarget">Gillbert</h1>
+        <p class="welcome" id="welcomeLine">Our crew's fishing record book.</p>
+      </div>
 
-    <div class="section-divider"><span class="section-label">🎣 Log a Catch</span></div>
-    <div class="cta-grid">
-      <a href="./catch-chat.html" class="cta-card">
-        <div class="cta-card-title">💬 Chat with Gillbert</div>
-        <p class="cta-card-desc">Describe your catch in conversation with Gillbert who will capture the details and log it for you.</p>
-        <span class="cta-card-action">Start chat →</span>
-      </a>
-      <a href="./log-catch.html" class="cta-card">
-        <div class="cta-card-title">✏️ Log Manually</div>
-        <p class="cta-card-desc">Fill out a quick form to record a catch, great for historical entries or as an alternative to chatting with Gillbert.</p>
-        <span class="cta-card-action">Open form →</span>
-      </a>
-    </div>
+      <button type="button" class="shack-btn" id="shackOpen" aria-haspopup="dialog" aria-expanded="false" aria-controls="shack">
+        <span class="shack-btn-ico" aria-hidden="true">
+          <svg class="hard-only" viewBox="0 0 24 24"><path d="M1.8 20.2h20.4"/><path d="M3.6 9.2Q12 3.6 20.4 9.2"/><path d="M3.6 9.2Q6.2 10.9 8.7 10.7H15.3Q17.8 10.9 20.4 9.2"/><path d="M3.6 9.2Q2.6 14.6 2.1 20.2M20.4 9.2Q21.4 14.6 21.9 20.2"/><path d="M8.7 10.7V20.2M15.3 10.7V20.2"/><path d="M10.4 20.2V14.6a1.6 1.6 0 0 1 3.2 0v5.6"/><path d="M4.9 12.8h2v2h-2z"/></svg>
+          <svg class="open-only" viewBox="0 0 24 24"><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"/><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 12h18"/><rect x="10.5" y="10.5" width="3" height="3" rx=".6" class="latch"/></svg>
+        </span>
+        <span class="hard-only">The shack</span><span class="open-only">Tackle box</span>
+      </button>
 
-    <div class="section-divider"><span class="section-label">📊 Review History</span></div>
-    <div class="cta-grid">
-      <a href="./catches-listing.html" class="cta-card">
-        <div class="cta-card-title">🐟 Browse Catches</div>
-        <p class="cta-card-desc">Search, filter, and view everything in the catch log. Including viewing photos and videos from each catch.</p>
-        <span class="cta-card-action">View catches →</span>
-      </a>
-      <a href="./ask-gillbert.html" class="cta-card">
-        <div class="cta-card-title">💬 Ask Gillbert</div>
-        <p class="cta-card-desc">Ask questions about any catch in the record books and get AI-powered insights on the full catch history.</p>
-        <span class="cta-card-action">Ask now →</span>
-      </a>
-      <a href="./fish-of-fame.html" class="cta-card cta-card--wide">
-        <div class="cta-card-title">🏆 Fish of Fame</div>
-        <p class="cta-card-desc">The most admirable accomplishments throughout the record books, all in one place.</p>
-        <span class="cta-card-action">View leaderboard →</span>
-      </a>
-    </div>
-
-    <div class="section-divider"><span class="section-label">ℹ️ About</span></div>
-    <div class="cta-grid">
-      <a href="./features-functionality.html" class="cta-card">
-        <div class="cta-card-title">🧰 Features & Functionality</div>
-        <p class="cta-card-desc">A full rundown of everything Gillbert can do, from chat to admin tools.</p>
-        <span class="cta-card-action">See what's possible →</span>
-      </a>
-      <a href="./me.html" class="cta-card">
-        <div class="cta-card-title">👤 My Profile</div>
-        <p class="cta-card-desc">Update your own profile photo and check how Gillbert recognizes your login.</p>
-        <span class="cta-card-action">Manage my profile →</span>
-      </a>
-      <a href="./notifications.html" class="cta-card cta-card--wide">
-        <div class="cta-card-title">🔔 Catch Notifications</div>
-        <p class="cta-card-desc">Get a notification on your phone every time someone logs a new catch.</p>
-        <span class="cta-card-action">Set it up →</span>
-      </a>
-      <a href="./whats-new.html" class="cta-card cta-card--wide">
-        <div class="cta-card-title">✨ What's New</div>
-        <p class="cta-card-desc">See the full story of Gillbert, from the very first chat window to everything it is today.</p>
-        <span class="cta-card-action">See the history →</span>
-      </a>
-    </div>
-
-    <div class="section-divider hidden" id="adminSection"><span class="section-label">🔧 Admin</span></div>
-    <div class="cta-grid hidden" id="adminSectionGrid">
-      <a href="./anglers-listing.html" class="cta-card">
-        <div class="cta-card-title">🎣 Manage Anglers</div>
-        <p class="cta-card-desc">View and edit angler records. Update status, aliases, and login access.</p>
-        <span class="cta-card-action">Manage anglers →</span>
-      </a>
-      <a href="./bodies-of-water-listing.html" class="cta-card">
-        <div class="cta-card-title">💧 Manage Bodies of Water</div>
-        <p class="cta-card-desc">View and edit bodies of water. Update status, location, and link to WI DNR records.</p>
-        <span class="cta-card-action">Manage bodies of water →</span>
-      </a>
-      <a href="./fish-species-listing.html" class="cta-card">
-        <div class="cta-card-title">🐟 Manage Fish Species</div>
-        <p class="cta-card-desc">View and edit the fish species table. Update status, names, and DNR details.</p>
-        <span class="cta-card-action">Manage fish species →</span>
-      </a>
-      <a href="./media-activity.html" class="cta-card">
-        <div class="cta-card-title">🗂️ Media Activity</div>
-        <p class="cta-card-desc">Every upload with its status. Retry or delete failed conversions, and check storage for stray files.</p>
-        <span class="cta-card-action">View media activity →</span>
-      </a>
-    </div>
-
-    <div id="adminUnlockToast" class="toast hidden">
-      🔓 Reeled in Admin Mode!
-    </div>
-
-    <!-- Admin Unlock Modal -->
-    <div id="adminPinModal" class="ri-modal" role="dialog" aria-modal="true" aria-label="Admin Access">
-      <div class="ri-modal-sheet">
-        <div class="ri-modal-header">
-          <span class="ri-modal-title">🔒 Admin Access</span>
-          <button class="ri-modal-close" id="adminPinClose" aria-label="Close">&times;</button>
-        </div>
-        <div class="ri-modal-body">
-          <div class="admin-pin-form">
-            <input type="password" inputmode="numeric" pattern="[0-9]*" id="adminPinInput" class="admin-pin-input" placeholder="PIN" maxlength="4" autocomplete="off" />
-            <button id="adminPinSubmit" class="admin-pin-submit">Unlock</button>
+      <!-- The shack (hard water) / tackle box (open water): a sheet from the bottom on phones,
+           a drop-down under the button on wide screens. home.js opens and closes it. -->
+      <div class="shack-scrim" id="shackScrim"></div>
+      <div class="shack" id="shack" role="dialog" aria-modal="true" aria-labelledby="shackTitle" inert>
+        <div class="shack-head">
+          <span class="shack-lid" aria-hidden="true">
+            <svg class="hard-only" viewBox="0 0 24 24"><path d="M1.8 20.2h20.4"/><path d="M3.6 9.2Q12 3.6 20.4 9.2"/><path d="M3.6 9.2Q6.2 10.9 8.7 10.7H15.3Q17.8 10.9 20.4 9.2"/><path d="M3.6 9.2Q2.6 14.6 2.1 20.2M20.4 9.2Q21.4 14.6 21.9 20.2"/><path d="M8.7 10.7V20.2M15.3 10.7V20.2"/><path d="M10.4 20.2V14.6a1.6 1.6 0 0 1 3.2 0v5.6"/><path d="M4.9 12.8h2v2h-2z"/></svg>
+            <svg class="open-only" viewBox="0 0 24 24"><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"/><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 12h18"/><rect x="10.5" y="10.5" width="3" height="3" rx=".6" class="latch"/></svg>
+          </span>
+          <div>
+            <h2 id="shackTitle"><span class="hard-only">The ice shack</span><span class="open-only">Tackle box</span></h2>
+            <p><span class="hard-only">Come on in, the heater's going</span><span class="open-only">Everything else lives in here</span></p>
           </div>
-          <p id="adminPinError" class="admin-pin-error hidden">Incorrect PIN — try again.</p>
+          <button type="button" class="shack-close" id="shackClose" aria-label="Close">&times;</button>
         </div>
+
+        <div class="tray">
+          <div class="tray-label">Your setup</div>
+          <a href="./notifications.html"><span class="tray-ico">🔔</span><span><b>Catch notifications</b><span>Get a buzz when someone logs a catch</span></span></a>
+          <a href="./me.html"><span class="tray-ico">👤</span><span><b>My profile</b><span>Your photo and login</span></span></a>
+        </div>
+        <div class="tray">
+          <div class="tray-label">About Gillbert</div>
+          <a href="./whats-new.html"><span class="tray-ico">✨</span><span><b>What's new</b><span>The story so far</span></span></a>
+          <a href="./features-functionality.html"><span class="tray-ico">🧰</span><span><b>Features &amp; how-to</b><span>Everything Gillbert can do</span></span></a>
+        </div>
+        <!-- Shown only once admin is unlocked: admin.js reveals #adminSection and #adminSectionGrid -->
+        <div class="tray tray-admin hidden" id="adminSection">
+          <div class="tray-label">🔧 Admin · only you see this</div>
+          <div class="hidden" id="adminSectionGrid">
+            <a href="./anglers-listing.html"><span class="tray-ico">🎣</span><span><b>Anglers</b><span>Records, aliases and logins</span></span></a>
+            <a href="./bodies-of-water-listing.html"><span class="tray-ico">💧</span><span><b>Bodies of water</b><span>Lakes and their DNR links</span></span></a>
+            <a href="./fish-species-listing.html"><span class="tray-ico">🐟</span><span><b>Fish species</b><span>Names and DNR details</span></span></a>
+            <a href="./media-activity.html"><span class="tray-ico">🗂️</span><span><b>Media activity</b><span>Uploads, retries and stray files</span></span></a>
+            <a href="./under-the-hood.html"><span class="tray-ico">🏗️</span><span><b>Under the hood</b><span>Servers and versions</span></span></a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="home-grid">
+      <section class="card hero" aria-labelledby="heroTitle">
+        <div class="hero-top">
+          <button type="button" class="hero-art" id="heroArt" aria-label="Play the animation again">
+            <svg class="tipup hard-only" viewBox="0 0 80 90" aria-hidden="true">
+              <rect x="0" y="80" width="80" height="10" rx="2" fill="#dcf0fa"/>
+              <rect x="10" y="73" width="60" height="7" fill="#c9590f"/>
+              <ellipse cx="40" cy="80" rx="30" ry="5" fill="#c9590f"/>
+              <ellipse cx="40" cy="73" rx="30" ry="5" fill="#f57c1f" stroke="#d4630f" stroke-width="1"/>
+              <rect x="37.5" y="50" width="5" height="24" rx="1.5" fill="#c3cad0"/>
+              <g class="stem">
+                <line x1="40" y1="52" x2="40" y2="9" stroke="#5d6b75" stroke-width="2.4" stroke-linecap="round"/>
+                <path d="M40.5 8 C47 6.5 53 10 61 8 L61 22 C53 24 47 20.5 40.5 22 Z" fill="#f57c1f" stroke="#d4630f" stroke-width="1" stroke-linejoin="round"/>
+              </g>
+            </svg>
+            <svg class="bobber open-only" viewBox="0 0 80 90" aria-hidden="true">
+              <ellipse class="ripple" cx="40" cy="72" rx="26" ry="5" fill="none" stroke="#9fd9f2" stroke-width="2"/>
+              <g class="float">
+                <line x1="40" y1="12" x2="40" y2="30" stroke="#3a3a3a" stroke-width="3" stroke-linecap="round"/>
+                <circle cx="40" cy="48" r="18" fill="#ffffff" stroke="#2b2b2b" stroke-width="2"/>
+                <path d="M22 48 A18 18 0 0 1 58 48 Z" fill="#e0362c" stroke="#2b2b2b" stroke-width="2" stroke-linejoin="round"/>
+                <line x1="40" y1="66" x2="40" y2="74" stroke="#3a3a3a" stroke-width="2.4" stroke-linecap="round"/>
+              </g>
+              <rect x="0" y="72" width="80" height="18" fill="#bfe8f8" opacity=".55"/>
+            </svg>
+          </button>
+          <div>
+            <h2 class="hero-title" id="heroTitle"><span class="hard-only">Flag's up? Log it.</span><span class="open-only">Fish on? Log it.</span></h2>
+            <p class="hero-sub">Tell Gillbert about it, or fill in the form.</p>
+          </div>
+        </div>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="./catch-chat.html">💬 Chat it in<small>Gillbert asks the questions</small></a>
+          <a class="btn btn-soft" href="./log-catch.html">✏️ Fill the form<small>Quick and manual</small></a>
+        </div>
+      </section>
+
+      <nav class="card rows" aria-label="Catches and more">
+        <a href="./catches-listing.html"><span class="row-ico">🐟</span><span><b>Browse catches</b><span>The whole log, photos and videos</span></span><em aria-hidden="true">›</em></a>
+        <a href="./fish-of-fame.html"><span class="row-ico">🏆</span><span><b>Fish of Fame</b><span>Who's on top this year</span></span><em aria-hidden="true">›</em></a>
+        <a href="./ask-gillbert.html"><span class="row-ico">💬</span><span><b>Ask Gillbert</b><span>Questions about any catch</span></span><em aria-hidden="true">›</em></a>
+      </nav>
+
+      <!-- Remember when? One past catch a day, filled in by home.js -->
+      <a class="card remember" id="rememberWhen" hidden></a>
+    </main>
+  </div>
+
+  <!-- On the line: the latest catches, filled in by home.js -->
+  <div class="ticker" id="ticker" hidden>
+    <div class="ticker-label">On the line</div>
+    <div class="ticker-track"><div class="ticker-run" id="tickerRun"></div></div>
+  </div>
+
+  <div id="adminUnlockToast" class="toast hidden">
+    🔓 Reeled in Admin Mode!
+  </div>
+
+  <!-- Admin Unlock Modal -->
+  <div id="adminPinModal" class="ri-modal" role="dialog" aria-modal="true" aria-label="Admin Access">
+    <div class="ri-modal-sheet">
+      <div class="ri-modal-header">
+        <span class="ri-modal-title">🔒 Admin Access</span>
+        <button class="ri-modal-close" id="adminPinClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="ri-modal-body">
+        <div class="admin-pin-form">
+          <input type="password" inputmode="numeric" pattern="[0-9]*" id="adminPinInput" class="admin-pin-input" placeholder="PIN" maxlength="4" autocomplete="off" />
+          <button id="adminPinSubmit" class="admin-pin-submit">Unlock</button>
+        </div>
+        <p id="adminPinError" class="admin-pin-error hidden">Incorrect PIN — try again.</p>
       </div>
     </div>
   </div>
 
   <script src="./assets/config.js"></script>
   <script src="./assets/admin.js"></script>
+  <script src="./assets/home.js"></script>
 </body>
 </html>

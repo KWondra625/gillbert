@@ -17,6 +17,8 @@
   window.GillbertWater = {
     current: currentWater,
     isHard: () => currentWater() === 'hard',
+    // Which season a given date falls in (used to match past catches to today's season)
+    forDate: waterFor,
     // Re-apply after the admin changes the override
     apply() { document.documentElement.dataset.water = currentWater(); },
   };

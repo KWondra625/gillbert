@@ -13,7 +13,7 @@ test.describe('home', () => {
     }
   });
 
-  test('the Admin section stays hidden until the PIN is entered', async ({ page }) => {
+  test('the Admin tray stays hidden until the PIN is entered', async ({ page }) => {
     await page.goto('index.html');
     await expect(page.locator('#adminSection')).toBeHidden();
 
@@ -29,8 +29,10 @@ test.describe('home', () => {
     const pin = await page.evaluate(() => ADMIN_PIN);
     await page.locator('#adminPinInput').fill(pin);
     await page.locator('#adminPinSubmit').click();
-    await expect(page.locator('#adminSection')).toBeVisible();
     await expect(page.locator('#adminUnlockToast')).toBeVisible();
+    // The admin links live in the shack (tackle box in open water); they show once it's opened
+    await page.locator('#shackOpen').click();
+    await expect(page.locator('#adminSection')).toBeVisible();
   });
 });
 
