@@ -1,4 +1,5 @@
 // Catch Notifications page: fills in this environment's ntfy server and the subscribe link.
+// The HTML carries production's values, so the page still works if this script doesn't run.
 // The live site uses production's ntfy; every other copy uses Staging's, matching config.js.
 // Neither the server address nor the topic is a secret: anyone may read the topic, only n8n may post.
 const NTFY_SERVERS = {
