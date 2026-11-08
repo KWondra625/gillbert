@@ -555,11 +555,6 @@ body.has-ticker {
   opacity: 0.7;
 }
 
-.tk-msg {
-  font-weight: 700;
-  color: var(--gb-signal-soft);
-}
-
 /* ─── Hero animations ─── */
 .tipup .stem {
   transform-box: view-box;

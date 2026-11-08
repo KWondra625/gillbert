@@ -1,4 +1,4 @@
-// Home page: the shack / tackle box menu, the "On the line" ticker and "Remember when?".
+// Home page: the shack / tackle box menu, the "On the line" ticker (the latest catches) and "Remember when?".
 // The ticker and Remember when read the same catch list Browse Catches uses, plus the
 // anglers (for photos) and, for the day's pick, that catch's media. No other server calls.
 const HOME_CATCHES_URL = API_BASE + 'get-catches';
@@ -7,7 +7,6 @@ const HOME_MEDIA_URL = API_BASE + 'catch-media/get';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const TICKER_COUNT = 5;
-const RECENT_MS = DAY_MS;                  // "On the line" = logged in the last 24 hours
 const REMEMBER_MIN_AGE_MS = 30 * DAY_MS;   // too recent to be a "remember when"
 const SAME_WEEK_DAYS = 3;                  // "this week in an earlier year" = within 3 days of today's date
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August',
@@ -105,15 +104,14 @@ function renderTicker(catches, anglersById, now) {
     .sort((a, b) => b.at - a.at);
   if (!logged.length) return;
 
-  const recent = logged.filter(x => now - x.at <= RECENT_MS).slice(0, TICKER_COUNT);
-  const quiet = recent.length === 0;
-  const shown = quiet ? logged.slice(0, TICKER_COUNT) : recent;
+  // The latest catches, whenever they were logged: "2h" for today's, "3 days ago" for older ones
+  const shown = logged.slice(0, TICKER_COUNT);
+  const age = ms => (ms < DAY_MS ? agoShort(ms) : agoLong(ms));
 
   const item = ({ c, at }, copy) => `<a class="tk" href="${catchUrl(c)}"${copy ? ' tabindex="-1"' : ''}>`
     + `${avatarHtml(anglersById[c.anglerId], c.anglerName)}<b>${escapeHtml(c.anglerName || 'Someone')}</b> `
-    + `${escapeHtml(catchLabel(c))} <small>· ${escapeHtml(quiet ? agoLong(now - at) : agoShort(now - at))}</small></a>`;
-  const lead = quiet ? `<span class="tk-msg">No catches in the last 24 hours. Here's what's been biting lately:</span>` : '';
-  const set = copy => lead + shown.map(x => item(x, copy)).join('');
+    + `${escapeHtml(catchLabel(c))} <small>· ${escapeHtml(age(now - at))}</small></a>`;
+  const set = copy => shown.map(x => item(x, copy)).join('');
 
   // Two copies side by side, so the crawl loops without a gap; the second is for the eye only
   document.getElementById('tickerRun').innerHTML =

@@ -87,22 +87,22 @@ test.describe('the season', () => {
 });
 
 test.describe('On the line ticker', () => {
-  test('shows the last 24 hours, newest first, at most 5, each linking to its catch', async ({ page }) => {
+  test('shows the latest 5 catches, newest first, each linking to its catch', async ({ page }) => {
     const fresh = [1, 3, 5, 7, 9, 11].map(h => aCatch({ loggedAgo: h * HOUR, species: `Fish ${h}h` }));
-    await homeWith(page, [...fresh, aCatch({ loggedAgo: 30 * HOUR, species: 'Too old' })]);
+    await homeWith(page, fresh);
     const items = page.locator('#tickerRun .tk:not([tabindex="-1"])');
     await expect(items).toHaveCount(5);
     await expect(items.first()).toContainText('Fish 1h');
-    await expect(page.locator('#tickerRun')).not.toContainText('Too old');
-    await expect(page.locator('#tickerRun')).not.toContainText('No catches in the last 24 hours');
+    await expect(items.first()).toContainText('· 1h');
+    await expect(page.locator('#tickerRun')).not.toContainText('Fish 11h');
     await expect(items.first()).toHaveAttribute('href', /catch-details\.html\?catchNumber=Catch%2026-\d+&from=home/);
   });
 
-  test('on a quiet day says so, then shows the latest 5 with their ages', async ({ page }) => {
+  test('keeps showing the latest catches however old they are, with their age', async ({ page }) => {
     await homeWith(page, [3, 4, 9, 20, 40, 80].map(d => aCatch({ loggedAgo: d * DAY })));
-    await expect(page.locator('#tickerRun')).toContainText("No catches in the last 24 hours. Here's what's been biting lately:");
     await expect(page.locator('#tickerRun .tk:not([tabindex="-1"])')).toHaveCount(5);
     await expect(page.locator('#tickerRun')).toContainText('3 days ago');
+    await expect(page.locator('#tickerRun')).not.toContainText('No catches');
   });
 
   test('stays hidden when there are no catches at all', async ({ page }) => {
