@@ -15,6 +15,13 @@
 <body class="layout-card">
   <header class="topbar" id="topbar"></header>
   <script src="./assets/topbar.js"></script>
+  <div class="page-head">
+    <span class="page-head-tile" aria-hidden="true">📁</span>
+    <div>
+      <p class="page-head-label">Catches</p>
+      <h1>Upload Media</h1>
+    </div>
+  </div>
   <div class="container">
     <!-- Error: no catchNumber in URL -->
     <div id="noCatchState" class="no-catch-state hidden">
@@ -26,10 +33,7 @@
 
     <!-- Upload form state -->
     <div id="uploadState">
-      <div class="header">
-        <h1>📁 Upload Media</h1>
-        <p>Add photos and videos to your catch</p>
-      </div>
+      <p class="page-intro">Add photos and videos to your catch.</p>
 
       <div id="catchCard" class="catch-card">
         <p class="catch-card-loading">Loading catch details…</p>

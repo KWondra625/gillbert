@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Gillbert — Who's There?</title>
+  <title>Gillbert — My Profile</title>
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
   <link rel="stylesheet" href="./assets/theme.css" />
   <link rel="stylesheet" href="./assets/base.css" />
@@ -21,8 +21,6 @@
       padding-top: max(16px, env(safe-area-inset-top));
     }
     .container { max-width: 600px; margin: 0 auto; }
-    h1 { color: white; font-size: 22px; font-weight: 700; margin: 0 0 4px; }
-    .subtitle { color: rgba(255,255,255,0.8); font-size: 13px; margin: 0 0 20px; }
     .card {
       background: white;
       border-radius: 12px;
@@ -200,8 +198,13 @@
     <header class="topbar" id="topbar"></header>
     <script src="./assets/topbar.js"></script>
 
-    <h1>👤 Who's There?</h1>
-    <p class="subtitle">Update your profile photo, and see how Gillbert recognizes your Cloudflare Access login.</p>
+    <div class="page-head">
+      <span class="page-head-tile" aria-hidden="true">👤</span>
+      <div>
+        <p class="page-head-label">Your setup</p>
+        <h1>My Profile</h1>
+      </div>
+    </div>
 
     <div class="card">
       <p class="card-label">My Angler Profile</p>

@@ -297,10 +297,6 @@
 /* Back Button */
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
-  .header h1 {
-    font-size: 36px;
-  }
-
   .catches-grid {
     grid-template-columns: 1fr;
     gap: 16px;
@@ -324,18 +320,6 @@
 @media (max-width: 480px) {
   body {
     padding: 12px;
-  }
-
-  .header {
-    margin-bottom: 32px;
-  }
-
-  .header h1 {
-    font-size: 28px;
-  }
-
-  .header p {
-    font-size: 14px;
   }
 
   .catch-card-body {

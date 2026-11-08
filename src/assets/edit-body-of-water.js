@@ -243,7 +243,7 @@ async function load() {
     prefillForm(originalData);
     renderRecordInfo(originalData);
     renderViewCatchesLink(counts[originalData.id] || 0);
-    el.formHeading.textContent = `✏️ Edit ${originalData.name}`;
+    el.formHeading.textContent = `Edit ${originalData.name}`;
     showState('formState');
   } catch (err) {
     console.error('Failed to load body of water:', err);

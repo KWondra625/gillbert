@@ -17,12 +17,16 @@
     <header class="topbar" id="topbar"></header>
     <script src="./assets/topbar.js"></script>
 
+    <div class="page-head">
+      <span class="page-head-tile" aria-hidden="true">🎣</span>
+      <div>
+        <p class="page-head-label">Admin</p>
+        <h1>Anglers</h1>
+      </div>
+    </div>
+
     <!-- ── Loading state ────────────────────────────────────────────── -->
     <div id="loadingState">
-      <div class="header">
-        <h1>🎣 Anglers</h1>
-        <p>Loading anglers…</p>
-      </div>
       <div class="loading-indicator">
         <div class="fishing-animation">🎣<span class="bobber">●</span></div>
         <p>Loading anglers…</p>
@@ -31,9 +35,6 @@
 
     <!-- ── Error state ──────────────────────────────────────────────── -->
     <div id="errorState" class="hidden">
-      <div class="header">
-        <h1>🎣 Anglers</h1>
-      </div>
       <div class="error-card">
         <p class="error-icon">⚠️</p>
         <p id="errorMsg">Unable to load anglers. Please check your connection and try again.</p>
@@ -43,11 +44,6 @@
 
     <!-- ── List state ───────────────────────────────────────────────── -->
     <div id="listState" class="hidden">
-      <div class="header">
-        <h1>🎣 Anglers</h1>
-        <p>Manage angler records</p>
-      </div>
-
       <div class="controls">
         <input
           type="text"

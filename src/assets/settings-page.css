@@ -26,23 +26,6 @@ body {
   display: none !important;
 }
 
-.header {
-  text-align: center;
-  color: var(--gb-on-sky);
-}
-
-.header h1 {
-  margin: 0;
-  font-size: 40px;
-  font-weight: 700;
-}
-
-.header p {
-  margin: 6px 0 0;
-  font-size: 15px;
-  opacity: 0.92;
-}
-
 #settingsBody {
   display: grid;
   gap: 16px;

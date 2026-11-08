@@ -162,10 +162,6 @@
 
 /* Back Button */
 @media (max-width: 480px) {
-  .header h1 {
-    font-size: 36px;
-  }
-
   .section-label {
     font-size: 17px;
   }

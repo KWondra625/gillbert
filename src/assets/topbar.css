@@ -45,10 +45,67 @@
   display: none;
 }
 
-/* Card pages: the bar sits on the sky above the white card, as wide as the card */
+/* Card pages: the bar and the page heading sit on the sky above the white card, as wide
+   as the card */
 :where(.layout-card) > .topbar,
-:where(.layout-card) > .topbar-back {
+:where(.layout-card) > .topbar-back,
+:where(.layout-card) > .page-head {
   max-width: 500px;
+}
+
+/* ─── The page heading: emoji tile, which part of Gillbert, page title ─── */
+.page-head {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  margin: 0 auto 20px;
+  color: var(--gb-on-sky);
+}
+
+.page-head-tile {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.page-head-label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.page-head h1 {
+  margin: 1px 0 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+/* A page's short intro, the first thing in its content. On the sky by default; inside a
+   white card it turns to body text. */
+.page-intro {
+  margin: 0 0 20px;
+  color: var(--gb-on-sky);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+:where(.layout-card) .container .page-intro {
+  color: var(--gb-muted);
+  font-size: 14px;
 }
 
 /* ─── The shack button ─── */

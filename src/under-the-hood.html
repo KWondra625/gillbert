@@ -17,11 +17,15 @@
   <!-- Admin-only and deliberately not linked from any menu: reached by typing the URL. -->
   <header class="topbar" id="topbar"></header>
   <script src="./assets/topbar.js"></script>
-  <div class="container">
-    <div class="header">
-      <h1>🔧 Under the Hood</h1>
-      <p>Which environment, server, database and code you're on right now</p>
+  <div class="page-head">
+    <span class="page-head-tile" aria-hidden="true">🔧</span>
+    <div>
+      <p class="page-head-label">Admin</p>
+      <h1>Under the Hood</h1>
     </div>
+  </div>
+  <div class="container">
+    <p class="page-intro">Which environment, server, database and code you're on right now.</p>
 
     <!-- ── Loading state ────────────────────────────────────────────── -->
     <div id="loadingState">

@@ -15,13 +15,16 @@
 <body class="layout-card">
   <header class="topbar" id="topbar" data-back-href="./anglers-listing.html" data-back-label="Anglers"></header>
   <script src="./assets/topbar.js"></script>
+  <div class="page-head">
+    <span class="page-head-tile" aria-hidden="true">✏️</span>
+    <div>
+      <p class="page-head-label">Admin</p>
+      <h1 id="formHeading">Edit Angler</h1>
+    </div>
+  </div>
   <div class="container">
     <!-- ── Loading state ────────────────────────────────────────────── -->
     <div id="loadingState">
-      <div class="header">
-        <h1>✏️ Edit Angler</h1>
-        <p>Loading angler details…</p>
-      </div>
       <div class="loading-indicator">
         <div class="fishing-animation">🎣<span class="bobber">●</span></div>
         <p>Reeling in the details…</p>
@@ -30,9 +33,6 @@
 
     <!-- ── Error state ──────────────────────────────────────────────── -->
     <div id="errorState" class="hidden">
-      <div class="header">
-        <h1>✏️ Edit Angler</h1>
-      </div>
       <div class="error-card">
         <p class="error-icon">⚠️</p>
         <p id="errorMsg">Unable to load this angler. Please check your connection and try again.</p>
@@ -43,11 +43,6 @@
 
     <!-- ── Form state ───────────────────────────────────────────────── -->
     <div id="formState" class="hidden">
-      <div class="header">
-        <h1 id="formHeading">✏️ Edit Angler</h1>
-        <p>Update angler details</p>
-      </div>
-
       <form id="anglerForm" novalidate>
 
         <!-- Profile Photo -->
@@ -133,10 +128,6 @@
 
     <!-- ── Submitting state ─────────────────────────────────────────── -->
     <div id="submittingState" class="hidden">
-      <div class="header">
-        <h1>✏️ Edit Angler</h1>
-        <p>Saving your changes…</p>
-      </div>
       <div class="loading-indicator">
         <div class="fishing-animation">🎣<span class="bobber">●</span></div>
         <p>Updating Gillbert's records…</p>

@@ -111,7 +111,7 @@ body:where(.layout-card) {
   display: flex;
   flex-direction: column;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  justify-content: center;
+  justify-content: flex-start;
   margin: 0;
   min-height: 100vh;
   padding: 16px;
@@ -123,31 +123,13 @@ body:where(.layout-card) {
   background: white;
   border-radius: 16px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-  margin: auto;
+  margin: 0 auto;   /* straight under the page heading, not centred in the screen */
   max-width: 500px;
   padding: 32px 24px;
   width: 100%;
 }
 
-:where(.layout-card) .header {
-  margin-bottom: 28px;
-  text-align: center;
-}
-
-:where(.layout-card) .header h1 {
-  color: var(--gb-ink);
-  font-size: 28px;
-  font-weight: 700;
-  margin: 0 0 8px 0;
-}
-
-:where(.layout-card) .header p {
-  color: var(--gb-muted);
-  font-size: 14px;
-  margin: 0;
-}
-
-:where(.layout-card) .back-button {
+   :where(.layout-card) .back-button {
   background: var(--gb-btn-secondary-bg);
   border: 0;
   border-radius: var(--gb-radius-button);
@@ -202,25 +184,7 @@ body:where(.layout-open) {
   width: 100%;
 }
 
-:where(.layout-open) .header {
-  color: white;
-  margin-bottom: 32px;
-  text-align: center;
-}
-
-:where(.layout-open) .header h1 {
-  font-size: 36px;
-  font-weight: 700;
-  margin: 0;
-}
-
-:where(.layout-open) .header p {
-  font-size: 16px;
-  margin: 8px 0 0 0;
-  opacity: 0.9;
-}
-
-:where(.layout-open) .back-button {
+   :where(.layout-open) .back-button {
   background: white;
   border-radius: 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
