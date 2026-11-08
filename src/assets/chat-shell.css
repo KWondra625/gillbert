@@ -292,7 +292,7 @@ body {
   height: 44px;
   border: none;
   border-radius: 50%;
-  background: linear-gradient(135deg, #2f93ff 0%, #1f7ff0 100%);
+  background: linear-gradient(135deg, var(--gb-accent) 0%, var(--gb-accent-600) 100%); /* follows the season */
   color: #ffffff;
   cursor: pointer;
   display: flex;

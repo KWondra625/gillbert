@@ -233,3 +233,17 @@ body {
     font-size: 18px;
   }
 }
+
+/* Version 4 in the history list */
+.version-card--v4 {
+  border-top-color: #0d9488;
+}
+
+.version-card--v4 .version-pill {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+
+.version-card--v4 .feature-list li::before {
+  color: #0d9488;
+}
