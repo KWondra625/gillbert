@@ -78,7 +78,7 @@ CRED_REV = {  # Bridge01 credential id -> (Pi id, Pi name); reverse of transform
 }
 PI_CRED_NAMES, pi_cred_seen = {}, {}
 GILLBERT_TAG = "Gillbert"
-ALLOWED_SETTINGS = {"executionOrder"}  # n8n 2.15.1 public API rejects other keys (binaryMode etc.)
+ALLOWED_SETTINGS = {"executionOrder"}  # the public API rejected other keys (binaryMode etc.) at the 2026-10 migration; recheck before reuse
 # Strings that must never follow a workflow onto Staging
 FORBIDDEN = {
     # (a "=== 'gillbertmedia'" comparison is fine: System Info uses it to tell production from staging)
