@@ -36,6 +36,37 @@ test.describe('home', () => {
   });
 });
 
+test.describe('top bar', () => {
+  // A page with no admin.js of its own before the bar (What's New) and a form page
+  for (const path of ['whats-new.html', 'log-catch.html']) {
+    test(`${path}: Gillbert goes home and the shack opens and closes`, async ({ page }) => {
+      await page.goto(path);
+      await expect(page.locator('.topbar-brand')).toHaveAttribute('href', './index.html');
+      await expect(page.locator('#topbarBack')).toBeHidden(); // its way back is Home
+      await expect(page.locator('#shack')).toBeHidden();
+      await page.locator('#shackOpen').click();
+      await expect(page.locator('#shack')).toBeVisible();
+      await expect(page.locator('#adminSection')).toBeHidden();
+      await page.locator('#shackClose').click();
+      await expect(page.locator('#shack')).toBeHidden();
+    });
+  }
+
+  test('the shack shows the admin tray on any page once admin is unlocked', async ({ page }) => {
+    await unlockAdmin(page);
+    await page.goto('whats-new.html');
+    await page.locator('#shackOpen').click();
+    await expect(page.locator('#adminSection')).toBeVisible();
+    await expect(page.locator('#adminSection a[href="./settings.html"]')).toBeVisible();
+  });
+
+  test('a form page under a listing links back to it under the bar', async ({ page }) => {
+    await page.goto('create-angler.html');
+    await expect(page.locator('#topbarBack')).toHaveAttribute('href', './anglers-listing.html');
+    await expect(page.locator('#topbarBack')).toHaveText('‹ Anglers');
+  });
+});
+
 test.describe('log a catch form', () => {
   test('fills its dropdowns from the lookup data', async ({ page }) => {
     const lookups = await getLookups();

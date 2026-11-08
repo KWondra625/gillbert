@@ -29,7 +29,6 @@ const el = {
   filterSummary: document.getElementById('filterSummary'),
   filterSummaryText: document.getElementById('filterSummaryText'),
   filterClearAll: document.getElementById('filterClearAll'),
-  topBackLink: document.getElementById('topBackLink'),
   bottomBackLink: document.getElementById('bottomBackLink'),
 };
 
@@ -542,10 +541,9 @@ function setupBackNavigation() {
   const href = returnTo?.href || './index.html';
   const label = returnTo?.label || 'Home';
 
-  el.topBackLink.href = href;
-  el.topBackLink.textContent = `← ${label}`;
-  el.topBackLink.setAttribute('aria-label', `Go back to ${label}`);
-
+  // Home needs no link: the top bar's wordmark goes home
+  GillbertTopbar.setBack(href, label);
+  el.bottomBackLink.hidden = !returnTo?.href;
   el.bottomBackLink.href = href;
   el.bottomBackLink.textContent = `← Back to ${label}`;
 }

@@ -61,7 +61,6 @@ const el = {
   lightboxPrev:     document.getElementById('lightboxPrev'),
   lightboxNext:     document.getElementById('lightboxNext'),
   lightboxCounter:  document.getElementById('lightboxCounter'),
-  topHomeLink:      document.querySelector('.top-home-link'),
   backButton:       document.getElementById('backButton'),
 };
 
@@ -170,45 +169,34 @@ function setupBackNavigation() {
   const destinations = {
     'list': {
       href: './catches-listing.html',
-      topText: '← Catches',
-      topAria: 'Go back to Catches',
+      topLabel: 'Catches',
       bottomText: '← Back to Listing',
     },
     'fish-of-fame': {
       href: './fish-of-fame.html',
-      topText: '← Fish of Fame',
-      topAria: 'Go back to Fish of Fame',
+      topLabel: 'Fish of Fame',
       bottomText: '← Back to Fish of Fame',
     },
     'catch-chat': {
       href: './catch-chat.html',
-      topText: '← Catch Chat',
-      topAria: 'Go back to Catch Chat',
+      topLabel: 'Catch Chat',
       bottomText: '← Back to Catch Chat',
     },
     'ask-gillbert': {
       href: './ask-gillbert.html',
-      topText: '← Ask Gillbert',
-      topAria: 'Go back to Ask Gillbert',
+      topLabel: 'Ask Gillbert',
       bottomText: '← Back to Ask Gillbert',
     },
   };
 
-  const fallback = {
-    href: './index.html',
-    topText: '← Home',
-    topAria: 'Go back to Home',
-    bottomText: '← Back to Home',
-  };
-
-  const nav = destinations[from] || fallback;
-
-  if (el.topHomeLink) {
-    el.topHomeLink.href = nav.href;
-    el.topHomeLink.textContent = nav.topText;
-    el.topHomeLink.setAttribute('aria-label', nav.topAria);
+  // Anything else came from Home: no back links, the top bar's wordmark goes home
+  const nav = destinations[from];
+  if (!nav) {
+    if (el.backButton) el.backButton.hidden = true;
+    return;
   }
 
+  GillbertTopbar.setBack(nav.href, nav.topLabel);
   if (el.backButton) {
     el.backButton.href = nav.href;
     el.backButton.textContent = nav.bottomText;

@@ -32,60 +32,19 @@ body {
 
 /* ── Header ──────────────────────────────────────────────────────── */
 
+/* The shared top bar (topbar.css), tucked in: the chat needs every bit of height */
+.topbar--chat {
+  flex-shrink: 0;
+  margin: 0;
+  padding: max(12px, env(safe-area-inset-top)) 16px 0;
+}
+
 .chat-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
-  padding-top: max(14px, env(safe-area-inset-top));
+  padding: 8px 16px 12px;
   flex-shrink: 0;
-}
-
-.chat-header-back {
-  color: white;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-width: 40px;
-  height: 40px;
-  padding: 0 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  background: rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  flex-shrink: 0;
-  margin-left: auto;
-  order: 2;
-  transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
-}
-
-.chat-header-back:hover {
-  background: rgba(255, 255, 255, 0.24);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
-}
-
-.chat-header-back:active {
-  transform: scale(0.97);
-}
-
-.chat-header-back:focus-visible {
-  outline: 2px solid white;
-  outline-offset: 2px;
-}
-
-.chat-header-back-icon {
-  font-size: 20px;
-  line-height: 1;
-}
-
-.chat-header-back-label {
-  display: none;
-  font-size: 12px;
-  font-weight: 700;
 }
 
 .chat-header-info {
@@ -318,14 +277,4 @@ body {
   opacity: 0.45;
   cursor: not-allowed;
   transform: none;
-}
-
-@media (min-width: 480px) {
-  .chat-header-back {
-    padding: 0 12px;
-  }
-
-  .chat-header-back-label {
-    display: inline;
-  }
 }

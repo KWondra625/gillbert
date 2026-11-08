@@ -118,3 +118,10 @@
   --gb-box-admin: #fff4e0;
   --gb-box-admin-edge: #f5d7a4;
 }
+
+/* Seasonal swaps: one of each pair shows, decided by <html data-water> (season.js) */
+.hard-only { display: none; }
+[data-water="hard"] .hard-only { display: inline; }
+[data-water="hard"] .open-only { display: none; }
+[data-water="hard"] svg.hard-only { display: block; }
+

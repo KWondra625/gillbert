@@ -7,16 +7,15 @@
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
   <link rel="stylesheet" href="./assets/theme.css" />
   <link rel="stylesheet" href="./assets/base.css" />
+  <link rel="stylesheet" href="./assets/topbar.css" />
   <script src="./assets/settings.js"></script>
   <script src="./assets/season.js"></script>
   <link rel="stylesheet" href="./assets/bodies-of-water-listing.css" />
-  <link rel="stylesheet" href="./assets/top-home-link.css" />
 </head>
 <body class="layout-open">
   <div class="container">
-    <div class="top-nav">
-      <a href="./index.html" class="top-home-link" aria-label="Go back to Home">← Home</a>
-    </div>
+    <header class="topbar" id="topbar"></header>
+    <script src="./assets/topbar.js"></script>
 
     <!-- ── Loading state ────────────────────────────────────────────── -->
     <div id="loadingState">
@@ -40,7 +39,6 @@
         <p id="errorMsg">Unable to load bodies of water. Please check your connection and try again.</p>
         <button id="retryBtn" class="primary-button">🔄 Try Again</button>
       </div>
-      <a href="./index.html" class="back-button">← Back to Home</a>
     </div>
 
     <!-- ── List state ───────────────────────────────────────────────── -->
@@ -83,7 +81,6 @@
 
       <p id="emptyState" class="empty-state hidden">No bodies of water match your search.</p>
 
-      <a href="./index.html" class="back-button">← Back to Home</a>
     </div>
   </div>
 

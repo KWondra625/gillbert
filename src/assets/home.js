@@ -1,4 +1,4 @@
-// Home page: the shack / tackle box menu, the "On the line" ticker (the latest catches) and "Remember when?".
+// Home page: the "On the line" ticker (the latest catches) and "Remember when?".
 // The ticker and Remember when read the same catch list Browse Catches uses, plus the
 // anglers (for photos) and, for the day's pick, that catch's media. No other server calls.
 const HOME_CATCHES_URL = API_BASE + 'get-catches';
@@ -54,33 +54,6 @@ function avatarHtml(angler, name) {
   const initials = String(name || '?').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
   const color = AVATAR_COLORS[Math.abs(Number(angler?.id) || initials.charCodeAt(0)) % AVATAR_COLORS.length];
   return `<span class="avatar" style="background:${color}" aria-hidden="true">${escapeHtml(initials)}</span>`;
-}
-
-// ── The shack / tackle box ───────────────────────────────────────────────────
-function setupShack() {
-  const openBtn = document.getElementById('shackOpen');
-  const shack = document.getElementById('shack');
-  const scrim = document.getElementById('shackScrim');
-  const closeBtn = document.getElementById('shackClose');
-
-  const open = () => {
-    document.body.classList.add('shack-open');
-    shack.inert = false;
-    openBtn.setAttribute('aria-expanded', 'true');
-    closeBtn.focus();
-  };
-  const close = () => {
-    if (!document.body.classList.contains('shack-open')) return;
-    document.body.classList.remove('shack-open');
-    shack.inert = true;
-    openBtn.setAttribute('aria-expanded', 'false');
-    openBtn.focus();
-  };
-
-  openBtn.addEventListener('click', () => (document.body.classList.contains('shack-open') ? close() : open()));
-  closeBtn.addEventListener('click', close);
-  scrim.addEventListener('click', close);
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
 }
 
 // ── Hero: tap the flag (or bobber) to see it again ──────────────────────────
@@ -232,7 +205,6 @@ async function loadHomeData() {
 window.addEventListener('DOMContentLoaded', () => {
   const welcome = GillbertSettings.get('welcomeLine');
   if (welcome) document.getElementById('welcomeLine').textContent = welcome;
-  setupShack();
   setupHeroReplay();
   loadHomeData().catch(err => console.warn('Home: catches unavailable', err));
 });

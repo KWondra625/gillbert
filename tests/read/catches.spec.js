@@ -245,8 +245,8 @@ test.describe('catch detail', () => {
     await page.goto(`edit-catch.html?catchNumber=${encodeURIComponent(c.catchNumber)}&from=list`);
     await expect(page.locator('#cancelLink')).toHaveAttribute('href', /catch-details\.html\?catchNumber=.*&from=list$/);
     await page.locator('#cancelLink').click();
-    await expect(page.locator('.top-home-link')).toHaveAttribute('href', './catches-listing.html');
-    await expect(page.locator('.top-home-link')).toHaveText('← Catches');
+    await expect(page.locator('.topbar-back')).toHaveAttribute('href', './catches-listing.html');
+    await expect(page.locator('.topbar-back')).toHaveText('‹ Catches');
   });
 
   test('hides Edit from a visitor and shows it to an admin', async ({ page }) => {
