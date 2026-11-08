@@ -2,47 +2,6 @@
   box-sizing: border-box;
 }
 
-body {
-  margin: 0;
-  padding: 16px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: var(--gb-page-bg);
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding-top: max(16px, env(safe-area-inset-top));
-  padding-bottom: max(16px, env(safe-area-inset-bottom));
-}
-
-.container {
-  width: 100%;
-  max-width: 500px;
-  background: white;
-  border-radius: 16px;
-  padding: 32px 24px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-  margin: auto;
-}
-
-.header {
-  text-align: center;
-  margin-bottom: 32px;
-}
-
-.header h1 {
-  margin: 0 0 12px 0;
-  font-size: 32px;
-  font-weight: 700;
-  color: var(--gb-ink);
-}
-
-.header p {
-  margin: 0;
-  font-size: 14px;
-  color: var(--gb-muted);
-}
-
 .form-section {
   margin-bottom: 24px;
 }
@@ -129,19 +88,7 @@ input[type="file"]::file-selector-button {
 
 .loading-indicator {
   display: none;
-  text-align: center;
   margin-top: 24px;
-  padding: 20px;
-  background: var(--gb-accent-soft);
-  border-radius: 8px;
-  border: 2px solid var(--gb-accent);
-}
-
-.loading-indicator p {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--gb-accent);
 }
 
 .log {
@@ -356,24 +303,3 @@ input[type="file"]::file-selector-button {
 }
 
 /* Back button (white card style) */
-.back-button {
-  display: block;
-  width: 100%;
-  padding: 14px 12px;
-  margin-top: 12px;
-  font-size: 15px;
-  font-weight: 700;
-  border-radius: 10px;
-  background: var(--gb-accent-soft);
-  color: var(--gb-accent);
-  text-decoration: none;
-  text-align: center;
-  border: 2px solid var(--gb-accent-border);
-  transition: background 0.2s, transform 0.2s;
-  box-sizing: border-box;
-}
-
-.back-button:active {
-  transform: scale(0.98);
-  background: var(--gb-accent-100);
-}
