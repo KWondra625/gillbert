@@ -41,7 +41,7 @@ SNAP = os.path.join(HERE, "snapshots")
 NOTIFY_NAME = "Gillbert - Notify New Catch"
 SAVE_CATCH_NAME = "Gillbert - POST - Save Catch"
 GILLBERT_TAG = "Gillbert"
-DB_CRED_NAME = "Gillbert Database | data-postgres Credential [Docker]"
+DB_CRED_NAME = "Gillbert Database | data-postgres Credential [Docker]"   # fallback only (Staging's name)
 NTFY_CRED_NAME = "Gillbert ntfy Publisher"
 IF_NODE, CALL_NODE = "Is New Catch?", "Notify New Catch"
 UPSERT, RESPONSE = "Upsert Catch", "Generate Response JSON"
@@ -165,11 +165,12 @@ def put_workflow(live, nodes, conns, activate=None):
         s, d = call("POST", f"/workflows/{wid}/activate")
     if s >= 300:
         print(f"FAILED ({s}: {str(d)[:300]}); putting {live['name']} back as it was")
-        call("PUT", f"/workflows/{wid}", body(live["nodes"], live["connections"]))
+        s1, _ = call("PUT", f"/workflows/{wid}", body(live["nodes"], live["connections"]))
+        print(f"  put back as it was: {s1 < 300}")
         if live["active"]:
             s2, _ = call("POST", f"/workflows/{wid}/activate")
             print(f"  re-activated: {s2 < 300}")
-        sys.exit("STOP: nothing changed (check the line above says re-activated: True)")
+        sys.exit("STOP: check the lines above all say True; if not, fix it by hand in the n8n UI (or --restore)")
     return get(f"/workflows/{wid}")
 
 
@@ -223,9 +224,21 @@ def patched_save_catch(live, notify_id):
     code = resp["parameters"].get("jsCode", "")
     if squash(code) not in (squash(RESPONSE_JS_ORIGINAL), squash(RESPONSE_JS)):
         sys.exit(f"STOP: {RESPONSE} code isn't the expected original; compare by hand before patching")
-    in_shape = (conns.get(UPSERT, {}).get("main", [[]])[0] == [to_ref(IF_NODE)]
+    up_out = (conns.get(UPSERT, {}).get("main") or [[]])[0] or []
+    # Upsert's success output may only lead to the reply and/or our IF (original or earlier version);
+    # anything else is unexpected wiring we'd silently drop, so stop and look by hand.
+    unexpected = [t["node"] for t in up_out if t["node"] not in (RESPONSE, IF_NODE)]
+    if unexpected:
+        sys.exit(f"STOP: {UPSERT}'s success output also feeds {unexpected}; compare by hand before patching")
+    call_node = next((n for n in nodes if n["name"] == CALL_NODE), None)
+    call_ok = bool(call_node) and (
+        call_node["parameters"].get("workflowId", {}).get("value") == notify_id
+        and call_node["parameters"].get("options", {}).get("waitForSubWorkflow") is False
+        and call_node.get("onError") == "continueRegularOutput")
+    in_shape = (up_out == [to_ref(IF_NODE)]
                 and conns.get(IF_NODE, {}).get("main") == [[to_ref(CALL_NODE)], [to_ref(RESPONSE)]]
                 and conns.get(CALL_NODE, {}).get("main") == [[to_ref(RESPONSE)]]
+                and call_ok
                 and squash(code) == squash(RESPONSE_JS))
     if in_shape:
         return None
@@ -257,7 +270,9 @@ def patched_save_catch(live, notify_id):
         "type": "n8n-nodes-base.executeWorkflow", "typeVersion": 1.3, "position": [x + 448, y + 288],
         "id": nid(), "name": CALL_NODE, "onError": "continueRegularOutput"})
     resp["parameters"]["jsCode"] = RESPONSE_JS
-    up_main = conns.setdefault(UPSERT, {"main": [[]]})["main"]
+    up_main = conns.setdefault(UPSERT, {"main": [[]]}).setdefault("main", [[]])
+    if not up_main:
+        up_main.append([])
     up_main[0] = [to_ref(IF_NODE)]          # success output; the error output (index 1) is left as is
     conns[IF_NODE] = {"main": [[to_ref(CALL_NODE)], [to_ref(RESPONSE)]]}
     conns[CALL_NODE] = {"main": [[to_ref(RESPONSE)]]}
@@ -287,7 +302,11 @@ print(f"{HOST}: {SAVE_CATCH_NAME} ({save_catch['id']}) active={save_catch['activ
       f"backup {snapshot(save_catch, 'save-catch')}")
 
 all_wfs = get("/workflows?limit=250")["data"]
-db_cred = cred_ref(DB_CRED_NAME, all_wfs)
+# The database credential Save Catch itself uses: right on every server (named differently on each)
+db_cred = ((next((n for n in save_catch["nodes"] if n["name"] == UPSERT), {}).get("credentials") or {}).get("postgres")
+           or cred_ref(DB_CRED_NAME, all_wfs))
+if db_cred:
+    db_cred = {"id": db_cred["id"], "name": db_cred["name"]}
 ntfy_cred = cred_ref(NTFY_CRED_NAME, all_wfs)
 if not db_cred:
     sys.exit("STOP: Gillbert database credential not found")

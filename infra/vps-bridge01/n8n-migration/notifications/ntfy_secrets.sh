@@ -3,7 +3,7 @@
 #   NTFY_PUBLISHER_HASH   bcrypt hash for the n8n-publisher user (its password is thrown away; nobody logs in)
 #   NTFY_PUBLISHER_TOKEN  the token n8n posts with (goes into n8n's "Gillbert ntfy Publisher" credential)
 # Values are single-quoted so compose doesn't expand the $ signs in the hash. Safe to re-run: does nothing
-# if both already have values. Empty lines (a .env copied from env.template) are filled in place.
+# if both already have values. Empty lines (a .env copied from env.template) are replaced: removed, then appended with values.
 #
 #   bash ntfy_secrets.sh ~/docker-stack/.env
 set -euo pipefail
