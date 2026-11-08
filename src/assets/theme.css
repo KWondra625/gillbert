@@ -1,0 +1,65 @@
+/* Gillbert's shared colors and a few shared shapes. Every page loads this first.
+ *
+ * Pages refer to these names (var(--gb-…)) instead of writing colors out, so a whole new
+ * look is just a different set of values. Two looks change with the season:
+ *   Open water (April–October): the values on :root, Gillbert's classic blue.
+ *   Hard water (November–March): the overrides under [data-water="hard"]; season.js sets
+ *   that attribute on <html> before the page draws.
+ * A future skin would be one more block like the hard-water one.
+ *
+ * Status colors (danger, success, warning) are deliberately the same in every look.
+ */
+
+:root {
+  /* Sky: the page background */
+  --gb-sky-1: #4FACFE;
+  --gb-sky-2: #00F2FE;
+  --gb-page-bg: linear-gradient(135deg, var(--gb-sky-1) 0%, var(--gb-sky-2) 100%);
+  --gb-on-sky: #ffffff;              /* text and icons drawn straight on the sky */
+
+  /* Accent: links, highlights, buttons */
+  --gb-accent: #4FACFE;
+  --gb-accent-strong: #1f7fd1;       /* filled buttons that need stronger contrast */
+  --gb-accent-soft: #f0f8ff;         /* tinted backgrounds */
+  --gb-accent-border: #d0eaff;
+
+  /* Signal: the tip-up flag orange. Used sparingly: the flag, the ticker label, the box latch */
+  --gb-signal: #f57c1f;
+  --gb-signal-dark: #d4630f;
+
+  /* Surfaces and lines */
+  --gb-surface: #ffffff;
+  --gb-surface-soft: #f9f9f9;
+  --gb-line: #e0e0e0;
+  --gb-line-soft: #f0f0f0;
+
+  /* Text */
+  --gb-ink: #1a1a1a;
+  --gb-ink-2: #333333;
+  --gb-ink-3: #555555;
+  --gb-muted: #666666;
+  --gb-faint: #888888;
+  --gb-faintest: #aaaaaa;
+
+  /* Ticker strip */
+  --gb-ticker-bg: #0d2a44;
+  --gb-ticker-ink: #ffffff;
+
+  /* Status: the same in every look */
+  --gb-danger: #e74c3c;
+  --gb-danger-strong: #c0392b;
+  --gb-danger-bg: #fff0f0;
+  --gb-danger-bg-2: #fff8f8;
+  --gb-danger-border: #ffcccc;
+
+  /* Shapes */
+  --gb-radius-card: 16px;
+  --gb-radius-control: 10px;
+  --gb-shadow-card: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Hard water. Filled in as each part of the site moves onto the shared colors. */
+:root[data-water="hard"] {
+  --gb-sky-1: #5f93cf;
+  --gb-sky-2: #bfe7f6;
+}

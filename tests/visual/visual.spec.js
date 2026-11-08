@@ -10,6 +10,7 @@
 //   npm run test:visual:record   record the Staging answers and (re)write the baselines
 //   npm run test:visual          compare every page with its baseline
 //   npm run test:visual -- -g catch-details   one page
+//   VISUAL_WATER=hard npm run test:visual      the hard-water look (its own baselines, *-hard-water.png)
 //
 // After an intended visual change: look at the diff in the report, then re-baseline that
 // page with `npx playwright test visual/ -g <page> --update-snapshots`.
@@ -22,6 +23,9 @@ const RECORD = process.env.VISUAL_RECORD === '1';
 const FIXTURES = path.join(__dirname, 'fixtures');
 const PLACEHOLDER = fs.readFileSync(path.join(__dirname, 'placeholder.png'));
 const FROZEN_NOW = new Date('2026-11-08T12:00:00-06:00');
+// Which seasonal look to capture. Open water by default (Gillbert's classic look), so the
+// frozen November date doesn't change the baselines; VISUAL_WATER=hard captures the ice look.
+const WATER = process.env.VISUAL_WATER === 'hard' ? 'hard' : 'open';
 
 // Stable Staging records (chosen 2026-11-08): a catch with media, and the first angler,
 // species and body of water. Replays don't depend on them still existing on Staging.
@@ -92,9 +96,12 @@ for (const [name, url] of PAGES) {
     });
 
     await page.clock.setFixedTime(FROZEN_NOW);
-    await page.addInitScript(until => {
-      try { localStorage.setItem('gillbert_admin_unlock_expires', String(until)); } catch {}
-    }, FROZEN_NOW.getTime() + 7 * 24 * 3600 * 1000);
+    await page.addInitScript(([until, water]) => {
+      try {
+        localStorage.setItem('gillbert_admin_unlock_expires', String(until));
+        localStorage.setItem('gillbert_setting_waterOverride', JSON.stringify(water));
+      } catch {}
+    }, [FROZEN_NOW.getTime() + 7 * 24 * 3600 * 1000, WATER]);
 
     await page.goto(url);
     await page.waitForLoadState('networkidle');
@@ -105,6 +112,7 @@ for (const [name, url] of PAGES) {
       fs.mkdirSync(FIXTURES, { recursive: true });
       fs.writeFileSync(fixtureFile, JSON.stringify(recorded, null, 1));
     }
-    await expect(page).toHaveScreenshot(`${name}.png`, { fullPage: true, animations: 'disabled', caret: 'hide' });
+    const shot = WATER === 'hard' ? `${name}-hard-water.png` : `${name}.png`;
+    await expect(page).toHaveScreenshot(shot, { fullPage: true, animations: 'disabled', caret: 'hide' });
   });
 }
