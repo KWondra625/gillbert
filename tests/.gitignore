@@ -5,3 +5,8 @@ playwright-report/
 
 # Real phone files: personal, kept out of the public repo. Tests use them when present.
 media/phone/
+
+# Screenshot tests: recorded Staging answers and baseline images hold real catch data,
+# so they stay on this machine. Only visual.spec.js and placeholder.png are in the repo.
+visual/fixtures/
+visual/*-snapshots/
