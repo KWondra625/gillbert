@@ -79,27 +79,7 @@
 /* ── Buttons ─────────────────────────────────────────────────────── */
 
 .primary-button {
-  display: block;
-  width: 100%;
-  padding: 16px;
   margin-top: 12px;
-  font-size: 16px;
-  font-weight: 700;
-  border: none;
-  border-radius: 8px;
-  background: var(--gb-page-bg);
-  color: white;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(79, 172, 254, 0.3);
-  transition: transform 0.2s, box-shadow 0.2s;
-  text-align: center;
-  text-decoration: none;
-  font-family: inherit;
-}
-
-.primary-button:active {
-  transform: scale(0.98);
-  box-shadow: 0 2px 8px rgba(79, 172, 254, 0.2);
 }
 
 /* ── Loading indicator ───────────────────────────────────────────── */
@@ -242,18 +222,6 @@
 
 .toolbar-spacer {
   flex: 1;
-}
-
-.small-button {
-  padding: 8px 12px;
-  border: 1px solid var(--gb-accent-border);
-  border-radius: 8px;
-  background: var(--gb-accent-soft);
-  color: var(--gb-accent-600);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
 }
 
 .catch-filter {
@@ -437,23 +405,7 @@
 }
 
 .secondary-button {
-  display: block;
-  width: 100%;
-  padding: 12px;
   margin-top: 8px;
-  font-size: 15px;
-  font-weight: 700;
-  font-family: inherit;
-  border-radius: 8px;
-  border: 2px solid var(--gb-accent-border);
-  background: var(--gb-accent-soft);
-  color: var(--gb-accent-600);
-  cursor: pointer;
-}
-
-.secondary-button:disabled {
-  opacity: 0.6;
-  cursor: default;
 }
 
 /* ── Wide screens: each upload is one table-like row ──────────────── */

@@ -83,18 +83,6 @@
   gap: 10px;
 }
 
-.profile-photo-btn {
-  padding: 8px 14px;
-  font-size: 13px;
-  font-weight: 700;
-  border-radius: 20px;
-  border: 2px solid var(--gb-accent-border);
-  background: var(--gb-accent-soft);
-  color: var(--gb-accent);
-  cursor: pointer;
-  font-family: inherit;
-}
-
 .profile-photo-btn--remove {
   border-color: #fcc;
   background: #fff8f8;
@@ -281,38 +269,12 @@ textarea {
 }
 
 .primary-button {
-  display: block;
-  width: 100%;
-  padding: 16px;
   margin-top: 12px;
-  font-size: 16px;
-  font-weight: 700;
-  border: none;
-  border-radius: 8px;
-  background: var(--gb-page-bg);
-  color: white;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(79, 172, 254, 0.3);
-  transition: transform 0.2s, box-shadow 0.2s;
-  text-align: center;
-  text-decoration: none;
-  font-family: inherit;
-}
-
-.primary-button:active {
-  transform: scale(0.98);
-  box-shadow: 0 2px 8px rgba(79, 172, 254, 0.2);
 }
 
 .profile-photo-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-}
-
-.primary-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
 }
 
 /* ── Loading indicator ───────────────────────────────────────────── */

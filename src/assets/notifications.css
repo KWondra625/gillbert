@@ -75,19 +75,7 @@
 }
 
 .primary-button {
-  display: block;
-  padding: 12px 16px;
-  border-radius: 10px;
-  font-weight: 700;
-  text-decoration: none;
-  text-align: center;
-  background: var(--gb-accent);
-  color: white;
   margin-bottom: 12px;
-}
-
-.primary-button:active {
-  transform: scale(0.98);
 }
 
 /* Manual fallback */
@@ -210,18 +198,3 @@
   margin-top: 16px;
 }
 
-.secondary-button {
-  display: block;
-  padding: 12px 16px;
-  border-radius: 10px;
-  font-weight: 700;
-  text-decoration: none;
-  text-align: center;
-  background: white;
-  color: #15803d;   /* readable green text; Android green stays on the border */
-  border: 2px solid #3DDC84;
-}
-
-.secondary-button:active {
-  transform: scale(0.98);
-}

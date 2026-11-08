@@ -157,61 +157,11 @@ textarea {
 }
 
 .primary-button {
-  display: block;
-  width: 100%;
-  padding: 16px;
   margin-top: 12px;
-  font-size: 16px;
-  font-weight: 700;
-  border: none;
-  border-radius: 8px;
-  background: var(--gb-page-bg);
-  color: white;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(79, 172, 254, 0.3);
-  transition: transform 0.2s, box-shadow 0.2s;
-  text-align: center;
-  text-decoration: none;
-  font-family: inherit;
-}
-
-.primary-button:active {
-  transform: scale(0.98);
-  box-shadow: 0 2px 8px rgba(79, 172, 254, 0.2);
-}
-
-.primary-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
 }
 
 .secondary-button {
-  display: block;
-  width: 100%;
-  padding: 14px;
   margin-top: 12px;
-  font-size: 15px;
-  font-weight: 700;
-  border: 2px solid var(--gb-accent);
-  border-radius: 8px;
-  background: white;
-  color: var(--gb-accent);
-  cursor: pointer;
-  transition: background 0.2s, transform 0.2s;
-  text-align: center;
-  font-family: inherit;
-}
-
-.secondary-button:active {
-  transform: scale(0.98);
-  background: var(--gb-accent-soft);
-}
-
-.secondary-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
 }
 
 /* ── Loading indicator ───────────────────────────────────────────── */

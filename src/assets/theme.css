@@ -75,7 +75,14 @@
   --gb-danger-bg-2: #fff8f8;
   --gb-danger-border: #ffcccc;
 
+  /* Buttons: one primary (solid) and one secondary (soft) style, on every page */
+  --gb-btn-primary-bg: var(--gb-accent-strong);
+  --gb-btn-primary-ink: #ffffff;
+  --gb-btn-secondary-bg: var(--gb-accent-soft);
+  --gb-btn-secondary-ink: var(--gb-accent-strong);
+
   /* Shapes */
+  --gb-radius-button: 12px;
   --gb-radius-card: 16px;
   --gb-radius-control: 10px;
   --gb-shadow-card: 0 8px 24px rgba(0, 0, 0, 0.15);

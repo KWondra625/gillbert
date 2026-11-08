@@ -122,17 +122,6 @@
       justify-content: center;
       gap: 10px;
     }
-    .profile-photo-btn {
-      padding: 8px 14px;
-      font-size: 13px;
-      font-weight: 700;
-      border-radius: 20px;
-      border: 2px solid #d0eaff;
-      background: #f0f8ff;
-      color: #4FACFE;
-      cursor: pointer;
-      font-family: inherit;
-    }
     .profile-photo-btn--remove {
       border-color: #fcc;
       background: #fff8f8;
@@ -199,27 +188,10 @@
       gap: 10px;
       padding: 4px 20px 20px;
     }
-    .crop-modal-footer .crop-back-button,
-    .crop-modal-footer .crop-primary-button {
+    .crop-modal-footer button {
       flex: 1;
-      padding: 14px 12px;
       font-size: 15px;
-      font-weight: 700;
-      border-radius: 10px;
-      cursor: pointer;
-      text-align: center;
-      font-family: inherit;
-    }
-    .crop-modal-footer .crop-back-button {
-      background: #f0f8ff;
-      color: #4FACFE;
-      border: 2px solid #d0eaff;
-    }
-    .crop-modal-footer .crop-primary-button {
-      background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
-      color: white;
-      border: none;
-      box-shadow: 0 4px 16px rgba(79, 172, 254, 0.3);
+      padding: 14px 12px;
     }
   </style>
 </head>
@@ -278,8 +250,8 @@
         <p class="field-hint">Drag to draw or move the square, resize from a corner — always kept 1:1.</p>
       </div>
       <div class="crop-modal-footer">
-        <button type="button" id="cropCancelBtn" class="crop-back-button">← Cancel</button>
-        <button type="button" id="cropConfirmBtn" class="crop-primary-button">✅ Use This Crop</button>
+        <button type="button" id="cropCancelBtn" class="secondary-button">← Cancel</button>
+        <button type="button" id="cropConfirmBtn" class="primary-button">✅ Use This Crop</button>
       </div>
     </div>
   </div>
@@ -344,8 +316,8 @@
           </div>
           <input type="file" id="profilePhotoInput" accept="image/*" class="hidden" />
           <div class="profile-photo-actions">
-            <button type="button" id="profilePhotoUploadBtn" class="profile-photo-btn">📤 Upload Photo</button>
-            <button type="button" id="profilePhotoRemoveBtn" class="profile-photo-btn profile-photo-btn--remove hidden">🗑️ Remove Photo</button>
+            <button type="button" id="profilePhotoUploadBtn" class="profile-photo-btn secondary-button button-small">📤 Upload Photo</button>
+            <button type="button" id="profilePhotoRemoveBtn" class="profile-photo-btn profile-photo-btn--remove secondary-button button-small hidden">🗑️ Remove Photo</button>
           </div>
           <p id="profilePhotoStatus" class="field-hint"></p>
           <div class="row" style="margin-top:12px">

@@ -313,7 +313,7 @@ body.has-ticker {
   place-items: center;
   gap: 2px;
   padding: 12px 6px;
-  border-radius: 12px;
+  border-radius: var(--gb-radius-button);
   font-weight: 700;
   font-size: 14px;
   text-align: center;
@@ -327,13 +327,13 @@ body.has-ticker {
 }
 
 .btn-primary {
-  background: var(--gb-accent-strong);
-  color: #fff;
+  background: var(--gb-btn-primary-bg);
+  color: var(--gb-btn-primary-ink);
 }
 
 .btn-soft {
-  background: var(--gb-accent-soft);
-  color: var(--gb-accent-strong);
+  background: var(--gb-btn-secondary-bg);
+  color: var(--gb-btn-secondary-ink);
 }
 
 .btn:active,

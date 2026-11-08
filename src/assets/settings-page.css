@@ -156,18 +156,18 @@ textarea:focus {
 .btn {
   padding: 10px 16px;
   border: 0;
-  border-radius: var(--gb-radius-control);
+  border-radius: var(--gb-radius-button);
   font: inherit;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  background: var(--gb-accent-strong);
-  color: #fff;
+  background: var(--gb-btn-primary-bg);
+  color: var(--gb-btn-primary-ink);
 }
 
 .btn-quiet {
-  background: var(--gb-accent-soft);
-  color: var(--gb-accent-strong);
+  background: var(--gb-btn-secondary-bg);
+  color: var(--gb-btn-secondary-ink);
 }
 
 .btn:disabled {

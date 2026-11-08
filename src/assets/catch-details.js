@@ -885,7 +885,7 @@ function renderMedia(items) {
   if (!container) return;
 
   const catchNumber = getCatchNumberFromUrl();
-  const uploadBtn = `<a href="./media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}${fromSuffix()}" class="detail-upload-btn">⬆️ Upload Media</a>`;
+  const uploadBtn = `<a href="./media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}${fromSuffix()}" class="detail-upload-btn primary-button">⬆️ Upload Media</a>`;
 
   const photos = items.filter(m => m.mediaType === 'Photo');
   const videos = items.filter(m => m.mediaType === 'Video');

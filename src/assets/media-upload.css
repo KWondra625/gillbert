@@ -54,28 +54,7 @@ input[type="file"]::file-selector-button {
 }
 
 .primary-button {
-  width: 100%;
-  padding: 16px;
   margin-top: 24px;
-  font-size: 16px;
-  font-weight: 700;
-  border: none;
-  border-radius: 8px;
-  background: var(--gb-page-bg);
-  color: white;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(79, 172, 254, 0.3);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.primary-button:active {
-  transform: scale(0.98);
-  box-shadow: 0 2px 8px rgba(79, 172, 254, 0.2);
-}
-
-.primary-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 .status {

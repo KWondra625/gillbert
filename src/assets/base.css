@@ -40,6 +40,60 @@
   to   { transform: translateY(0);    opacity: 1; }
 }
 
+/* ── Buttons ─────────────────────────────────────────────────────────────────
+ * One primary style (solid, the main action) and one secondary style (soft, everything
+ * else), the same as the home page's buttons. Colours and corner come from theme.css.
+ * Full width by default; add .button-small for a compact inline button. A page's own
+ * rule for the same class (spacing, width) comes later and wins. */
+
+.primary-button,
+.secondary-button {
+  border: 0;
+  border-radius: var(--gb-radius-button);
+  cursor: pointer;
+  display: block;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 14px 16px;
+  text-align: center;
+  text-decoration: none;
+  transition: transform 0.15s;
+  width: 100%;
+}
+
+.primary-button {
+  background: var(--gb-btn-primary-bg);
+  color: var(--gb-btn-primary-ink);
+}
+
+.secondary-button {
+  background: var(--gb-btn-secondary-bg);
+  color: var(--gb-btn-secondary-ink);
+}
+
+.primary-button:active,
+.secondary-button:active {
+  transform: scale(0.98);
+}
+
+.primary-button:disabled,
+.secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
+.button-small {
+  align-items: center;
+  display: inline-flex;
+  font-size: 13px;
+  gap: 6px;
+  justify-content: center;
+  padding: 8px 14px;
+  width: auto;
+}
+
 /* ── Page layouts ────────────────────────────────────────────────────────────
  * layout-card: one white card in the middle (forms and tools).
  * layout-open: cards straight on the sky (browsing and reading).
@@ -88,10 +142,12 @@ body:where(.layout-card) {
 }
 
 :where(.layout-card) .back-button {
-  background: var(--gb-accent-soft);
-  border: 2px solid var(--gb-accent-border);
-  border-radius: 10px;
-  color: var(--gb-accent);
+  background: var(--gb-btn-secondary-bg);
+  border: 0;
+  border-radius: var(--gb-radius-button);
+  color: var(--gb-btn-secondary-ink);
+  cursor: pointer;
+  font-family: inherit;
   display: block;
   font-size: 15px;
   font-weight: 700;
