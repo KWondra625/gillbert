@@ -40,3 +40,26 @@ test('notifications.html: the App Store badge opens the Apple easter egg first',
   await page.keyboard.press('Escape');
   await expect(modal).toBeHidden();
 });
+
+test('catch-details.html: a catch that does not exist gets the "it got away" pop-up', async ({ page }) => {
+  await page.goto('catch-details.html?catchNumber=Catch%2099-999999');
+  const modal = page.locator('#lostCatchModal');
+  await expect(modal).toBeVisible();
+  await expect(page.locator('#lostCatchTitle')).toHaveText(/shook the line|jumped off the line|grab the net/);
+  await expect(page.locator('#lostCatchNumber')).toHaveText('Catch 99-999999');
+  await expect(page.locator('#lostCatchBrowse')).toHaveAttribute('href', './catches-listing.html');
+  await expect(modal.locator('a[href="./index.html"]')).toBeVisible();
+  await expect(page.locator('#detailsContainer')).toBeEmpty();
+  if (process.env.SHOT) { await page.waitForTimeout(400); await page.screenshot({ path: process.env.SHOT }); }
+  await page.keyboard.press('Escape');
+  await expect(modal).toBeHidden();
+  await expect(page.locator('#status')).toContainText('got away');
+});
+
+test('catch-details.html: a link with no catch number gets the same pop-up', async ({ page }) => {
+  await page.goto('catch-details.html');
+  await expect(page.locator('#lostCatchModal')).toBeVisible();
+  await expect(page.locator('#lostCatchTitle')).toHaveText(/shook the line|jumped off the line|grab the net/);
+  await expect(page.locator('#lostCatchText')).toContainText("didn't say which catch");
+  await expect(page.locator('#lostCatchBrowse')).toHaveAttribute('href', './catches-listing.html');
+});
