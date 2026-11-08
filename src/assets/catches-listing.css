@@ -1,6 +1,7 @@
 
+/* One column of catch rows: narrower than the old three-across card grid */
 .container {
-  max-width: 1000px;
+  max-width: 760px;
 }
 
 .controls {
@@ -101,34 +102,38 @@
   background: rgba(255, 255, 255, 0.45);
 }
 
+/* A group's catches sit together in one white block, split by thin lines (like the home
+   page's list); the space between groups does the dividing */
 .catches-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 12px;
+  overflow: hidden;
+  border-radius: var(--gb-radius-card);
+  background: var(--gb-surface);
+  box-shadow: var(--gb-shadow-card);
 }
 
-/* ── One catch: the whole card opens it ── */
-/* A column, so cards side by side on wide screens keep their bottom row at the bottom */
+/* ── One catch: the whole row opens it ── */
 .catch-card {
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 12px 14px;
-  border-radius: var(--gb-radius-card);
-  background: var(--gb-surface);
   color: var(--gb-ink);
-  box-shadow: var(--gb-shadow-card);
   text-decoration: none;
-  transition: transform 0.15s;
+  transition: background 0.15s;
 }
 
+.catch-card + .catch-card {
+  border-top: 1px solid var(--gb-line-soft);
+}
+
+.catch-card:hover,
 .catch-card:active {
-  transform: scale(0.98);
+  background: var(--gb-accent-25);
 }
 
 .catch-card:focus-visible {
-  outline: 3px solid var(--gb-on-sky);
-  outline-offset: 2px;
+  outline: 3px solid var(--gb-accent);
+  outline-offset: -3px;
 }
 
 .catch-card-top {
@@ -319,10 +324,6 @@
 @media (max-width: 480px) {
   body {
     padding: 12px;
-  }
-
-  .catches-grid {
-    grid-template-columns: 1fr;
   }
 }
 
