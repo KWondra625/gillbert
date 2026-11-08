@@ -127,7 +127,6 @@ input[type="file"]::file-selector-button {
   min-height: 20px;
 }
 
-
 .loading-indicator {
   display: none;
   text-align: center;
@@ -136,37 +135,6 @@ input[type="file"]::file-selector-button {
   background: var(--gb-accent-soft);
   border-radius: 8px;
   border: 2px solid var(--gb-accent);
-}
-
-.loading-indicator.visible {
-  display: block;
-}
-
-.fishing-animation {
-  font-size: 48px;
-  margin-bottom: 12px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.bobber {
-  display: inline-block;
-  margin-left: 8px;
-  font-size: 24px;
-  animation: bobbing 2s ease-in-out infinite;
-}
-
-@keyframes bobbing {
-  0%, 100% {
-    transform: translateY(0px);
-    opacity: 0.6;
-  }
-  50% {
-    transform: translateY(-12px);
-    opacity: 1;
-  }
 }
 
 .loading-indicator p {
@@ -281,12 +249,7 @@ input[type="file"]::file-selector-button {
   text-decoration: none;
 }
 
-
-
 /* Utility */
-.hidden {
-  display: none !important;
-}
 
 /* Catch context card */
 .catch-card {

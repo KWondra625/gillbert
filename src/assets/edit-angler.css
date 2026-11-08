@@ -1,6 +1,3 @@
-* {
-  box-sizing: border-box;
-}
 
 body {
   margin: 0;
@@ -391,27 +388,6 @@ textarea {
   margin-bottom: 16px;
 }
 
-.fishing-animation {
-  font-size: 48px;
-  margin-bottom: 12px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.bobber {
-  display: inline-block;
-  margin-left: 8px;
-  font-size: 24px;
-  animation: bobbing 2s ease-in-out infinite;
-}
-
-@keyframes bobbing {
-  0%, 100% { transform: translateY(0px);   opacity: 0.6; }
-  50%       { transform: translateY(-12px); opacity: 1;   }
-}
-
 .loading-indicator p {
   margin: 0;
   font-size: 14px;
@@ -466,11 +442,6 @@ textarea {
   padding-bottom: max(24px, env(safe-area-inset-bottom));
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
   animation: slideUp 0.22s ease-out;
-}
-
-@keyframes slideUp {
-  from { transform: translateY(24px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
 }
 
 .ri-modal-header {
@@ -658,6 +629,3 @@ textarea {
 
 /* ── Utility ─────────────────────────────────────────────────────── */
 
-.hidden {
-  display: none !important;
-}

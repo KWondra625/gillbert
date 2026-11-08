@@ -3,10 +3,6 @@
    chat pages (Catch Chat, Ask Gillbert). Both pages look identical on
    purpose — everything lives here so they can't drift apart. ────── */
 
-* {
-  box-sizing: border-box;
-}
-
 html {
   height: 100%;
   background: var(--gb-page-bg);

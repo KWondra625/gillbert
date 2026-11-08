@@ -1,0 +1,44 @@
+/* Shared base styles for the content pages: the box-sizing reset, the loading fish and a
+ * few helpers. Only rules that were identical on every page live here, so moving them
+ * changed nothing. Loaded after theme.css and before each page's own stylesheet.
+ * Page layouts (background, width, header, back button) stay in each page's stylesheet:
+ * the app has two layouts (one white card in the middle, or cards straight on the sky).
+ * The home page and Settings have their own stylesheets and don't load this. */
+
+* {
+  box-sizing: border-box;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.fishing-animation {
+  font-size: 48px;
+  margin-bottom: 12px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bobber {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 24px;
+  animation: bobbing 2s ease-in-out infinite;
+}
+
+.loading-indicator.visible {
+  display: block;
+}
+
+@keyframes bobbing {
+  0%, 100% { transform: translateY(0px);   opacity: 0.6; }
+  50%       { transform: translateY(-12px); opacity: 1;   }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(24px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
