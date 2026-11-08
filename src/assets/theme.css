@@ -87,6 +87,17 @@
   --gb-sky-1: #5f93cf;
   --gb-sky-2: #bfe7f6;
 
+  /* A cooler steel blue for links and buttons, to sit with the winter sky */
+  --gb-accent: #3d8bd4;
+  --gb-accent-soft: #eef5fb;
+  --gb-accent-border: #cfe2f1;
+  --gb-accent-25: #f7fafd;
+  --gb-accent-75: #e9f2fa;
+  --gb-accent-100: #e3eef8;
+  --gb-accent-150: #e1ebf5;
+  --gb-accent-600: #2f78c2;
+  --gb-accent-700: #2a6db3;
+
   /* The ice shack: frosted white and icy blue */
   --gb-box-bg: #e9f4fb;
   --gb-box-ink: #1f4a6e;
