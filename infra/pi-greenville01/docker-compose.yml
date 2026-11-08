@@ -1,0 +1,196 @@
+# Staging server (pi-greenville01, the home Pi): copy of ~/docker-stack/docker-compose.yml.
+# This is the Pi's whole home stack; the Gillbert pieces are n8n, n8n-postgres, data-postgres
+# and cloudflared. Edit here and on the server together. Values live in the server's .env
+# (see env.template), never in the repo.
+#
+# n8n keeps its encryption key in the n8n-data volume (not in .env): back the volume up with
+# the n8n database before any upgrade, or every stored credential becomes unreadable.
+
+services:
+  n8n-postgres:
+    image: postgres:16
+    container_name: n8n-postgres
+    restart: unless-stopped
+    ports:
+      - "5679:5432"
+    environment:
+      POSTGRES_DB: n8n
+      POSTGRES_USER: n8n_db_user
+      POSTGRES_PASSWORD: ${N8N_POSTGRES_PASSWORD}
+    volumes:
+      - /mnt/pi5_nas_drive_1/docker-data/n8n-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8n_db_user -d n8n"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  n8n:
+    # Pre-built from this folder's Dockerfile: docker build -t n8n-custom:2.46.6 .
+    image: n8n-custom:2.46.6
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=n8n-postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=n8n_db_user
+      - DB_POSTGRESDB_PASSWORD=${N8N_POSTGRES_PASSWORD}
+      - N8N_HOST=${N8N_HOST}
+      - N8N_PROTOCOL=https
+      # Base URL for test and production webhooks (renamed from WEBHOOK_URL in n8n 2.4x)
+      - N8N_WEBHOOK_URL=https://${N8N_HOST}/
+      - GENERIC_TIMEZONE=${TZ}
+      - TZ=${TZ}   # same as production: Code nodes and the tools they run use local time
+      - N8N_NODE_FUNCTION_ALLOW_BUILTIN=crypto,child_process
+      - NODE_FUNCTION_ALLOW_BUILTIN=crypto,child_process
+      - N8N_RUNNERS_TASK_TIMEOUT=1800   # media conversions; matches the 30-min "stuck" rule
+      - N8N_SECURE_COOKIE=false
+      # n8n 2.x blocks $env in nodes by default; the Gillbert workflows read their settings from it
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      # Staging's own storage account and API keys (values in .env)
+      - GILLBERT_AZURE_STORAGE_ACCOUNT=${GILLBERT_AZURE_STORAGE_ACCOUNT}
+      - GILLBERT_AZURE_STORAGE_KEY=${GILLBERT_AZURE_STORAGE_KEY}
+      - GILLBERT_API_KEYS=${GILLBERT_API_KEYS}
+    volumes:
+      - n8n-data:/home/node/.n8n
+    depends_on:
+      n8n-postgres:
+        condition: service_healthy
+
+  data-postgres:
+    image: postgres:16
+    container_name: data-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ParkingLot
+      POSTGRES_USER: postgres_db_user
+      POSTGRES_PASSWORD: ${DATA_POSTGRES_PASSWORD}
+    volumes:
+      - /mnt/pi5_nas_drive_1/docker-data/data-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres_db_user -d ParkingLot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.10.4
+    container_name: cloudflared
+    restart: unless-stopped
+    command: tunnel run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    network_mode: host
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    restart: unless-stopped
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+      PGADMIN_CONFIG_SESSION_EXPIRATION_TIME: 14400 # 4 hours in seconds
+      PGADMIN_CONFIG_WTF_CSRF_TIME_LIMIT: 14400  # 4 hours in seconds
+    volumes:
+      - /mnt/pi5_nas_drive_1/docker-data/pgadmin:/var/lib/pgadmin
+    depends_on:
+      - n8n-postgres
+      - data-postgres
+
+  code-server:
+    image: lscr.io/linuxserver/code-server:latest
+    container_name: code-server
+    restart: unless-stopped
+    ports:
+      - "8443:8443"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+      - PASSWORD=${CODE_SERVER_PASSWORD}
+      - SUDO_PASSWORD=${CODE_SERVER_SUDO_PASSWORD}
+      - DEFAULT_WORKSPACE=/config/workspace
+    volumes:
+      - /mnt/pi5_nas_drive_1/docker-data/code-server:/config
+
+  ollama:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./litellm-config.yaml:/app/config.yaml
+    command:
+      --config /app/config.yaml
+    environment:
+      - DATABASE_URL=postgresql://postgres_db_user:${DATA_POSTGRES_PASSWORD}@data-postgres:5432/litellm
+      - STORE_MODEL_IN_DB=True
+    depends_on:
+      data-postgres:
+        condition: service_healthy
+
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    ports:
+      - "3000:8080"
+    environment:
+      - OPENAI_API_BASE_URL=http://litellm:4000/v1
+    depends_on:
+      - litellm
+
+  firefox:
+    image: lscr.io/linuxserver/firefox:latest
+    container_name: firefox
+    restart: unless-stopped
+    ports:
+      - "3001:3001"   # HTTPS web UI
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+    volumes:
+      - firefox-data:/config
+    shm_size: "1gb"
+    security_opt:
+      - seccomp:unconfined
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9443:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer-data:/data
+    security_opt:
+      - no-new-privileges:true
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:2
+    container_name: uptime-kuma
+    restart: unless-stopped
+    ports:
+      - "5862:3001"
+    volumes:
+      - uptime-kuma-data:/app/data
+    environment:
+      - TZ=America/Chicago
+
+volumes:
+  n8n-data:
+  firefox-data:
+  portainer-data:
+  uptime-kuma-data:

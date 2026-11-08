@@ -58,7 +58,7 @@ def import_one(name):
     left = [i for i in pi_ids if i in blob]
     if left:
         problems.append(f"Pi ids present: {left}")
-    # n8n 2.15.1: a missing binaryMode behaves exactly like 'separate' (only 'combined' changes behavior;
+    # At the 2026-10 migration: a missing binaryMode behaved exactly like 'separate' (only 'combined' changes behavior;
     # helper defaults are BINARY_MODE_SEPARATE). The public API can't set it, so only flag a real 'combined' mismatch.
     eff = lambda v: v or "separate"
     if eff(b.get("settings", {}).get("binaryMode")) != eff(wf.get("settings", {}).get("binaryMode")):
