@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gillbert - Settings</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/theme.css" />
+  <script src="./assets/settings.js"></script>
+  <script src="./assets/season.js"></script>
+  <link rel="stylesheet" href="./assets/settings-page.css" />
+  <link rel="stylesheet" href="./assets/top-home-link.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="top-nav">
+      <a href="./index.html" class="top-home-link" aria-label="Go back to Home">← Home</a>
+    </div>
+
+    <div class="header">
+      <h1>⚙️ Settings</h1>
+      <p>The adjustable bits of Gillbert.</p>
+    </div>
+
+    <div class="card locked hidden" id="lockedCard">
+      <p class="locked-icon">🔒</p>
+      <p>You don't have permission to access this page.</p>
+    </div>
+
+    <div id="settingsBody" class="hidden">
+      <div class="preview-note" role="note">
+        <b>Preview: saved on this device only.</b>
+        Changes here show on this browser right away. Everyone else keeps seeing the defaults until settings move to the server.
+      </div>
+
+      <section class="card" aria-labelledby="seasonTitle">
+        <div class="card-head">
+          <h2 id="seasonTitle">Season look</h2>
+          <span class="saved" id="seasonSaved" aria-live="polite"></span>
+        </div>
+        <p class="help">Hard water (tip-up, the shack, cold colors) runs November to March; open water (bobber, tackle box) April to October. Force one to preview it.</p>
+        <div class="choices" role="radiogroup" aria-labelledby="seasonTitle">
+          <label><input type="radio" name="water" id="waterAuto" value="auto" /> <span>Follow the calendar <small id="waterAutoNow"></small></span></label>
+          <label><input type="radio" name="water" id="waterHard" value="hard" /> <span>Hard water</span></label>
+          <label><input type="radio" name="water" id="waterOpen" value="open" /> <span>Open water</span></label>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="welcomeTitle">
+        <div class="card-head">
+          <h2 id="welcomeTitle">Welcome line</h2>
+          <span class="saved" id="welcomeSaved" aria-live="polite"></span>
+        </div>
+        <p class="help">Shown under the Gillbert name on the home page.</p>
+        <input type="text" id="welcomeInput" maxlength="80" autocomplete="off" />
+        <div class="row-actions">
+          <button type="button" class="btn" id="welcomeSave">Save</button>
+          <button type="button" class="btn btn-quiet" id="welcomeReset">Back to the default</button>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="rememberTitle">
+        <div class="card-head">
+          <h2 id="rememberTitle">Remember when?</h2>
+          <span class="saved" id="rememberSaved" aria-live="polite"></span>
+        </div>
+        <p class="help">Gillbert picks one past catch a day. Not feeling today's? Pick another.</p>
+        <div class="row-actions">
+          <button type="button" class="btn" id="rememberNext">🎲 Pick another</button>
+          <button type="button" class="btn btn-quiet" id="rememberReset">Back to today's pick</button>
+        </div>
+
+        <h3>Tease lines</h3>
+        <p class="help">One per line. A different one shows each day.</p>
+        <textarea id="teaseInput" rows="5"></textarea>
+        <div class="row-actions">
+          <button type="button" class="btn" id="teaseSave">Save</button>
+          <button type="button" class="btn btn-quiet" id="teaseReset">Back to the defaults</button>
+        </div>
+      </section>
+
+      <a href="./index.html" class="back-button">← Back to Home</a>
+    </div>
+  </div>
+
+  <script src="./assets/config.js"></script>
+  <script src="./assets/admin.js"></script>
+  <script src="./assets/settings-page.js"></script>
+</body>
+</html>

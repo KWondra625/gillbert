@@ -55,6 +55,7 @@ const PAGES = [
   ['whats-new', 'whats-new.html'],
   ['features-functionality', 'features-functionality.html'],
   ['notifications', 'notifications.html'],
+  ['settings', 'settings.html'],
 ];
 
 // Keep photo links (and their access signatures) out of the fixtures entirely.
