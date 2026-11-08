@@ -6,7 +6,7 @@ body {
   margin: 0;
   padding: 16px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
+  background: var(--gb-page-bg);
   min-height: 100dvh;
   padding-top: max(16px, env(safe-area-inset-top));
   padding-bottom: max(16px, env(safe-area-inset-bottom));
@@ -55,7 +55,7 @@ body {
   border-radius: 8px;
   font-size: 15px;
   background: rgba(255, 255, 255, 0.95);
-  color: #333;
+  color: var(--gb-ink-2);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   outline: none;
   transition: box-shadow 0.2s;
@@ -66,7 +66,7 @@ body {
 }
 
 .search-input::placeholder {
-  color: #aaa;
+  color: var(--gb-faintest);
 }
 
 .search-button {
@@ -143,7 +143,7 @@ body {
   margin: 0;
   font-size: 14px;
   font-weight: 500;
-  color: #4FACFE;
+  color: var(--gb-accent);
 }
 
 /* Catches Grid */
@@ -171,7 +171,7 @@ body {
 }
 
 .catch-card-header {
-  background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
+  background: var(--gb-page-bg);
   padding: 16px;
   color: white;
 }
@@ -230,7 +230,7 @@ body {
   border-radius: 20px;
   font-size: 13px;
   font-weight: 700;
-  color: #4FACFE;
+  color: var(--gb-accent);
   line-height: 1.4;
 }
 
@@ -270,25 +270,25 @@ body {
 
 .field-label {
   font-weight: 600;
-  color: #4FACFE;
+  color: var(--gb-accent);
   min-width: 100px;
   flex-shrink: 0;
 }
 
 .field-value {
-  color: #333;
+  color: var(--gb-ink-2);
   word-break: break-word;
 }
 
 .catch-summary {
   margin-top: 16px;
   padding: 12px;
-  background: #f0f8ff;
-  border-left: 4px solid #4FACFE;
+  background: var(--gb-accent-soft);
+  border-left: 4px solid var(--gb-accent);
   border-radius: 4px;
   font-size: 13px;
   line-height: 1.6;
-  color: #333;
+  color: var(--gb-ink-2);
 }
 
 .catch-summary p {
@@ -297,7 +297,7 @@ body {
 
 .catch-card-footer {
   padding: 12px 20px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--gb-line-soft);
   background: #fafafa;
   text-align: center;
 }
@@ -315,7 +315,7 @@ body {
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
+  background: var(--gb-page-bg);
   color: white;
   text-decoration: none;
   border-radius: 6px;
@@ -341,7 +341,7 @@ body {
 .empty-state p {
   margin: 0;
   font-size: 18px;
-  color: #999;
+  color: var(--gb-faint-2);
 }
 
 /* No Results Banner */
@@ -421,7 +421,7 @@ body {
   font-weight: 700;
   border-radius: 10px;
   background: white;
-  color: #4FACFE;
+  color: var(--gb-accent);
   text-decoration: none;
   text-align: center;
   margin-bottom: 32px;
@@ -538,7 +538,7 @@ body {
 
 .filter-chip.active {
   background: white;
-  color: #4FACFE;
+  color: var(--gb-accent);
   border-color: white;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.14);
 }
@@ -601,20 +601,20 @@ body {
 }
 
 .filter-option:hover {
-  background: #f0f8ff;
+  background: var(--gb-accent-soft);
 }
 
 .filter-option.selected {
-  color: #4FACFE;
+  color: var(--gb-accent);
   font-weight: 600;
-  background: #f0f8ff;
+  background: var(--gb-accent-soft);
 }
 
 .filter-option-check {
   width: 16px;
   text-align: center;
   flex-shrink: 0;
-  color: #4FACFE;
+  color: var(--gb-accent);
   font-weight: 700;
 }
 

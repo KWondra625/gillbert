@@ -37,9 +37,9 @@
 }
 
 .top-home-link--on-light {
-  background: #f0f8ff;
-  border-color: #d0eaff;
-  color: #4FACFE;
+  background: var(--gb-accent-soft);
+  border-color: var(--gb-accent-border);
+  color: var(--gb-accent);
 }
 
 .top-home-link--on-light:hover {

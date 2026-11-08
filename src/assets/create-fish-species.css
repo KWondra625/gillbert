@@ -6,7 +6,7 @@ body {
   margin: 0;
   padding: 16px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
+  background: var(--gb-page-bg);
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -36,13 +36,13 @@ body {
   margin: 0 0 8px 0;
   font-size: 28px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--gb-ink);
 }
 
 .header p {
   margin: 0;
   font-size: 14px;
-  color: #666;
+  color: var(--gb-muted);
 }
 
 /* ── Field groups ────────────────────────────────────────────────── */
@@ -56,7 +56,7 @@ label {
   margin-bottom: 6px;
   font-weight: 600;
   font-size: 14px;
-  color: #1a1a1a;
+  color: var(--gb-ink);
 }
 
 .required-mark {
@@ -67,13 +67,13 @@ label {
 .optional-mark {
   font-weight: 400;
   font-size: 12px;
-  color: #aaa;
+  color: var(--gb-faintest);
 }
 
 .field-hint {
   margin: 6px 0 0 0;
   font-size: 12px;
-  color: #999;
+  color: var(--gb-faint-2);
 }
 
 /* ── Inputs, textarea ──────────────────────────────────────────────── */
@@ -83,11 +83,11 @@ textarea {
   width: 100%;
   padding: 12px 14px;
   font-size: 16px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--gb-line);
   border-radius: 8px;
-  background: #f9f9f9;
+  background: var(--gb-surface-soft);
   font-family: inherit;
-  color: #1a1a1a;
+  color: var(--gb-ink);
   transition: border-color 0.2s, background 0.2s;
   -webkit-appearance: none;
   appearance: none;
@@ -95,14 +95,14 @@ textarea {
 
 input[type="text"]:hover,
 textarea:hover {
-  border-color: #4FACFE;
+  border-color: var(--gb-accent);
   background: white;
 }
 
 input[type="text"]:focus,
 textarea:focus {
   outline: none;
-  border-color: #4FACFE;
+  border-color: var(--gb-accent);
   background: white;
   box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
 }
@@ -125,21 +125,21 @@ textarea {
   padding: 12px 14px;
   font-size: 15px;
   font-weight: 600;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--gb-line);
   border-radius: 8px;
-  background: #f9f9f9;
-  color: #666;
+  background: var(--gb-surface-soft);
+  color: var(--gb-muted);
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s, color 0.2s;
   font-family: inherit;
 }
 
 .status-pill:hover {
-  border-color: #4FACFE;
+  border-color: var(--gb-accent);
 }
 
 .status-pill.selected {
-  background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
+  background: var(--gb-page-bg);
   border-color: transparent;
   color: white;
 }
@@ -193,7 +193,7 @@ textarea {
   font-weight: 700;
   border: none;
   border-radius: 8px;
-  background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
+  background: var(--gb-page-bg);
   color: white;
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(79, 172, 254, 0.3);
@@ -222,17 +222,17 @@ textarea {
   font-size: 15px;
   font-weight: 700;
   border-radius: 10px;
-  background: #f0f8ff;
-  color: #4FACFE;
+  background: var(--gb-accent-soft);
+  color: var(--gb-accent);
   text-decoration: none;
   text-align: center;
-  border: 2px solid #d0eaff;
+  border: 2px solid var(--gb-accent-border);
   transition: background 0.2s, transform 0.2s;
 }
 
 .back-button:active {
   transform: scale(0.98);
-  background: #e0f0ff;
+  background: var(--gb-accent-100);
 }
 
 /* ── Loading indicator ───────────────────────────────────────────── */
@@ -240,9 +240,9 @@ textarea {
 .loading-indicator {
   text-align: center;
   padding: 32px 20px;
-  background: #f0f8ff;
+  background: var(--gb-accent-soft);
   border-radius: 8px;
-  border: 2px solid #4FACFE;
+  border: 2px solid var(--gb-accent);
   margin-bottom: 16px;
 }
 
@@ -271,7 +271,7 @@ textarea {
   margin: 0;
   font-size: 14px;
   font-weight: 500;
-  color: #4FACFE;
+  color: var(--gb-accent);
 }
 
 /* ── Error card ───────────────────────────────────────────────────── */
@@ -292,7 +292,7 @@ textarea {
 
 .error-card p {
   font-size: 14px;
-  color: #666;
+  color: var(--gb-muted);
   margin: 0 0 16px 0;
   line-height: 1.5;
 }

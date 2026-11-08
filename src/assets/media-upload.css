@@ -6,7 +6,7 @@ body {
   margin: 0;
   padding: 16px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
+  background: var(--gb-page-bg);
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -34,13 +34,13 @@ body {
   margin: 0 0 12px 0;
   font-size: 32px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--gb-ink);
 }
 
 .header p {
   margin: 0;
   font-size: 14px;
-  color: #666;
+  color: var(--gb-muted);
 }
 
 .form-section {
@@ -53,7 +53,7 @@ label {
   margin-bottom: 8px;
   font-weight: 600;
   font-size: 14px;
-  color: #1a1a1a;
+  color: var(--gb-ink);
 }
 
 label:first-child {
@@ -64,27 +64,27 @@ input[type="file"] {
   width: 100%;
   padding: 12px 14px;
   font-size: 16px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--gb-line);
   border-radius: 8px;
-  background: #f9f9f9;
+  background: var(--gb-surface-soft);
   font-family: inherit;
   transition: border-color 0.2s, background 0.2s;
 }
 
 input[type="file"]:hover {
-  border-color: #4FACFE;
+  border-color: var(--gb-accent);
   background: white;
 }
 
 input[type="file"]:focus {
   outline: none;
-  border-color: #4FACFE;
+  border-color: var(--gb-accent);
   background: white;
   box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
 }
 
 input[type="file"]::file-selector-button {
-  background: #4FACFE;
+  background: var(--gb-accent);
   color: white;
   padding: 8px 16px;
   border: none;
@@ -102,7 +102,7 @@ input[type="file"]::file-selector-button {
   font-weight: 700;
   border: none;
   border-radius: 8px;
-  background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
+  background: var(--gb-page-bg);
   color: white;
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(79, 172, 254, 0.3);
@@ -123,7 +123,7 @@ input[type="file"]::file-selector-button {
   margin-top: 12px;
   font-size: 14px;
   font-weight: 500;
-  color: #666;
+  color: var(--gb-muted);
   min-height: 20px;
 }
 
@@ -133,9 +133,9 @@ input[type="file"]::file-selector-button {
   text-align: center;
   margin-top: 24px;
   padding: 20px;
-  background: #f0f8ff;
+  background: var(--gb-accent-soft);
   border-radius: 8px;
-  border: 2px solid #4FACFE;
+  border: 2px solid var(--gb-accent);
 }
 
 .loading-indicator.visible {
@@ -173,7 +173,7 @@ input[type="file"]::file-selector-button {
   margin: 0;
   font-size: 14px;
   font-weight: 500;
-  color: #4FACFE;
+  color: var(--gb-accent);
 }
 
 .log {
@@ -183,10 +183,10 @@ input[type="file"]::file-selector-button {
   border-radius: 8px;
   font-size: 12px;
   font-family: "Courier New", monospace;
-  color: #333;
+  color: var(--gb-ink-2);
   max-height: 200px;
   overflow-y: auto;
-  border-left: 4px solid #4FACFE;
+  border-left: 4px solid var(--gb-accent);
   margin-bottom: 16px;
 }
 
@@ -203,7 +203,7 @@ input[type="file"]::file-selector-button {
 .log-details summary {
   cursor: pointer;
   font-size: 13px;
-  color: #666;
+  color: var(--gb-muted);
   margin-bottom: 8px;
 }
 
@@ -225,12 +225,12 @@ input[type="file"]::file-selector-button {
   margin-bottom: 8px;
   border-radius: 8px;
   background: #f5f5f5;
-  border-left: 4px solid #ccc;
+  border-left: 4px solid var(--gb-line-strong);
   font-size: 13px;
 }
 
 .file-row-name {
-  color: #333;
+  color: var(--gb-ink-2);
   font-weight: 600;
   overflow-wrap: anywhere;
   min-width: 0;
@@ -238,7 +238,7 @@ input[type="file"]::file-selector-button {
 }
 
 .file-row-status {
-  color: #666;
+  color: var(--gb-muted);
   white-space: nowrap;
 }
 
@@ -249,7 +249,7 @@ input[type="file"]::file-selector-button {
 }
 
 .file-row--uploading,
-.file-row--recording  { border-left-color: #4FACFE; }
+.file-row--recording  { border-left-color: var(--gb-accent); }
 .file-row--complete   { border-left-color: #2e9e5b; }
 .file-row--converting { border-left-color: #e0a100; }
 .file-row--failed,
@@ -290,9 +290,9 @@ input[type="file"]::file-selector-button {
 
 /* Catch context card */
 .catch-card {
-  background: #f0f8ff;
-  border: 1px solid #d0eaff;
-  border-left: 4px solid #4FACFE;
+  background: var(--gb-accent-soft);
+  border: 1px solid var(--gb-accent-border);
+  border-left: 4px solid var(--gb-accent);
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 24px;
@@ -301,14 +301,14 @@ input[type="file"]::file-selector-button {
 .catch-card-id {
   font-size: 16px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--gb-ink);
   margin-bottom: 10px;
 }
 
 .catch-card-loading,
 .catch-card-error {
   font-size: 13px;
-  color: #888;
+  color: var(--gb-faint);
   font-style: italic;
   margin: 0;
 }
@@ -321,14 +321,14 @@ input[type="file"]::file-selector-button {
 }
 
 .catch-card-label {
-  color: #4FACFE;
+  color: var(--gb-accent);
   font-weight: 600;
   min-width: 110px;
   flex-shrink: 0;
 }
 
 .catch-card-value {
-  color: #333;
+  color: var(--gb-ink-2);
 }
 
 /* No catch error state */
@@ -345,13 +345,13 @@ input[type="file"]::file-selector-button {
 .no-catch-title {
   font-size: 22px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--gb-ink);
   margin: 0 0 12px 0;
 }
 
 .no-catch-msg {
   font-size: 14px;
-  color: #666;
+  color: var(--gb-muted);
   line-height: 1.6;
   margin: 0 0 24px 0;
 }
@@ -370,26 +370,26 @@ input[type="file"]::file-selector-button {
 .success-title {
   font-size: 26px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--gb-ink);
   margin: 0 0 8px 0;
 }
 
 .success-msg {
   font-size: 14px;
-  color: #666;
+  color: var(--gb-muted);
   line-height: 1.6;
   margin: 0 0 12px 0;
 }
 
 .success-redirect {
   font-size: 13px;
-  color: #aaa;
+  color: var(--gb-faintest);
   margin: 0 0 24px 0;
 }
 
 .success-redirect span {
   font-weight: 700;
-  color: #4FACFE;
+  color: var(--gb-accent);
 }
 
 /* Back button (white card style) */
@@ -401,16 +401,16 @@ input[type="file"]::file-selector-button {
   font-size: 15px;
   font-weight: 700;
   border-radius: 10px;
-  background: #f0f8ff;
-  color: #4FACFE;
+  background: var(--gb-accent-soft);
+  color: var(--gb-accent);
   text-decoration: none;
   text-align: center;
-  border: 2px solid #d0eaff;
+  border: 2px solid var(--gb-accent-border);
   transition: background 0.2s, transform 0.2s;
   box-sizing: border-box;
 }
 
 .back-button:active {
   transform: scale(0.98);
-  background: #e0f0ff;
+  background: var(--gb-accent-100);
 }

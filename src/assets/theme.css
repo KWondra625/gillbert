@@ -22,6 +22,13 @@
   --gb-accent-strong: #1f7fd1;       /* filled buttons that need stronger contrast */
   --gb-accent-soft: #f0f8ff;         /* tinted backgrounds */
   --gb-accent-border: #d0eaff;
+  /* the rest of the blue family the pages use, lightest to darkest */
+  --gb-accent-25: #f9fbff;
+  --gb-accent-75: #e8f4ff;
+  --gb-accent-100: #e0f0ff;
+  --gb-accent-150: #e3eefc;
+  --gb-accent-600: #1f7fd6;
+  --gb-accent-700: #1a75d1;
 
   /* Signal: the tip-up flag orange. Used sparingly: the flag, the ticker label, the box latch */
   --gb-signal: #f57c1f;
@@ -32,6 +39,7 @@
   --gb-surface-soft: #f9f9f9;
   --gb-line: #e0e0e0;
   --gb-line-soft: #f0f0f0;
+  --gb-line-strong: #cccccc;
 
   /* Text */
   --gb-ink: #1a1a1a;
@@ -39,6 +47,7 @@
   --gb-ink-3: #555555;
   --gb-muted: #666666;
   --gb-faint: #888888;
+  --gb-faint-2: #999999;
   --gb-faintest: #aaaaaa;
 
   /* Ticker strip */
