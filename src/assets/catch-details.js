@@ -22,6 +22,9 @@ const FIELD_ORDER = [
   'caughtWhen',
 ];
 
+// Shown in the summary at the top of the card, so not repeated as detail rows
+const SUMMARY_FIELDS = new Set(['anglerName', 'length', 'caughtWhen']);
+
 // Audit fields shown in a separate muted section
 const AUDIT_FIELDS = ['id', 'recordSource', 'createdAt', 'updatedAt', 'verifiedAt'];
 
@@ -308,32 +311,40 @@ function renderDetails(catchData) {
 
   const hasValue = (key) => catchData[key] !== null && catchData[key] !== undefined && catchData[key] !== '';
 
-  // 0. Headline block — top of card
-  const anglerPhotoUrl = anglersById[catchData.anglerId] && anglersById[catchData.anglerId].profilePhotoReadUrl;
-  // No placeholder when there's no photo — the 🎣 icon already appears
-  // elsewhere on this page (headline, header), so repeating it here just
-  // to mark an absence reads as clutter rather than useful signal.
-  const anglerAvatarHtml = anglerPhotoUrl
-    ? `<img class="detail-angler-avatar" src="${escapeHtml(anglerPhotoUrl)}" alt="">`
-    : '';
-  const headlineHtml = catchData.headline ? `
-    <div class="detail-summary">
-      <div class="detail-summary-byline">
-        ${anglerAvatarHtml}
-        <div class="detail-summary-text">
-          <div class="detail-summary-label">🎣 Headline</div>
-          <p>${escapeHtml(catchData.headline)}</p>
-        </div>
-      </div>
-    </div>` : '';
+  document.getElementById('catchTitle').textContent = catchNumber;
 
   // Review status badge — pending (amber) until verified, then a green confirmation
   const reviewStatusBadgeHtml = isVerified
     ? `<span class="verified-badge">✅ Verified</span>`
-    : `<span class="pending-review-badge">⏳ Pending Review</span>`;
+    : `<span class="pending-review-badge">⏳ Pending review</span>`;
 
-  // 1. Primary ordered fields
+  // 0. The summary at the top of the card: who and when, the fish, where, the headline.
+  // Same pieces as the catch's card on Browse Catches, bigger.
+  const angler = anglersById[catchData.anglerId];
+  const avatarHtml = GillbertAvatar.html({ id: catchData.anglerId, profilePhotoReadUrl: angler && angler.profilePhotoReadUrl },
+    catchData.anglerName, 'summary-avatar');
+  const fish = hasValue('length')
+    ? `${escapeHtml(String(catchData.length))}" ${escapeHtml(catchData.fishSpeciesName || 'Fish')}`
+    : escapeHtml(catchData.fishSpeciesName || 'Fish');
+  const summaryHtml = `
+    <div class="catch-summary">
+      <div class="summary-by">
+        ${avatarHtml}
+        <div class="summary-who">
+          <b>${escapeHtml(catchData.anglerName || 'Unknown angler')}</b>
+          ${hasValue('caughtWhen') ? `<span>${formatCaughtWhen(catchData.caughtWhen)}</span>` : ''}
+        </div>
+        ${reviewStatusBadgeHtml}
+      </div>
+      <div class="summary-fish">${fish}</div>
+      ${hasValue('bodyOfWaterName') ? `<div class="summary-where">on ${escapeHtml(catchData.bodyOfWaterName)}</div>` : ''}
+      ${catchData.headline ? `<p class="summary-headline">${escapeHtml(catchData.headline)}</p>` : ''}
+    </div>`;
+
+  // 1. The detail rows, minus what the summary already shows (species and water stay
+  // for their WI DNR links)
   const primaryRows = FIELD_ORDER
+    .filter(key => !SUMMARY_FIELDS.has(key))
     .filter(hasValue)
     .map(key => {
       if (key === 'fishSpeciesName' && catchData.fishSpeciesDnrUrl) {
@@ -378,15 +389,11 @@ function renderDetails(catchData) {
 
   el.detailsContainer.innerHTML = `
     <div class="detail-card">
-      <div class="detail-card-header">
-        <h2>${escapeHtml(catchNumber)} 🎣</h2>
-      </div>
+      ${summaryHtml}
       <div class="detail-card-section-label">
-        <span>Catch Details</span>
-        ${reviewStatusBadgeHtml}
+        <span>Details</span>
       </div>
       <div class="detail-card-body">
-        ${headlineHtml}
         ${primaryRows}
       </div>
       <div id="mediaContainer" class="detail-media-section">

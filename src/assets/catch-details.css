@@ -25,17 +25,74 @@
   margin-bottom: 32px;
 }
 
-.detail-card-header {
-  background: var(--gb-page-bg);
-  padding: 20px 24px;
-  color: white;
+/* ─── Summary: who and when, the fish, where, the headline ─── */
+.catch-summary {
+  display: grid;
+  gap: 6px;
+  padding: 18px 24px 16px;
 }
 
-.detail-card-header h2 {
-  margin: 0;
-  font-size: 28px;
-  font-weight: 700;
-  word-break: break-word;
+.summary-by {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.summary-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.summary-who {
+  min-width: 0;
+  flex: 1;
+  font-size: 13px;
+  color: var(--gb-muted);
+  line-height: 1.35;
+}
+
+.summary-who b {
+  display: block;
+  font-size: 16px;
+  color: var(--gb-ink);
+}
+
+.summary-by .pending-review-badge,
+.summary-by .verified-badge {
+  flex: none;
+  align-self: flex-start;
+}
+
+.summary-fish {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--gb-ink);
+}
+
+.summary-where {
+  font-size: 16px;
+  color: var(--gb-ink-2);
+}
+
+.summary-headline {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--gb-radius-control);
+  background: var(--gb-accent-soft);
+  color: var(--gb-ink-2);
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .pending-review-badge,
@@ -124,52 +181,6 @@
 
 .dnr-link:active {
   transform: scale(0.96);
-}
-
-/* Summary block */
-.detail-summary {
-  margin-top: 0;
-  margin-bottom: 16px;
-  padding: 16px;
-  background: var(--gb-accent-soft);
-  border-left: 4px solid var(--gb-accent);
-  border-radius: 4px;
-  font-size: 14px;
-  line-height: 1.7;
-  color: var(--gb-ink-2);
-}
-
-.detail-summary-label {
-  font-weight: 700;
-  color: var(--gb-accent);
-  margin-bottom: 8px;
-  font-size: 14px;
-}
-
-.detail-summary p {
-  margin: 0;
-}
-
-.detail-summary-byline {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.detail-summary-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.detail-angler-avatar {
-  flex-shrink: 0;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  object-fit: cover;
-  background: white;
-  border: 2px solid white;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
 /* ─── Card Footer (Edit + Record Info triggers) ─── */

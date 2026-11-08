@@ -124,7 +124,7 @@ test.describe('Fish of Fame', () => {
     await page.goto('fish-of-fame.html');
     await page.locator('#topCatchesList .rank-row').first().click();
     await expect(page).toHaveURL(/catch-details\.html\?catchNumber=/);
-    await expect(page.locator('.detail-card-header h2')).toBeVisible();
+    await expect(page.locator('#catchTitle')).toBeVisible();
   });
 
   test('the group pills switch which anglers count', async ({ page }) => {

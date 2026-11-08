@@ -128,7 +128,7 @@ test.describe('catches listing', () => {
     await first.click();
 
     await expect(page).toHaveURL(/catch-details\.html\?catchNumber=/);
-    await expect(page.locator('.detail-card-header h2')).toContainText(number);
+    await expect(page.locator('#catchTitle')).toContainText(number);
   });
 });
 
@@ -163,11 +163,16 @@ test.describe('catch detail', () => {
   test('shows the catch\'s angler, species and water', async ({ page }) => {
     const c = catches[0];
     await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(c.catchNumber)}`);
-    await expect(page.locator('.detail-card-header h2')).toContainText(c.catchNumber);
+    await expect(page.locator('#catchTitle')).toContainText(c.catchNumber);
     const details = page.locator('#detailsContainer');
     await expect(details).toContainText(c.anglerName);
     await expect(details).toContainText(c.fishSpeciesName);
     await expect(details).toContainText(c.bodyOfWaterName);
+    // The summary leads with who, the fish and where; its rows aren't repeated below
+    const summary = page.locator('.catch-summary');
+    await expect(summary.locator('.summary-who b')).toHaveText(c.anglerName);
+    await expect(summary.locator('.summary-fish')).toContainText(c.fishSpeciesName);
+    await expect(page.locator('.detail-row .detail-label', { hasText: 'Angler' })).toHaveCount(0);
   });
 
   test('shows its photos and opens one in the lightbox', async ({ page }) => {
@@ -259,7 +264,7 @@ test.describe('catch detail', () => {
     // Let the media load finish too: reloading mid-request cancels it, which logs an error.
     const media = page.waitForResponse(r => r.url().includes('catch-media/get'));
     await page.goto(url);
-    await expect(page.locator('.detail-card-header h2')).toBeVisible();
+    await expect(page.locator('#catchTitle')).toBeVisible();
     await expect(page.locator('#editCatchLink')).toBeHidden();
     await (await media).finished();
 

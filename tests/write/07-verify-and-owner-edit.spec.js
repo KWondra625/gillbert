@@ -47,7 +47,7 @@ test.describe('someone who is neither the owner nor an admin', () => {
   test('sees no Edit link, and the edit page refuses them', async ({ page }) => {
     const c = await ownersCatch();
     await page.goto(detailUrl(c));
-    await expect(page.locator('.detail-card-header h2')).toContainText(c.catchNumber);
+    await expect(page.locator('#catchTitle')).toContainText(c.catchNumber);
     await expect(page.locator('#editCatchLink')).toBeHidden();
     await expect(page.locator('#verifyToggle')).toBeHidden();
 
