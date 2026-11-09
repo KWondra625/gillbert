@@ -229,7 +229,8 @@ test.describe('catch detail', () => {
     await unlockAdmin(page);
     await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(target.c.catchNumber)}`);
     const tile = page.locator(`.media-tile--video[data-media-id="${target.v.id}"]`);
-    await page.locator('#manageMediaBtn').click(); // Manage Media shows the delete buttons
+    await page.locator('#moreBtn').click();
+    await page.locator('#manageMediaBtn').click(); // Manage Media (under More) shows the delete buttons
     await tile.locator('.media-delete-btn').click();
 
     const preview = page.locator('#deleteMediaModal video');
@@ -271,6 +272,34 @@ test.describe('catch detail', () => {
     await unlockAdmin(page);
     await page.goto(url);
     await expect(page.locator('#editCatchLink')).toBeVisible();
+  });
+
+  test('a visitor gets Record info at the bottom; an admin gets More with verify, manage media and record info', async ({ page }) => {
+    const c = catches[0];
+    const url = `catch-details.html?catchNumber=${encodeURIComponent(c.catchNumber)}`;
+    const media = page.waitForResponse(r => r.url().includes('catch-media/get'));
+    await page.goto(url);
+    // Anyone: "Add photos" in the media heading, Record info straight away, no More
+    await expect(page.locator('#mediaContainer .detail-section-label .detail-upload-btn')).toBeVisible();
+    await expect(page.locator('#moreBtn')).toHaveCount(0);
+    await page.locator('#recordInfoTrigger').click();
+    await expect(page.locator('#recordInfoModal')).toHaveClass(/open/);
+    await page.locator('#recordInfoClose').click();
+    await (await media).finished();
+
+    await unlockAdmin(page);
+    await page.goto(url);
+    await expect(page.locator('#recordInfoTrigger')).toBeHidden(); // it lives inside More now
+    await page.locator('#moreBtn').click();
+    await expect(page.locator('#moreModal')).toHaveClass(/open/);
+    await expect(page.locator('#moreModal .more-item b')).toHaveText([/^(Verify|Unverify)$/, 'Manage media', 'Record info']);
+    // Manage media closes More and swaps "Add photos" for "Done" in the media heading
+    await page.locator('#manageMediaBtn').click();
+    await expect(page.locator('#moreModal')).not.toHaveClass(/open/);
+    await expect(page.locator('#manageMediaDone')).toBeVisible();
+    await expect(page.locator('#mediaContainer .detail-upload-btn')).toBeHidden();
+    await page.locator('#manageMediaDone').click();
+    await expect(page.locator('#mediaContainer .detail-upload-btn')).toBeVisible();
   });
 
   test('Edit Catch lists each species by its override name if it has one, else its DNR name', async ({ page }) => {

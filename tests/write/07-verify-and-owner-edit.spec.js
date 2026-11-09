@@ -79,6 +79,7 @@ test('an admin verifies it', async ({ page }) => {
   await unlockAdmin(page);
   await page.goto(detailUrl(c));
   await expect(page.locator('.pending-review-badge')).toBeVisible();
+  await page.locator('#moreBtn').click();
   await page.locator('#verifyToggle').click();
   await expect(page.locator('.verified-badge')).toBeVisible();
   await expect.poll(async () => (await ownersCatch()).verifiedAt, { timeout: 20_000 }).toBeTruthy();
@@ -102,6 +103,7 @@ test('an admin can still edit a verified catch, and can unverify it', async ({ p
   await unlockAdmin(page);
   await page.goto(detailUrl(c));
   await expect(page.locator('#editCatchLink')).toBeVisible();
+  await page.locator('#moreBtn').click();
   await page.locator('#verifyToggle').click();
   await expect(page.locator('.pending-review-badge')).toBeVisible();
   await expect.poll(async () => (await ownersCatch()).verifiedAt, { timeout: 20_000 }).toBeNull();

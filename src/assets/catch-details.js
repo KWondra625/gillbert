@@ -306,6 +306,7 @@ function renderDetails(catchData) {
   const isVerified = !!catchData.verifiedAt;
 
   const canEdit = canEditCatch(catchData, myAnglerId);
+  const isAdmin = isAdminUnlocked();
 
   document.title = `${catchNumber} · Gillbert`;
 
@@ -401,40 +402,69 @@ function renderDetails(catchData) {
         <div class="media-content"><p class="detail-media-loading">Loading media...</p></div>
       </div>
       <div class="detail-card-footer">
-        <div class="detail-card-footer-admin">
-          <a href="./edit-catch.html?catchNumber=${encodeURIComponent(catchNumber)}${fromSuffix()}" id="editCatchLink" class="edit-catch-trigger hidden">✏️ Edit</a>
-          <button id="verifyToggle" class="verify-toggle-trigger hidden ${isVerified ? 'verify-toggle-trigger--verified' : 'verify-toggle-trigger--pending'}">${isVerified ? '🔓 ↩️ Unverify' : '🔓 ✅ Verify'}</button>
-          <button id="manageMediaBtn" class="manage-media-trigger hidden${isMediaEditMode ? ' manage-media-trigger--active' : ''}">${isMediaEditMode ? '✖ Done' : '🔓 🗑️ Manage Media'}</button>
-        </div>
-        <button class="record-info-trigger" id="recordInfoTrigger">ⓘ Record Info</button>
+        ${isAdmin
+          ? '<button type="button" class="tertiary-button" id="moreBtn" aria-haspopup="dialog">More ▾</button>'
+          : '<button type="button" class="tertiary-button" id="recordInfoTrigger">ⓘ Record info</button>'}
       </div>
-    </div>`;
+    </div>
+    ${isAdmin ? `
+    <!-- More (admins): verify, manage media, record info -->
+    <div id="moreModal" class="ri-modal" role="dialog" aria-modal="true" aria-label="More for this catch">
+      <div class="ri-modal-sheet">
+        <div class="ri-modal-header">
+          <span class="ri-modal-title">More for ${escapeHtml(catchNumber)}</span>
+          <button type="button" class="ri-modal-close" id="moreClose" aria-label="Close">&times;</button>
+        </div>
+        <div class="ri-modal-body more-list">
+          <button type="button" class="more-item" id="verifyToggle">
+            <span class="more-ico" aria-hidden="true">${isVerified ? '↩️' : '✅'}</span>
+            <span><b>${isVerified ? 'Unverify' : 'Verify'}</b><span>${isVerified ? 'Send it back to pending review' : 'Mark it reviewed and confirmed'}</span></span>
+          </button>
+          <button type="button" class="more-item manage-media-trigger" id="manageMediaBtn">
+            <span class="more-ico" aria-hidden="true">🗑️</span>
+            <span><b>Manage media</b><span>Delete photos and videos</span></span>
+          </button>
+          <button type="button" class="more-item" id="recordInfoTrigger">
+            <span class="more-ico" aria-hidden="true">ⓘ</span>
+            <span><b>Record info</b><span>When it was logged, changed and verified, and by whom</span></span>
+          </button>
+        </div>
+      </div>
+    </div>` : ''}`;
+
+  // Edit sits in the page heading, for whoever may edit this catch
+  const editCatchLink = document.getElementById('editCatchLink');
+  editCatchLink.href = `./edit-catch.html?catchNumber=${encodeURIComponent(catchNumber)}${fromSuffix()}`;
+  editCatchLink.classList.toggle('hidden', !canEdit);
 
   document.getElementById('recordInfoTrigger').addEventListener('click', () => {
+    document.getElementById('moreModal')?.classList.remove('open');
     recordInfoModal.classList.add('open');
   });
 
-  const editCatchLink = document.getElementById('editCatchLink');
-  if (canEdit) editCatchLink.classList.remove('hidden');
+  if (isAdmin) {
+    const moreModal = document.getElementById('moreModal');
+    const closeMore = () => moreModal.classList.remove('open');
+    document.getElementById('moreBtn').addEventListener('click', () => moreModal.classList.add('open'));
+    document.getElementById('moreClose').addEventListener('click', closeMore);
+    moreModal.addEventListener('click', e => { if (e.target === moreModal) closeMore(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMore(); });
 
-  const verifyToggle = document.getElementById('verifyToggle');
-  if (isAdminUnlocked()) {
-    verifyToggle.classList.remove('hidden');
+    const verifyToggle = document.getElementById('verifyToggle');
     verifyToggle.addEventListener('click', () => handleVerifyToggle(catchData, verifyToggle));
-  }
-
-  const manageMediaBtn = document.getElementById('manageMediaBtn');
-  if (isAdminUnlocked()) {
-    manageMediaBtn.classList.remove('hidden');
-    manageMediaBtn.addEventListener('click', handleManageMediaToggle);
+    document.getElementById('manageMediaBtn').addEventListener('click', () => {
+      closeMore();
+      handleManageMediaToggle();
+    });
   }
 }
 
 async function handleVerifyToggle(catchData, button) {
   const newVerified = !catchData.verifiedAt;
-  const originalLabel = button.textContent;
+  const label = button.querySelector('b');
+  const originalLabel = label.textContent;
   button.disabled = true;
-  button.textContent = newVerified ? '🔓 Verifying…' : '🔓 Unverifying…';
+  label.textContent = newVerified ? 'Verifying…' : 'Unverifying…';
 
   try {
     const res = await fetch(CATCH_VERIFY_URL, {
@@ -456,7 +486,7 @@ async function handleVerifyToggle(catchData, button) {
   } catch (err) {
     console.error('Verify toggle failed:', err);
     button.disabled = false;
-    button.textContent = originalLabel;
+    label.textContent = originalLabel;
     setStatus('Unable to update verification status ❌', true);
   }
 }
@@ -525,20 +555,13 @@ window.addEventListener("DOMContentLoaded", () => {
 
 // ─── Admin Media Edit Mode ───────────────────────────────────────
 
+// Turned on from More; while it's on, the media heading shows "Done" in place of
+// "Add photos", right where the 🗑️ buttons are.
 function handleManageMediaToggle() {
   isMediaEditMode = !isMediaEditMode;
-  const btn         = document.getElementById('manageMediaBtn');
-  const mediaContent = document.querySelector('#mediaContainer .media-content');
-
-  if (isMediaEditMode) {
-    btn.textContent = '✖ Done';
-    btn.classList.add('manage-media-trigger--active');
-    mediaContent?.classList.add('media-content--edit-mode');
-  } else {
-    btn.textContent = '🔓 🗑️ Manage Media';
-    btn.classList.remove('manage-media-trigger--active');
-    mediaContent?.classList.remove('media-content--edit-mode');
-  }
+  document.querySelector('#mediaContainer .media-content')?.classList.toggle('media-content--edit-mode', isMediaEditMode);
+  document.querySelector('#mediaContainer .detail-upload-btn')?.classList.toggle('hidden', isMediaEditMode);
+  document.getElementById('manageMediaDone')?.classList.toggle('hidden', !isMediaEditMode);
 }
 
 // ─── Admin Delete State ──────────────────────────────────────────
@@ -875,12 +898,25 @@ function brokenTile() {
   return div;
 }
 
+function wireManageMediaDone(container) {
+  container.querySelector('#manageMediaDone')?.addEventListener('click', () => {
+    if (isMediaEditMode) handleManageMediaToggle();
+  });
+}
+
 function renderMedia(items) {
   const container = document.getElementById('mediaContainer');
   if (!container) return;
 
   const catchNumber = getCatchNumberFromUrl();
-  const uploadBtn = `<a href="./media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}${fromSuffix()}" class="detail-upload-btn primary-button">⬆️ Upload Media</a>`;
+  // The section heading carries "＋ Add photos" (anyone), or "Done" while an admin is
+  // managing media, so neither hides at the bottom of a long gallery
+  const heading = `
+    <div class="detail-section-label">
+      <span>Catch Media</span>
+      <a href="./media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}${fromSuffix()}" class="detail-upload-btn secondary-button button-small${isMediaEditMode ? ' hidden' : ''}">＋ Add photos</a>
+      <button type="button" id="manageMediaDone" class="secondary-button button-small${isMediaEditMode ? '' : ' hidden'}">✖ Done</button>
+    </div>`;
 
   const photos = items.filter(m => m.mediaType === 'Photo');
   const videos = items.filter(m => m.mediaType === 'Video');
@@ -892,19 +928,18 @@ function renderMedia(items) {
     .filter(m => mediaStatus(m) === 'complete' && m.contentType !== 'image/heic');
 
   if (!photos.length && !videos.length) {
-    container.innerHTML = `
-      <div class="detail-section-label">Catch Media</div>
+    container.innerHTML = `${heading}
       <div class="media-content">
         <div class="detail-media-empty">
           <span class="detail-media-empty-icon">📷</span>
           <p class="detail-media-empty-text">No photos or videos yet for this catch.</p>
         </div>
-        ${uploadBtn}
       </div>`;
+    wireManageMediaDone(container);
     return;
   }
 
-  let html = '<div class="detail-section-label">Catch Media</div><div class="media-content">';
+  let html = `${heading}<div class="media-content">`;
 
   if (photos.length) {
     html += `
@@ -922,9 +957,9 @@ function renderMedia(items) {
       </div>`;
   }
 
-  html += uploadBtn;
   html += '</div>';
   container.innerHTML = html;
+  wireManageMediaDone(container);
 
   if (isMediaEditMode) {
     container.querySelector('.media-content')?.classList.add('media-content--edit-mode');

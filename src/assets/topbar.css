@@ -64,6 +64,15 @@
   color: var(--gb-on-sky);
 }
 
+/* An action button at the heading's right end (e.g. Edit on Catch Details) */
+.page-head:has(.page-head-action) {
+  grid-template-columns: 44px 1fr auto;
+}
+
+.page-head-action.hidden {
+  display: none;
+}
+
 .page-head-tile {
   display: grid;
   place-items: center;

@@ -183,98 +183,62 @@
   transform: scale(0.96);
 }
 
-/* ─── Card Footer (Edit + Record Info triggers) ─── */
+/* ─── Card Footer: "ⓘ Record info" (everyone) or "More ▾" (admins) ─── */
 .detail-card-footer {
-  padding: 10px 24px;
+  padding: 6px 16px;
   border-top: 1px solid var(--gb-line-soft);
-  background: #fafafa;
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
 }
 
-.record-info-trigger {
+/* ─── More (admins): one row per action, like the shack's trays ─── */
+.more-list {
+  display: grid;
+  gap: 4px;
+}
+
+.more-item {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  border-radius: var(--gb-radius-control);
   background: none;
-  border: none;
-  color: #bbb;
-  font-size: 12px;
-  font-weight: 600;
+  color: var(--gb-ink);
+  font-family: inherit;
+  text-align: left;
   cursor: pointer;
-  padding: 4px 0;
-  letter-spacing: 0.02em;
-  transition: color 0.2s;
 }
 
-.record-info-trigger:hover {
-  color: var(--gb-accent);
+.more-item:hover,
+.more-item:focus-visible {
+  background: var(--gb-accent-soft);
+  outline: none;
 }
 
-.detail-card-footer-admin {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-right: auto;
-}
-
-.edit-catch-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 14px;
-  border-radius: 16px;
-  background: var(--gb-page-bg);
-  color: white;
-  font-size: 12px;
-  font-weight: 700;
-  text-decoration: none;
-  box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.edit-catch-trigger:active {
-  transform: scale(0.96);
-}
-
-.edit-catch-trigger.hidden {
-  display: none;
-}
-
-.verify-toggle-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 14px;
-  border: none;
-  border-radius: 16px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
-}
-
-.verify-toggle-trigger:active {
-  transform: scale(0.96);
-}
-
-.verify-toggle-trigger:disabled {
+.more-item:disabled {
   opacity: 0.6;
   cursor: default;
 }
 
-.verify-toggle-trigger.hidden {
-  display: none;
+.more-item b {
+  display: block;
+  font-size: 15px;
 }
 
-.verify-toggle-trigger--pending {
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-  color: #0d5c3f;
-  box-shadow: 0 2px 8px rgba(67, 233, 123, 0.3);
+.more-item span span {
+  display: block;
+  font-size: 12px;
+  color: var(--gb-muted);
 }
 
-.verify-toggle-trigger--verified {
-  background: var(--gb-line-soft);
-  color: var(--gb-faint);
+.more-ico {
+  font-size: 20px;
+  text-align: center;
 }
 
 /* ─── Record Info Modal ──────────────────────── */
@@ -687,11 +651,21 @@
   background: var(--gb-accent-soft);
 }
 
-.detail-card-section-label {
+.detail-card-section-label,
+.detail-media-section .detail-section-label {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+/* "＋ Add photos" / "Done" in the media heading: a normal button, not heading caps */
+.detail-section-label .button-small {
+  text-transform: none;
+  letter-spacing: normal;
+  /* white, so it stands out from the heading's own soft blue */
+  background: var(--gb-surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* ─── Media Section (inside card) ───────────────── */
@@ -748,12 +722,6 @@
   text-align: center;
 }
 
-.detail-upload-btn {
-  font-size: 14px;
-  margin-top: 16px;
-  padding: 12px 16px;
-}
-
 /* ─── Admin Media Delete Button ──────────────────── */
 .media-delete-btn {
   position: absolute;
@@ -798,37 +766,6 @@
   outline: 2px solid #fecaca;
   outline-offset: -2px;
   transition: background 0.25s;
-}
-
-/* ─── Manage Media Button ────────────────────────── */
-.manage-media-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  border: none;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  background: #fff0f0;
-  color: #b91c1c;
-  box-shadow: 0 1px 4px rgba(185, 28, 28, 0.15);
-  transition: transform 0.2s, background 0.2s;
-}
-
-.manage-media-trigger:active {
-  transform: scale(0.96);
-}
-
-.manage-media-trigger.hidden {
-  display: none;
-}
-
-.manage-media-trigger--active {
-  background: var(--gb-line-soft);
-  color: var(--gb-ink-3);
-  box-shadow: none;
 }
 
 /* ─── Delete Confirmation Modal ──────────────────── */

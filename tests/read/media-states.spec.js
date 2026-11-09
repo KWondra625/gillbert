@@ -256,7 +256,8 @@ test.describe('catch page media states', () => {
       await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`);
       await expect(page.locator('.media-tile--photo')).toHaveCount(2);
 
-      await page.locator('#manageMediaBtn').click(); // Manage Media shows the delete buttons
+      await page.locator('#moreBtn').click();
+      await page.locator('#manageMediaBtn').click(); // Manage Media (under More) shows the delete buttons
       await page.locator('.media-delete-btn[data-media-id="8"]').click();
       await page.locator('#deleteMediaConfirm').click();
       await expect(page.locator('#status')).toContainText("Couldn't refresh the media");
