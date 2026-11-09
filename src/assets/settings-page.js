@@ -22,7 +22,8 @@ function fillWelcome() {
 }
 
 function fillTease() {
-  $('teaseInput').value = GillbertSettings.get('teaseLines').join('\n');
+  const lines = GillbertSettings.get('teaseLines');
+  $('teaseInput').value = Array.isArray(lines) ? lines.join('\n') : '';
 }
 
 function fillRemember() {
@@ -60,7 +61,7 @@ function wire() {
   $('rememberReset').addEventListener('click', () => {
     GillbertSettings.reset('rememberWhenSkip');
     fillRemember();
-    showSaved('rememberSaved', "Back to today's pick");
+    showSaved('rememberSaved', 'Back to the usual daily pick');
   });
 
   $('teaseSave').addEventListener('click', () => {

@@ -75,7 +75,7 @@ function renderTicker(catches, anglersById, now) {
   const shown = logged.slice(0, TICKER_COUNT);
   const age = ms => (ms < DAY_MS ? agoShort(ms) : agoLong(ms));
 
-  const item = ({ c, at }, copy) => `<a class="tk" href="${catchUrl(c)}"${copy ? ' tabindex="-1"' : ''}>`
+  const item = ({ c, at }, copy) => `<a class="tk" href="${catchUrl(c)}"${copy ? ' tabindex="-1" aria-hidden="true"' : ''}>`
     + `${avatarHtml(anglersById[c.anglerId], c.anglerName)}<b>${escapeHtml(c.anglerName || 'Someone')}</b> `
     + `${escapeHtml(catchLabel(c))} <small>· ${escapeHtml(age(now - at))}</small></a>`;
   // Each set ends with a small orange bar, so you can see where the latest catches start over
@@ -139,7 +139,8 @@ function pickRememberWhen(catches, today) {
 
 function renderRememberWhen(pick, anglersById, today) {
   const { c, when, week } = pick;
-  const years = today.getFullYear() - when.getFullYear();
+  // Whole years between the two dates (calendar years overstate it across New Year)
+  const years = Math.max(1, Math.round((today - when) / (365.25 * DAY_MS)));
   const whenText = week
     ? `This week, ${years} year${years === 1 ? '' : 's'} ago`
     : `Back in ${MONTHS[when.getMonth()]} ${when.getFullYear()}`;
@@ -167,12 +168,16 @@ async function addRememberPhoto(card, c) {
   if (!(Number(c.catchMediaCount) > 0)) return;
   try {
     const items = await apiGet(`${HOME_MEDIA_URL}?catchNumber=${encodeURIComponent(c.catchNumber)}`);
+    // Not HEIC: most browsers can't show it (Catch Details offers those as a download)
     const photo = (Array.isArray(items) ? items : []).find(m => m.mediaType === 'Photo' && m.readUrl
+      && m.contentType !== 'image/heic'
       && (m.displayStatus || m.status || 'complete') === 'complete');
     if (!photo) return;
     const img = document.createElement('img');
     img.className = 'rw-photo';
     img.alt = '';
+    // A photo that won't load leaves the card as it was, not a broken image
+    img.onerror = () => { img.remove(); card.classList.add('no-photo'); };
     img.src = encodeURI(photo.readUrl);
     card.classList.remove('no-photo');
     card.prepend(img);

@@ -161,8 +161,7 @@
   color: var(--gb-box-ink);
 }
 
-.shack-btn-ico,
-.shack-lid {
+.shack-btn-ico {
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -174,8 +173,7 @@
   height: 28px;
 }
 
-.shack-btn-ico svg,
-.shack-lid svg {
+.shack-btn-ico svg {
   width: 19px;
   height: 19px;
   fill: none;
@@ -240,17 +238,26 @@
   background: var(--gb-box-sheet-head);
 }
 
+/* The bigger icon at the top of the open menu */
 .shack-lid {
+  display: grid;
+  place-items: center;
   flex: none;
   width: 44px;
   height: 44px;
   border-radius: 12px;
+  background: var(--gb-box-lid);
   color: var(--gb-box-ink);
 }
 
 .shack-lid svg {
   width: 24px;
   height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .shack-head h2 {

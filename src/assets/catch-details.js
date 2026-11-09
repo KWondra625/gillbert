@@ -402,7 +402,7 @@ function renderDetails(catchData) {
       </div>
       <div class="detail-card-footer">
         ${isAdmin
-          ? '<button type="button" class="tertiary-button" id="moreBtn" aria-haspopup="dialog">More ▾</button>'
+          ? '<button type="button" class="tertiary-button" id="moreBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="moreModal">More ▾</button>'
           : '<button type="button" class="tertiary-button" id="recordInfoTrigger">ⓘ Record info</button>'}
       </div>
     </div>
@@ -443,11 +443,15 @@ function renderDetails(catchData) {
 
   if (isAdmin) {
     const moreModal = document.getElementById('moreModal');
-    const closeMore = () => moreModal.classList.remove('open');
-    document.getElementById('moreBtn').addEventListener('click', () => moreModal.classList.add('open'));
-    document.getElementById('moreClose').addEventListener('click', closeMore);
-    moreModal.addEventListener('click', e => { if (e.target === moreModal) closeMore(); });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMore(); });
+    const moreBtn = document.getElementById('moreBtn');
+    moreBtn.addEventListener('click', () => {
+      moreModal.classList.add('open');
+      moreBtn.setAttribute('aria-expanded', 'true');
+      document.getElementById('moreClose').focus();
+    });
+    document.getElementById('moreClose').addEventListener('click', closeMoreSheet);
+    moreModal.addEventListener('click', e => { if (e.target === moreModal) closeMoreSheet(); });
+    const closeMore = () => closeMoreSheet({ refocus: false });
 
     const verifyToggle = document.getElementById('verifyToggle');
     verifyToggle.addEventListener('click', () => handleVerifyToggle(catchData, verifyToggle));
@@ -456,6 +460,17 @@ function renderDetails(catchData) {
       handleManageMediaToggle();
     });
   }
+}
+
+// Closes the admin "More" sheet and puts focus back on its button. One function, so the single
+// Escape handler (set up once, at load) works whichever copy of the sheet is on the page.
+function closeMoreSheet({ refocus = true } = {}) {
+  const moreModal = document.getElementById('moreModal');
+  if (!moreModal || !moreModal.classList.contains('open')) return;
+  moreModal.classList.remove('open');
+  const moreBtn = document.getElementById('moreBtn');
+  moreBtn?.setAttribute('aria-expanded', 'false');
+  if (refocus) moreBtn?.focus();
 }
 
 async function handleVerifyToggle(catchData, button) {
@@ -481,6 +496,7 @@ async function handleVerifyToggle(catchData, button) {
 
     catchData.verifiedAt = newVerified ? new Date().toISOString() : null;
     renderDetails(catchData);
+    document.getElementById('moreBtn')?.focus(); // the sheet was rebuilt; keep focus on More
     loadCatchMedia(catchData.catchNumber);
   } catch (err) {
     console.error('Verify toggle failed:', err);
@@ -544,6 +560,7 @@ window.addEventListener("DOMContentLoaded", () => {
       closeLightbox();
       recordInfoModal.classList.remove('open');
       closeDeleteModal();
+      closeMoreSheet();
     }
     if (el.lightbox.classList.contains('open') && e.target.tagName !== 'VIDEO') {
       if (e.key === 'ArrowLeft') navigateLightbox(-1);

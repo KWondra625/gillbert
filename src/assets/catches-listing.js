@@ -171,7 +171,7 @@ function renderPage({ keepScroll = false } = {}) {
   }
 
   // Render the cards in their day groups
-  el.catchesContainer.innerHTML = renderCatchGroups(pageCatches);
+  el.catchesContainer.innerHTML = renderCatchGroups(pageCatches, startIndex);
 
   // Update pagination
   el.pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
@@ -222,7 +222,16 @@ function cardWhen(caughtWhen, group) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function renderCatchGroups(pageCatches) {
+// A group can run across pages: its heading counts all of its catches (not just this page's),
+// and a group carried over from the page before says "continued".
+function renderCatchGroups(pageCatches, startIndex) {
+  const totals = {};
+  for (const c of filteredCatches) {
+    const key = catchGroup(c.caughtWhen).key;
+    totals[key] = (totals[key] || 0) + 1;
+  }
+  const before = startIndex > 0 ? catchGroup(filteredCatches[startIndex - 1].caughtWhen).key : null;
+
   const groups = [];
   for (const c of pageCatches) {
     const group = catchGroup(c.caughtWhen);
@@ -230,11 +239,15 @@ function renderCatchGroups(pageCatches) {
     if (!last || last.group.key !== group.key) groups.push(last = { group, items: [] });
     last.items.push(c);
   }
-  return groups.map(({ group, items }) => `
+  return groups.map(({ group, items }, i) => {
+    const total = totals[group.key] || items.length;
+    const continued = i === 0 && group.key === before;
+    return `
     <section class="catch-group">
-      <h2 class="catch-group-head"><span>${escapeHtml(group.label)}</span><small>${items.length} catch${items.length === 1 ? '' : 'es'}</small></h2>
+      <h2 class="catch-group-head"><span>${escapeHtml(group.label)}${continued ? ', continued' : ''}</span><small>${total} catch${total === 1 ? '' : 'es'}</small></h2>
       <div class="catches-grid">${items.map(c => renderCatchCard(c, group)).join('')}</div>
-    </section>`).join('');
+    </section>`;
+  }).join('');
 }
 
 // ── One catch: who and when on top, the fish in the middle, its extras at the bottom ──
@@ -420,6 +433,9 @@ function applyFilters() {
     if (activeFilters.pendingOnly && c.verifiedAt) return false;
     return true;
   });
+  // The server sorts newest-caught first with no-date catches on top; put those last instead
+  const hasDate = c => c.caughtWhen && !Number.isNaN(new Date(c.caughtWhen).getTime());
+  filteredCatches = [...filteredCatches.filter(hasDate), ...filteredCatches.filter(c => !hasDate(c))];
   currentPage = 1;
   sessionStorage.setItem('gillbert_filters', JSON.stringify(activeFilters));
   updateFilterUI();

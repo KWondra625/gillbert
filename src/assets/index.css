@@ -322,15 +322,20 @@ body.has-ticker {
   mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
 }
 
+/* Each item carries its own right margin (no gap or padding on the run), so the two copies
+   are exactly half the run each and the -50% loop doesn't jump */
 .ticker-run {
   display: flex;
-  gap: 22px;
-  padding-left: 12px;
   white-space: nowrap;
   animation: crawl 30s linear infinite;
 }
 
-.ticker-track:hover .ticker-run {
+.ticker-run > .tk-set > * {
+  margin-right: 22px;
+}
+
+.ticker-track:hover .ticker-run,
+.ticker-track:focus-within .ticker-run {
   animation-play-state: paused;
 }
 
@@ -365,7 +370,6 @@ body.has-ticker {
   align-self: center;
   width: 4px;
   height: 18px;
-  margin: 0 10px;
   border-radius: 2px;
   background: var(--gb-signal);
 }
