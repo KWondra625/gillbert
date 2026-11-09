@@ -178,20 +178,68 @@ input[type="file"]::file-selector-button {
 /* Utility */
 
 /* Catch context card */
+/* Which catch you're adding to: a smaller copy of Catch Details' summary */
 .catch-card {
   background: var(--gb-accent-soft);
-  border: 1px solid var(--gb-accent-border);
-  border-left: 4px solid var(--gb-accent);
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: var(--gb-radius-card);
+  padding: 14px 16px 16px;
   margin-bottom: 24px;
 }
 
 .catch-card-id {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--gb-ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gb-accent-strong);
   margin-bottom: 10px;
+}
+
+.catch-card-summary {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 14px;
+  align-items: center;
+}
+
+.catch-card-avatar {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 800;
+  box-shadow: var(--gb-photo-ring);
+}
+
+.catch-card-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.catch-card-fish {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--gb-ink);
+}
+
+.catch-card-who {
+  font-size: 14px;
+  color: var(--gb-ink-2);
+}
+
+.catch-card-who b {
+  color: var(--gb-ink);
+}
+
+.catch-card-when {
+  font-size: 12px;
+  color: var(--gb-muted);
 }
 
 .catch-card-loading,
@@ -202,23 +250,6 @@ input[type="file"]::file-selector-button {
   margin: 0;
 }
 
-.catch-card-row {
-  display: flex;
-  gap: 12px;
-  padding: 3px 0;
-  font-size: 13px;
-}
-
-.catch-card-label {
-  color: var(--gb-accent);
-  font-weight: 600;
-  min-width: 110px;
-  flex-shrink: 0;
-}
-
-.catch-card-value {
-  color: var(--gb-ink-2);
-}
 
 /* No catch error state */
 .no-catch-state {

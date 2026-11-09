@@ -1099,7 +1099,7 @@ test.describe('upload page catch card', () => {
       const at = (daysAgo, h, m) => { const d = new Date(Date.now() - daysAgo * 86400000); d.setHours(h, m, 0, 0); return d.toISOString(); };
       return { withTime: at(40, 12, 27), dateOnly: at(40, 0, 0) };
     });
-    const when = page.locator('.catch-card-row:has(.catch-card-label:text("Caught When")) .catch-card-value');
+    const when = page.locator('#catchCard .catch-card-when');
     for (const [kind, caughtWhen] of Object.entries(dates)) {
       await page.unroute(url => url.pathname.endsWith('/get-catches')).catch(() => {});
       await page.route(url => url.pathname.endsWith('/get-catches'), route => route.fulfill({ json: [{ ...first, caughtWhen }] }));
