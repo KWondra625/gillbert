@@ -835,9 +835,18 @@ test.describe('media activity page', () => {
     await expect(page.locator('#scanResult')).toContainText('Files with no record (1)');
     const attach = page.locator('#scanResult .row-action[data-action="attach"]');
     await attach.click();
-    // Armed, it asks for a second tap in blue (a primary action), not delete red
+    // Armed, it asks for a second tap in the accent blue (a primary action), not delete red.
+    // The blue follows the season (open water / hard water), so read it from the page's theme.
     await expect(attach).toHaveText(/Tap again to attach/);
-    await expect(attach).toHaveCSS('background-color', 'rgb(31, 127, 214)');
+    const accent = await page.evaluate(() => {
+      const probe = document.createElement('span');
+      probe.style.backgroundColor = 'var(--gb-accent-600)';
+      document.body.appendChild(probe);
+      const c = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      return c;
+    });
+    await expect(attach).toHaveCSS('background-color', accent);
     await attach.click();
     await expect.poll(() => committed).toEqual({
       catchNumber: 'Catch 26-001',
