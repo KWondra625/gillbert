@@ -86,6 +86,9 @@
   --gb-radius-card: 16px;
   --gb-radius-control: 10px;
   --gb-shadow-card: 0 8px 24px rgba(0, 0, 0, 0.15);
+  /* An angler's photo circle: a white gap, a thin ring in the soft accent, a soft shadow.
+     The same wherever a photo shows big (Catch Details, Anglers, Edit Angler, My Profile). */
+  --gb-photo-ring: 0 0 0 3px var(--gb-surface), 0 0 0 5px var(--gb-accent-border), 0 3px 10px rgba(0, 0, 0, 0.18);
 }
 
 /* Hard water. Filled in as each part of the site moves onto the shared colors. */

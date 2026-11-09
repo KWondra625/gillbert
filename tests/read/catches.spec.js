@@ -170,7 +170,7 @@ test.describe('catch detail', () => {
     await expect(details).toContainText(c.bodyOfWaterName);
     // The summary leads with who, the fish and where; its rows aren't repeated below
     const summary = page.locator('.catch-summary');
-    await expect(summary.locator('.summary-who b')).toHaveText(c.anglerName);
+    await expect(summary.locator('.summary-who')).toHaveText(`Caught by ${c.anglerName} on ${c.bodyOfWaterName}`);
     await expect(summary.locator('.summary-fish')).toContainText(c.fishSpeciesName);
     await expect(page.locator('.detail-row .detail-label', { hasText: 'Angler' })).toHaveCount(0);
   });

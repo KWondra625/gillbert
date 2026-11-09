@@ -7,7 +7,7 @@ const LOOKUP_URL          = API_BASE + "get-lookup-data";
 // Resolved from the Cloudflare identity once lookups load; null if unmatched
 let myAnglerId = null;
 
-// Angler id -> angler record (for profile photos on the headline byline),
+// Angler id -> angler record (for the angler photo in the summary),
 // populated from the same get-lookup-data call already used for resolveMyAnglerId.
 let anglersById = {};
 
@@ -319,7 +319,8 @@ function renderDetails(catchData) {
     ? `<span class="verified-badge">✅ Verified</span>`
     : `<span class="pending-review-badge">⏳ Pending review</span>`;
 
-  // 0. The summary at the top of the card: who and when, the fish, where, the headline.
+  // 0. The summary at the top of the card: the fish, who and where, when. (The stored
+  // headline isn't shown: it's a template of these same facts.)
   // Same pieces as the catch's card on Browse Catches, bigger.
   const angler = anglersById[catchData.anglerId];
   const avatarHtml = GillbertAvatar.html({ id: catchData.anglerId, profilePhotoReadUrl: angler && angler.profilePhotoReadUrl },
@@ -331,15 +332,13 @@ function renderDetails(catchData) {
     <div class="catch-summary">
       <div class="summary-by">
         ${avatarHtml}
-        <div class="summary-who">
-          <b>${escapeHtml(catchData.anglerName || 'Unknown angler')}</b>
-          ${hasValue('caughtWhen') ? `<span>${formatCaughtWhen(catchData.caughtWhen)}</span>` : ''}
+        <div class="summary-main">
+          <div class="summary-fish">${fish}</div>
+          <div class="summary-who">Caught by <b>${escapeHtml(catchData.anglerName || 'Unknown angler')}</b>${hasValue('bodyOfWaterName') ? ` on <b>${escapeHtml(catchData.bodyOfWaterName)}</b>` : ''}</div>
+          ${hasValue('caughtWhen') ? `<div class="summary-when">${formatCaughtWhen(catchData.caughtWhen)}</div>` : ''}
+          <div class="summary-status">${reviewStatusBadgeHtml}</div>
         </div>
-        ${reviewStatusBadgeHtml}
       </div>
-      <div class="summary-fish">${fish}</div>
-      ${hasValue('bodyOfWaterName') ? `<div class="summary-where">on ${escapeHtml(catchData.bodyOfWaterName)}</div>` : ''}
-      ${catchData.headline ? `<p class="summary-headline">${escapeHtml(catchData.headline)}</p>` : ''}
     </div>`;
 
   // 1. The detail rows, minus what the summary already shows (species and water stay

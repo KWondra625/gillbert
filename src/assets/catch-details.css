@@ -25,74 +25,73 @@
   margin-bottom: 32px;
 }
 
-/* ─── Summary: who and when, the fish, where, the headline ─── */
+/* ─── Summary: a big angler photo, with who, when, the fish and where beside it ───
+ * Beside, not below, so the bigger photo doesn't push the rest of the page down. */
 .catch-summary {
   display: grid;
-  gap: 6px;
-  padding: 18px 24px 16px;
+  gap: 10px;
+  padding: 18px 20px 16px;
 }
 
 .summary-by {
-  display: flex;
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 14px;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 4px;
 }
 
 .summary-avatar {
   display: grid;
   place-items: center;
-  flex: none;
-  width: 48px;
-  height: 48px;
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
   object-fit: cover;
   color: #ffffff;
-  font-size: 17px;
+  font-size: 32px;
   font-weight: 800;
+  box-shadow: var(--gb-photo-ring);
 }
 
-.summary-who {
+.summary-main {
+  display: grid;
+  gap: 2px;
   min-width: 0;
-  flex: 1;
-  font-size: 13px;
-  color: var(--gb-muted);
+}
+
+/* "Caught by Kent S on Pine Lake", then the date */
+.summary-who {
+  font-size: 15px;
+  color: var(--gb-ink-2);
   line-height: 1.35;
 }
 
 .summary-who b {
-  display: block;
-  font-size: 16px;
+  font-weight: 700;
   color: var(--gb-ink);
 }
 
-.summary-by .pending-review-badge,
-.summary-by .verified-badge {
-  flex: none;
-  align-self: flex-start;
+.summary-when {
+  font-size: 13px;
+  color: var(--gb-muted);
+}
+
+.summary-status {
+  margin-top: 4px;
 }
 
 .summary-fish {
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 800;
   line-height: 1.15;
   letter-spacing: -0.01em;
   color: var(--gb-ink);
 }
 
-.summary-where {
-  font-size: 16px;
-  color: var(--gb-ink-2);
-}
-
-.summary-headline {
-  margin: 8px 0 0;
-  padding: 10px 12px;
-  border-radius: var(--gb-radius-control);
-  background: var(--gb-accent-soft);
-  color: var(--gb-ink-2);
-  font-size: 14px;
-  line-height: 1.5;
+@media (min-width: 600px) {
+  .summary-fish {
+    font-size: 26px;
+  }
 }
 
 .pending-review-badge,
