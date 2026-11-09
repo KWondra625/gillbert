@@ -16,6 +16,9 @@
   --gb-sky-2: #00F2FE;
   --gb-page-bg: linear-gradient(135deg, var(--gb-sky-1) 0%, var(--gb-sky-2) 100%);
   --gb-on-sky: #ffffff;              /* text and icons drawn straight on the sky */
+  /* A soft dark halo behind white text on the sky, so it holds its edges where the
+     gradient turns pale (bottom of long pages) */
+  --gb-on-sky-shadow: 0 1px 2px rgba(0, 35, 70, 0.45), 0 0 8px rgba(0, 35, 70, 0.18);
 
   /* Accent: links, highlights, buttons */
   --gb-accent: #4FACFE;

@@ -378,3 +378,27 @@
   }
 }
 
+/* ─── White text straight on the sky, on every page: a soft halo (--gb-on-sky-shadow)
+ * keeps it readable where the gradient turns pale. Text inside white cards isn't listed. */
+.topbar-brand,
+.topbar-back,
+.page-head-label,
+.page-head h1,
+.page-intro,
+.wordmark,
+.welcome,
+.catch-group-head,
+.page-info,
+:where(.layout-open) .status,
+.section-label,
+.chat-header-title,
+.chat-header-subtitle,
+.chat-welcome p,
+:where(.layout-open) .loading-indicator p {
+  text-shadow: var(--gb-on-sky-shadow);
+}
+
+/* the same intro inside a white card is ordinary body text */
+:where(.layout-card) .container .page-intro {
+  text-shadow: none;
+}
