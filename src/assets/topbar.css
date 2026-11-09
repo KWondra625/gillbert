@@ -104,6 +104,12 @@
   line-height: 1;
 }
 
+/* The plain "＋" on Add pages: a text glyph, so it needs to be sized up to match the emoji */
+.page-head-tile--plus {
+  font-size: 28px;
+  font-weight: 700;
+}
+
 .page-head-label {
   margin: 0;
   font-size: 11px;

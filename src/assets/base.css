@@ -89,6 +89,13 @@
   transform: none;
 }
 
+/* Raised: a secondary button with a white face and a soft shadow, for "Add …" actions
+   that sit on a tinted background (the sky, a heading strip) */
+.secondary-button.button-raised {
+  background: var(--gb-surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
 /* Tertiary: the quietest action, plain accent text with no box (e.g. "More", "Record info") */
 .tertiary-button {
   padding: 8px 6px;

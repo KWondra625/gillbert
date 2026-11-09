@@ -662,9 +662,6 @@
 .detail-section-label .button-small {
   text-transform: none;
   letter-spacing: normal;
-  /* white, so it stands out from the heading's own soft blue */
-  background: var(--gb-surface);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* ─── Media Section (inside card) ───────────────── */

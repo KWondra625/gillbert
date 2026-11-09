@@ -913,8 +913,8 @@ function renderMedia(items) {
   const heading = `
     <div class="detail-section-label">
       <span>Catch Media</span>
-      <a href="./media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}${fromSuffix()}" class="detail-upload-btn secondary-button button-small${isMediaEditMode ? ' hidden' : ''}">＋ Add photos</a>
-      <button type="button" id="manageMediaDone" class="secondary-button button-small${isMediaEditMode ? '' : ' hidden'}">✖ Done</button>
+      <a href="./media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}${fromSuffix()}" class="detail-upload-btn secondary-button button-small button-raised${isMediaEditMode ? ' hidden' : ''}">＋ Add photos</a>
+      <button type="button" id="manageMediaDone" class="secondary-button button-small button-raised${isMediaEditMode ? '' : ' hidden'}">✖ Done</button>
     </div>`;
 
   const photos = items.filter(m => m.mediaType === 'Photo');
