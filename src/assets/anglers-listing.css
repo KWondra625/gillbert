@@ -96,7 +96,7 @@
   border-radius: 50%;
   overflow: hidden;
   background: var(--gb-accent-soft);
-  border: 2px solid var(--gb-accent-border);
+  box-shadow: var(--gb-photo-ring);
   display: flex;
   align-items: center;
   justify-content: center;
