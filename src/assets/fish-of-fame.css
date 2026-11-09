@@ -35,6 +35,7 @@
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.15);
   color: white;
+  font-family: inherit;   /* buttons don't take the page font on their own */
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
