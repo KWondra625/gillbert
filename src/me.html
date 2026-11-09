@@ -16,7 +16,7 @@
       margin: 0;
       padding: 16px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
+      background: var(--gb-page-bg);
       min-height: 100vh;
       padding-top: max(16px, env(safe-area-inset-top));
     }
@@ -33,20 +33,20 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      color: #4FACFE;
+      color: var(--gb-accent);
       margin: 0 0 10px;
     }
     .row {
       display: flex;
       gap: 12px;
       padding: 8px 0;
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid var(--gb-line-soft);
       font-size: 14px;
       align-items: center;
     }
     .row:last-child { border-bottom: none; }
-    .row-label { font-weight: 600; color: #999; min-width: 110px; flex-shrink: 0; }
-    .row-value { color: #333; word-break: break-all; }
+    .row-label { font-weight: 600; color: var(--gb-faint-2); min-width: 110px; flex-shrink: 0; }
+    .row-value { color: var(--gb-ink-2); word-break: break-all; }
     .pill {
       display: inline-flex;
       align-items: center;
@@ -57,7 +57,7 @@
       font-weight: 700;
     }
     .pill-green { background: #e6fff2; color: #0d5c3f; }
-    .pill-red   { background: #fff0f0; color: #c0392b; }
+    .pill-red   { background: var(--gb-danger-bg); color: var(--gb-danger-strong); }
     .pill-amber { background: #fff8e6; color: #d98c00; }
     .back {
       display: block;
@@ -65,24 +65,24 @@
       padding: 14px;
       background: white;
       border-radius: 10px;
-      color: #4FACFE;
+      color: var(--gb-accent);
       text-decoration: none;
       font-weight: 700;
       font-size: 15px;
       margin-top: 4px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.12);
     }
-    .muted { color: #aaa; font-style: italic; font-size: 13px; }
+    .muted { color: var(--gb-faintest); font-style: italic; font-size: 13px; }
     .exit-admin-btn {
       display: block;
       width: 100%;
       text-align: center;
       padding: 12px;
       margin-top: 10px;
-      background: #fff0f0;
-      border: 2px solid #fcc;
+      background: var(--gb-danger-bg);
+      border: 2px solid var(--gb-danger-border);
       border-radius: 10px;
-      color: #c0392b;
+      color: var(--gb-danger-strong);
       font-weight: 700;
       font-size: 14px;
       font-family: inherit;
@@ -101,7 +101,7 @@
       margin: 0 auto 12px;
       border-radius: 50%;
       overflow: hidden;
-      background: #f0f8ff;
+      background: var(--gb-accent-soft);
       box-shadow: var(--gb-photo-ring);
       display: flex;
       align-items: center;
@@ -121,14 +121,14 @@
       gap: 10px;
     }
     .profile-photo-btn--remove {
-      border-color: #fcc;
-      background: #fff8f8;
-      color: #c0392b;
+      border-color: var(--gb-danger-border);
+      background: var(--gb-danger-bg-2);
+      color: var(--gb-danger-strong);
     }
     .field-hint {
       margin: 6px 0 0 0;
       font-size: 12px;
-      color: #999;
+      color: var(--gb-faint-2);
       text-align: center;
     }
 
@@ -161,24 +161,24 @@
       align-items: center;
       justify-content: space-between;
       padding: 16px 20px 12px;
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid var(--gb-line-soft);
     }
-    .ri-modal-title { font-size: 15px; font-weight: 700; color: #555; }
+    .ri-modal-title { font-size: 15px; font-weight: 700; color: var(--gb-ink-3); }
     .ri-modal-close {
       background: none;
       border: none;
       font-size: 28px;
       line-height: 1;
-      color: #aaa;
+      color: var(--gb-faintest);
       cursor: pointer;
       padding: 0;
     }
-    .ri-modal-close:hover { color: #555; }
+    .ri-modal-close:hover { color: var(--gb-ink-3); }
     .crop-modal-body { padding: 12px 20px 8px; }
     .crop-modal-body cropper-canvas {
       border-radius: 8px;
       overflow: hidden;
-      background: #1a1a1a;
+      background: var(--gb-ink);
     }
     .crop-modal-body .field-hint { margin-top: 10px; }
     .crop-modal-footer {
@@ -303,13 +303,13 @@
         ).join('');
       } else {
         identityEl.innerHTML =
-          '<div class="row"><span class="row-value" style="color:#c0392b">⚠️ No identity detected — are you on the live site and logged in via Cloudflare Access?</span></div>';
+          '<div class="row"><span class="row-value" style="color:var(--gb-danger-strong)">⚠️ No identity detected — are you on the live site and logged in via Cloudflare Access?</span></div>';
       }
 
       // ── My Angler Profile card (photo + ID/name mapping, together) ──
       const anglerProfileEl = document.getElementById('anglerProfileContent');
       if (anglerLookupError) {
-        anglerProfileEl.innerHTML = '<p class="muted" style="color:#c0392b">⚠️ Unable to load angler lookup data</p>';
+        anglerProfileEl.innerHTML = '<p class="muted" style="color:var(--gb-danger-strong)">⚠️ Unable to load angler lookup data</p>';
       } else if (myAngler) {
         anglerProfileEl.innerHTML = `
           <div class="profile-photo-preview">
