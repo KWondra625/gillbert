@@ -15,12 +15,31 @@
 }
 
 .topbar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   color: inherit;
   font-size: 24px;
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1;
   text-decoration: none;
+}
+
+.topbar-home {
+  flex: none;
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.9;
+}
+
+.topbar-brand:active {
+  opacity: 0.75;
 }
 
 .topbar-brand:focus-visible,

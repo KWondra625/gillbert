@@ -56,7 +56,10 @@
   let back = null;
 
   if (bar) {
-    bar.innerHTML = '<a class="topbar-brand" href="./index.html" aria-label="Gillbert home">Gillbert</a>' + SHACK_HTML;
+    // A small house before the name says "this goes home" without making it a button
+    bar.innerHTML = '<a class="topbar-brand" href="./index.html" aria-label="Gillbert home">'
+      + '<svg class="topbar-home" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 11 12 4l8.5 7"/><path d="M6 9.5V20h4.5v-5.5h3V20H18V9.5"/></svg>'
+      + 'Gillbert</a>' + SHACK_HTML;
     back = document.createElement('a');
     back.className = 'topbar-back';
     back.id = 'topbarBack';
