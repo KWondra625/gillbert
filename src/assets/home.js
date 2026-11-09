@@ -78,7 +78,8 @@ function renderTicker(catches, anglersById, now) {
   const item = ({ c, at }, copy) => `<a class="tk" href="${catchUrl(c)}"${copy ? ' tabindex="-1"' : ''}>`
     + `${avatarHtml(anglersById[c.anglerId], c.anglerName)}<b>${escapeHtml(c.anglerName || 'Someone')}</b> `
     + `${escapeHtml(catchLabel(c))} <small>· ${escapeHtml(age(now - at))}</small></a>`;
-  const set = copy => shown.map(x => item(x, copy)).join('');
+  // Each set ends with a small orange bar, so you can see where the latest catches start over
+  const set = copy => shown.map(x => item(x, copy)).join('') + '<span class="tk-sep" aria-hidden="true"></span>';
 
   // Two copies side by side, so the crawl loops without a gap; the second is for the eye only
   document.getElementById('tickerRun').innerHTML =

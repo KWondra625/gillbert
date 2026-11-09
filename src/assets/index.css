@@ -359,6 +359,17 @@ body.has-ticker {
   opacity: 0.7;
 }
 
+/* End of the latest catches, before the crawl starts them over: a short bar in the signal orange */
+.tk-sep {
+  flex: none;
+  align-self: center;
+  width: 4px;
+  height: 18px;
+  margin: 0 10px;
+  border-radius: 2px;
+  background: var(--gb-signal);
+}
+
 /* ─── Hero animations ─── */
 .tipup .stem {
   transform-box: view-box;
