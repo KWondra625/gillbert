@@ -5,21 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Log a Catch · Gillbert</title>
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/theme.css" />
+  <link rel="stylesheet" href="./assets/base.css" />
+  <link rel="stylesheet" href="./assets/topbar.css" />
+  <script src="./assets/settings.js"></script>
+  <script src="./assets/season.js"></script>
   <link rel="stylesheet" href="./assets/log-catch.css" />
-  <link rel="stylesheet" href="./assets/top-home-link.css" />
 </head>
-<body>
-  <div class="container">
-    <div class="top-nav">
-      <a href="./index.html" class="top-home-link top-home-link--on-light" aria-label="Go back to Home">← Home</a>
+<body class="layout-card">
+  <header class="topbar" id="topbar"></header>
+  <script src="./assets/topbar.js"></script>
+  <div class="page-head">
+    <span class="page-head-tile" aria-hidden="true">✏️</span>
+    <div>
+      <p class="page-head-label">Catches</p>
+      <h1>Log a Catch</h1>
     </div>
-
+  </div>
+  <div class="container">
     <!-- ── Loading state ────────────────────────────────────────────── -->
     <div id="loadingState">
-      <div class="header">
-        <h1>✏️ Log a Catch</h1>
-        <p>Loading options…</p>
-      </div>
       <div class="loading-indicator">
         <div class="fishing-animation">🎣<span class="bobber">●</span></div>
         <p>Loading catch options…</p>
@@ -28,24 +33,15 @@
 
     <!-- ── Lookup error state ────────────────────────────────────────── -->
     <div id="lookupErrorState" class="hidden">
-      <div class="header">
-        <h1>✏️ Log a Catch</h1>
-      </div>
       <div class="error-card">
         <p class="error-icon">⚠️</p>
         <p id="lookupErrorMsg">Unable to load options. Please check your connection and try again.</p>
         <button id="retryBtn" class="primary-button">🔄 Try Again</button>
       </div>
-      <a href="./index.html" class="back-button">← Back to Home</a>
     </div>
 
     <!-- ── Form state ────────────────────────────────────────────────── -->
     <div id="formState" class="hidden">
-      <div class="header">
-        <h1>✏️ Log a Catch</h1>
-        <p>Record a catch manually</p>
-      </div>
-
       <!-- Success banner — shown after Save and Add Another -->
       <div id="successBanner" class="success-banner hidden">
         🎣 Catch saved! <a id="successBannerLink" href="#">View it →</a>
@@ -125,9 +121,8 @@
         <!-- Actions -->
         <div class="actions">
           <button type="button" id="saveViewBtn" class="primary-button">🎣 Save and View Catch</button>
-          <button type="button" id="saveAnotherBtn" class="secondary-button">➕ Save and Add Another</button>
+          <button type="button" id="saveAnotherBtn" class="secondary-button">＋ Save and Add Another</button>
           <a href="./catches-listing.html" class="back-button">📋 View All Catches</a>
-          <a href="./index.html" class="back-button">← Back to Home</a>
         </div>
 
       </form>
@@ -135,10 +130,6 @@
 
     <!-- ── Submitting state ──────────────────────────────────────────── -->
     <div id="submittingState" class="hidden">
-      <div class="header">
-        <h1>✏️ Log a Catch</h1>
-        <p>Saving your catch…</p>
-      </div>
       <div class="loading-indicator">
         <div class="fishing-animation">🎣<span class="bobber">●</span></div>
         <p>Dropping your catch in Gillbert's digital live well…</p>

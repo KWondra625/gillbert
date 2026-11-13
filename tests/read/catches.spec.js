@@ -121,37 +121,41 @@ test.describe('catches listing', () => {
     }
   });
 
-  test('View Details opens that catch', async ({ page }) => {
+  test('tapping a card opens that catch', async ({ page }) => {
     await page.goto('catches-listing.html');
     const first = page.locator('#catchesContainer .catch-card').first();
     const number = (await first.locator('.catch-id').textContent()).trim();
-    await first.locator('.card-button').click();
+    await first.click();
 
     await expect(page).toHaveURL(/catch-details\.html\?catchNumber=/);
-    await expect(page.locator('.detail-card-header h2')).toContainText(number);
+    await expect(page.locator('#catchTitle')).toContainText(number);
   });
 });
 
 test.describe('catch card dates', () => {
   // Built in the browser's own time zone, so "Today"/"Yesterday" and the time match what it shows
-  test('are compact: short month, year only for older catches', async ({ page }) => {
+  test('cards sit in day groups and show only what the heading doesn\'t', async ({ page }) => {
     const dates = await page.evaluate(() => {
       const at = (daysAgo, h, m) => { const d = new Date(Date.now() - daysAgo * 86400000); d.setHours(h, m, 0, 0); return d.toISOString(); };
-      return { recent: at(40, 12, 27), old: at(400, 13, 15), recentNoTime: at(20, 0, 0), oldNoTime: at(500, 0, 0) };
+      return { today: at(0, 0, 5), todayNoTime: at(0, 0, 0), yesterday: at(1, 6, 10), old: at(400, 13, 15) };
     });
     const [first] = catches;
-    const order = ['recent', 'old', 'recentNoTime', 'oldNoTime'];
+    const order = ['today', 'todayNoTime', 'yesterday', 'old'];
     await page.route(url => url.pathname.endsWith('/get-catches'), route => route.fulfill({ json:
       order.map((k, i) => ({ ...first, catchNumber: `Catch 99-00${i}`, caughtWhen: dates[k] })) }));
     await page.goto('catches-listing.html');
 
-    const when = page.locator('#catchesContainer .catch-card .catch-field:has(.field-label:text("When")) .field-value');
-    await expect(when).toHaveCount(4);
-    const texts = Object.fromEntries(await Promise.all(order.map(async (k, i) => [k, (await when.nth(i).textContent()).trim()])));
-    expect(texts.recent).toMatch(/^[A-Z][a-z]{2} \d{1,2} at 12:27 PM$/);         // e.g. "Sep 23 at 12:27 PM"
-    expect(texts.old).toMatch(/^[A-Z][a-z]{2} \d{1,2}, \d{4} at 1:15 PM$/);      // e.g. "Sep 28, 2025 at 1:15 PM"
-    expect(texts.recentNoTime).toMatch(/^[A-Z][a-z]{2} \d{1,2}$/);                // no year, no made-up time
-    expect(texts.oldNoTime).toMatch(/^[A-Z][a-z]{2} \d{1,2}, \d{4}$/);
+    const groups = page.locator('#catchesContainer .catch-group');
+    await expect(groups).toHaveCount(3);
+    await expect(groups.nth(0).locator('.catch-group-head')).toHaveText(/^Today\s*2 catches$/);
+    await expect(groups.nth(1).locator('.catch-group-head')).toHaveText(/^Yesterday\s*1 catch$/);
+    await expect(groups.nth(2).locator('.catch-group-head')).toHaveText(/^[A-Z][a-z]+ \d{4}\s*1 catch$/); // e.g. "October 2025"
+
+    const cards = page.locator('#catchesContainer .catch-card');
+    await expect(cards.nth(0).locator('.catch-when')).toHaveText('· 12:05 AM');            // today: just the time
+    await expect(cards.nth(1).locator('.catch-when')).toHaveCount(0);                      // no time given: nothing made up
+    await expect(cards.nth(2).locator('.catch-when')).toHaveText('· 6:10 AM');
+    await expect(cards.nth(3).locator('.catch-when')).toHaveText(/^· [A-Z][a-z]{2} \d{1,2}$/); // older: the day; the year is in the heading
   });
 });
 
@@ -159,11 +163,16 @@ test.describe('catch detail', () => {
   test('shows the catch\'s angler, species and water', async ({ page }) => {
     const c = catches[0];
     await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(c.catchNumber)}`);
-    await expect(page.locator('.detail-card-header h2')).toContainText(c.catchNumber);
+    await expect(page.locator('#catchTitle')).toContainText(c.catchNumber);
     const details = page.locator('#detailsContainer');
     await expect(details).toContainText(c.anglerName);
     await expect(details).toContainText(c.fishSpeciesName);
     await expect(details).toContainText(c.bodyOfWaterName);
+    // The summary leads with who, the fish and where; its rows aren't repeated below
+    const summary = page.locator('.catch-summary');
+    await expect(summary.locator('.summary-who')).toHaveText(`Caught by ${c.anglerName}${c.bodyOfWaterName ? ` on ${c.bodyOfWaterName}` : ''}`);
+    await expect(summary.locator('.summary-fish')).toContainText(c.fishSpeciesName);
+    await expect(page.locator('.detail-row .detail-label', { hasText: 'Angler' })).toHaveCount(0);
   });
 
   test('shows its photos and opens one in the lightbox', async ({ page }) => {
@@ -220,7 +229,8 @@ test.describe('catch detail', () => {
     await unlockAdmin(page);
     await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(target.c.catchNumber)}`);
     const tile = page.locator(`.media-tile--video[data-media-id="${target.v.id}"]`);
-    await page.locator('#manageMediaBtn').click(); // Manage Media shows the delete buttons
+    await page.locator('#moreBtn').click();
+    await page.locator('#manageMediaBtn').click(); // Manage Media (under More) shows the delete buttons
     await tile.locator('.media-delete-btn').click();
 
     const preview = page.locator('#deleteMediaModal video');
@@ -245,8 +255,8 @@ test.describe('catch detail', () => {
     await page.goto(`edit-catch.html?catchNumber=${encodeURIComponent(c.catchNumber)}&from=list`);
     await expect(page.locator('#cancelLink')).toHaveAttribute('href', /catch-details\.html\?catchNumber=.*&from=list$/);
     await page.locator('#cancelLink').click();
-    await expect(page.locator('.top-home-link')).toHaveAttribute('href', './catches-listing.html');
-    await expect(page.locator('.top-home-link')).toHaveText('← Catches');
+    await expect(page.locator('.topbar-back')).toHaveAttribute('href', './catches-listing.html');
+    await expect(page.locator('.topbar-back')).toHaveText('‹ Catches');
   });
 
   test('hides Edit from a visitor and shows it to an admin', async ({ page }) => {
@@ -255,13 +265,41 @@ test.describe('catch detail', () => {
     // Let the media load finish too: reloading mid-request cancels it, which logs an error.
     const media = page.waitForResponse(r => r.url().includes('catch-media/get'));
     await page.goto(url);
-    await expect(page.locator('.detail-card-header h2')).toBeVisible();
+    await expect(page.locator('#catchTitle')).toBeVisible();
     await expect(page.locator('#editCatchLink')).toBeHidden();
     await (await media).finished();
 
     await unlockAdmin(page);
     await page.goto(url);
     await expect(page.locator('#editCatchLink')).toBeVisible();
+  });
+
+  test('a visitor gets Record info at the bottom; an admin gets More with verify, manage media and record info', async ({ page }) => {
+    const c = catches[0];
+    const url = `catch-details.html?catchNumber=${encodeURIComponent(c.catchNumber)}`;
+    const media = page.waitForResponse(r => r.url().includes('catch-media/get'));
+    await page.goto(url);
+    // Anyone: "Add photos" in the media heading, Record info straight away, no More
+    await expect(page.locator('#mediaContainer .detail-section-label .detail-upload-btn')).toBeVisible();
+    await expect(page.locator('#moreBtn')).toHaveCount(0);
+    await page.locator('#recordInfoTrigger').click();
+    await expect(page.locator('#recordInfoModal')).toHaveClass(/open/);
+    await page.locator('#recordInfoClose').click();
+    await (await media).finished();
+
+    await unlockAdmin(page);
+    await page.goto(url);
+    await expect(page.locator('#recordInfoTrigger')).toBeHidden(); // it lives inside More now
+    await page.locator('#moreBtn').click();
+    await expect(page.locator('#moreModal')).toHaveClass(/open/);
+    await expect(page.locator('#moreModal .more-item b')).toHaveText([/^(Verify|Unverify)$/, 'Manage media', 'Record info']);
+    // Manage media closes More and swaps "Add photos" for "Done" in the media heading
+    await page.locator('#manageMediaBtn').click();
+    await expect(page.locator('#moreModal')).not.toHaveClass(/open/);
+    await expect(page.locator('#manageMediaDone')).toBeVisible();
+    await expect(page.locator('#mediaContainer .detail-upload-btn')).toBeHidden();
+    await page.locator('#manageMediaDone').click();
+    await expect(page.locator('#mediaContainer .detail-upload-btn')).toBeVisible();
   });
 
   test('Edit Catch lists each species by its override name if it has one, else its DNR name', async ({ page }) => {

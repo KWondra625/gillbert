@@ -5,21 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Gillbert - Fish of Fame</title>
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/theme.css" />
+  <link rel="stylesheet" href="./assets/base.css" />
+  <link rel="stylesheet" href="./assets/topbar.css" />
+  <script src="./assets/settings.js"></script>
+  <script src="./assets/season.js"></script>
   <link rel="stylesheet" href="./assets/fish-of-fame.css" />
-  <link rel="stylesheet" href="./assets/top-home-link.css" />
 </head>
-<body>
+<body class="layout-open">
   <div class="container">
-    <div class="top-nav">
-      <a href="./index.html" class="top-home-link" aria-label="Go back to Home">← Home</a>
+    <header class="topbar" id="topbar"></header>
+    <script src="./assets/topbar.js"></script>
+
+    <div class="page-head">
+      <span class="page-head-tile" aria-hidden="true">🏆</span>
+      <div>
+        <p class="page-head-label">Catches</p>
+        <h1>Fish of Fame</h1>
+      </div>
     </div>
 
-    <div class="header">
-      <h1>🏆 Fish of Fame</h1>
-      <p>Biggest catches, species records, top anglers, all logged here. 
-        <br />
-        Our shack wall just went digital, and this one's coming with us wherever we go.</p>
-    </div>
+    <p class="page-intro">Biggest catches, species records, top anglers, all logged here. Our shack wall just went digital, and this one's coming with us wherever we go.</p>
 
     <div id="status" class="status"></div>
     <div id="loadingIndicator" class="loading-indicator">
@@ -48,10 +54,10 @@
       </div>
     </div>
     <br />
-    <a href="./index.html" class="back-button">← Back to Home</a>
   </div>
 
   <script src="./assets/config.js"></script>
   <script src="./assets/fish-of-fame.js"></script>
+  <script src="./assets/admin.js"></script>
 </body>
 </html>

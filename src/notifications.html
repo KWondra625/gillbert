@@ -5,18 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Gillbert - Catch Notifications</title>
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/theme.css" />
+  <link rel="stylesheet" href="./assets/base.css" />
+  <link rel="stylesheet" href="./assets/topbar.css" />
+  <script src="./assets/settings.js"></script>
+  <script src="./assets/season.js"></script>
   <link rel="stylesheet" href="./assets/notifications.css" />
-  <link rel="stylesheet" href="./assets/top-home-link.css" />
 </head>
-<body>
+<body class="layout-open">
   <div class="container">
-    <div class="top-nav">
-      <a href="./index.html" class="top-home-link" aria-label="Go back to Home">← Home</a>
-    </div>
+    <header class="topbar" id="topbar"></header>
+    <script src="./assets/topbar.js"></script>
 
-    <div class="header">
-      <h1>🔔 Catch Notifications</h1>
-      <p>Get a buzz on your phone every time someone logs a new catch.</p>
+    <div class="page-head">
+      <span class="page-head-tile" aria-hidden="true">🔔</span>
+      <div>
+        <p class="page-head-label">Your setup</p>
+        <h1>Catch Notifications</h1>
+      </div>
     </div>
 
     <div class="step-card">
@@ -60,7 +66,6 @@
       <p>Edits to existing catches don't send notifications. To stop them, delete the subscription in ntfy.</p>
     </div>
 
-    <a href="./index.html" class="back-button">← Back to Home</a>
 
     <!-- Easter egg for the iPhone crowd (Kurt, 2026-11-06). The App Store stays one tap away. -->
     <div id="appleModal" class="ri-modal" role="dialog" aria-modal="true" aria-labelledby="appleModalTitle">
@@ -83,5 +88,6 @@
 
   <script src="./assets/config.js"></script>
   <script src="./assets/notifications.js"></script>
+  <script src="./assets/admin.js"></script>
 </body>
 </html>

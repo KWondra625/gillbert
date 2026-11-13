@@ -204,7 +204,7 @@ async function load() {
     renderRecordInfo(originalData);
     renderStatsPanel(anglerStats);
     renderViewCatchesLink((anglerStats && anglerStats.count) || 0);
-    el.formHeading.textContent = `✏️ Edit ${originalData.name}`;
+    el.formHeading.textContent = `Edit ${originalData.name}`;
     showState('formState');
   } catch (err) {
     console.error('Failed to load angler:', err);

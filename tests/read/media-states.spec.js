@@ -256,7 +256,8 @@ test.describe('catch page media states', () => {
       await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`);
       await expect(page.locator('.media-tile--photo')).toHaveCount(2);
 
-      await page.locator('#manageMediaBtn').click(); // Manage Media shows the delete buttons
+      await page.locator('#moreBtn').click();
+      await page.locator('#manageMediaBtn').click(); // Manage Media (under More) shows the delete buttons
       await page.locator('.media-delete-btn[data-media-id="8"]').click();
       await page.locator('#deleteMediaConfirm').click();
       await expect(page.locator('#status')).toContainText("Couldn't refresh the media");
@@ -834,9 +835,18 @@ test.describe('media activity page', () => {
     await expect(page.locator('#scanResult')).toContainText('Files with no record (1)');
     const attach = page.locator('#scanResult .row-action[data-action="attach"]');
     await attach.click();
-    // Armed, it asks for a second tap in blue (a primary action), not delete red
+    // Armed, it asks for a second tap in the accent blue (a primary action), not delete red.
+    // The blue follows the season (open water / hard water), so read it from the page's theme.
     await expect(attach).toHaveText(/Tap again to attach/);
-    await expect(attach).toHaveCSS('background-color', 'rgb(31, 127, 214)');
+    const accent = await page.evaluate(() => {
+      const probe = document.createElement('span');
+      probe.style.backgroundColor = 'var(--gb-accent-600)';
+      document.body.appendChild(probe);
+      const c = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      return c;
+    });
+    await expect(attach).toHaveCSS('background-color', accent);
     await attach.click();
     await expect.poll(() => committed).toEqual({
       catchNumber: 'Catch 26-001',
@@ -972,7 +982,7 @@ test.describe('media badges', () => {
       { ...first, catchMediaCount: 2, catchMediaProcessingCount: 3 },
     ] }));
     await page.goto('catches-listing.html');
-    const badges = page.locator('#catchesContainer .catch-card').first().locator('.card-button');
+    const badges = page.locator('#catchesContainer .catch-card').first().locator('.catch-card-foot');
     await expect(badges).toContainText('📷 2');
     await expect(badges.locator('.badge-media--converting')).toHaveText('⏳ 3');
   });
@@ -983,7 +993,7 @@ test.describe('media badges', () => {
       { ...first, catchMediaCount: 1, catchMediaProcessingCount: 1 },
     ] }));
     await page.goto('catches-listing.html');
-    const badges = page.locator('#catchesContainer .catch-card').first().locator('.card-button .badge-media');
+    const badges = page.locator('#catchesContainer .catch-card').first().locator('.catch-card-foot .badge-media');
     await expect(badges).toHaveText(['📷', '⏳']);
   });
 
@@ -1003,7 +1013,7 @@ test.describe('media badges', () => {
     await page.clock.install();
     await mockCounts(page, [first], state);
     await page.goto('catches-listing.html');
-    const badges = page.locator('#catchesContainer .catch-card').first().locator('.card-button .badge-media');
+    const badges = page.locator('#catchesContainer .catch-card').first().locator('.catch-card-foot .badge-media');
     await expect(badges).toHaveText(['📷', '⏳ 2']);
 
     state.media = 3; state.converting = 0; // both finished
@@ -1020,7 +1030,7 @@ test.describe('media badges', () => {
     const state = { media: 1, converting: 0, requests: 0 };
     await mockCounts(page, [first], state);
     await page.goto('catches-listing.html');
-    const badges = page.locator('#catchesContainer .catch-card').first().locator('.card-button .badge-media');
+    const badges = page.locator('#catchesContainer .catch-card').first().locator('.catch-card-foot .badge-media');
     await expect(badges).toHaveText(['📷']);
 
     // What the browser fires when it restores the page from its back/forward cache
@@ -1042,7 +1052,7 @@ test.describe('media badges', () => {
     await expect(badges).toHaveText(['📷 2', '⏳ 2']);
   });
 
-  test("each card shows its angler's photo in the header and 📷 / ⏳ inside View Details (#27)", async ({ page }) => {
+  test("each card shows its angler's photo (or initials) on top and 📷 / ⏳ at the bottom", async ({ page }) => {
     const [first] = await getCatches();
     const lookups = await getLookups();
     await page.route(url => url.pathname.endsWith('/get-lookup-data'), route => route.fulfill({ json: [{ ...lookups,
@@ -1059,15 +1069,16 @@ test.describe('media badges', () => {
 
     const cards = page.locator('#catchesContainer .catch-card');
     await expect(cards).toHaveCount(2);
-    await expect(cards.nth(0).locator('.catch-angler-photo')).toHaveAttribute('src', `${FAKE_STORAGE}/face.jpg`);
-    await expect(cards.nth(1).locator('.catch-angler-photo'), 'no empty circle without a photo').toHaveCount(0);
-    // Badges ride inside the View Details button; the header keeps only 🆕
-    await expect(cards.nth(0).locator('.card-button .badge-media')).toHaveText(['📷 3', '⏳']);
-    await expect(cards.nth(0).locator('.catch-badges .badge-media')).toHaveCount(0);
-    await expect(cards.nth(0).locator('.catch-badges')).toContainText('🆕');
-    // Headers line up whether or not there's a photo
-    const h = await Promise.all([0, 1].map(i => cards.nth(i).locator('.catch-card-header').evaluate(e => e.offsetHeight)));
-    expect(Math.abs(h[0] - h[1]), `header heights ${h.join(' vs ')}`).toBeLessThanOrEqual(1);
+    await expect(cards.nth(0).locator('img.catch-avatar')).toHaveAttribute('src', `${FAKE_STORAGE}/face.jpg`);
+    // No photo: their initials instead, never an empty circle
+    await expect(cards.nth(1).locator('img.catch-avatar')).toHaveCount(0);
+    await expect(cards.nth(1).locator('span.catch-avatar')).toHaveText('NP');
+    await expect(cards.nth(0).locator('.catch-card-foot .badge-media')).toHaveText(['📷 3', '⏳']);
+    await expect(cards.nth(0).locator('.catch-card-foot .badge-new')).toBeVisible();
+    await expect(cards.nth(1).locator('.badge-new')).toHaveCount(0);
+    // The top rows line up whether or not there's a photo
+    const h = await Promise.all([0, 1].map(i => cards.nth(i).locator('.catch-card-top').evaluate(e => e.offsetHeight)));
+    expect(Math.abs(h[0] - h[1]), `top heights ${h.join(' vs ')}`).toBeLessThanOrEqual(1);
   });
 
   test('Fish of Fame shows the same 📷 and ⏳ counts', async ({ page }) => {
@@ -1088,7 +1099,7 @@ test.describe('upload page catch card', () => {
       const at = (daysAgo, h, m) => { const d = new Date(Date.now() - daysAgo * 86400000); d.setHours(h, m, 0, 0); return d.toISOString(); };
       return { withTime: at(40, 12, 27), dateOnly: at(40, 0, 0) };
     });
-    const when = page.locator('.catch-card-row:has(.catch-card-label:text("Caught When")) .catch-card-value');
+    const when = page.locator('#catchCard .catch-card-when');
     for (const [kind, caughtWhen] of Object.entries(dates)) {
       await page.unroute(url => url.pathname.endsWith('/get-catches')).catch(() => {});
       await page.route(url => url.pathname.endsWith('/get-catches'), route => route.fulfill({ json: [{ ...first, caughtWhen }] }));

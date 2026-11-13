@@ -22,6 +22,7 @@ test('delete one photo and one video from the test catch', async ({ page }) => {
   await unlockAdmin(page);
   await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(target.catchNumber)}`);
   await expect(page.locator('.media-tile')).toHaveCount(media.length);
+  await page.locator('#moreBtn').click();
   await page.locator('.manage-media-trigger').click();
 
   for (const kind of ['Photo', 'Video']) {

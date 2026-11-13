@@ -5,21 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Gillbert - Fish Species</title>
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/theme.css" />
+  <link rel="stylesheet" href="./assets/base.css" />
+  <link rel="stylesheet" href="./assets/topbar.css" />
+  <script src="./assets/settings.js"></script>
+  <script src="./assets/season.js"></script>
   <link rel="stylesheet" href="./assets/fish-species-listing.css" />
-  <link rel="stylesheet" href="./assets/top-home-link.css" />
 </head>
-<body>
+<body class="layout-open">
   <div class="container">
-    <div class="top-nav">
-      <a href="./index.html" class="top-home-link" aria-label="Go back to Home">← Home</a>
+    <header class="topbar" id="topbar"></header>
+    <script src="./assets/topbar.js"></script>
+
+    <div class="page-head">
+      <span class="page-head-tile" aria-hidden="true">🐟</span>
+      <div>
+        <p class="page-head-label">Admin</p>
+        <h1>Fish Species</h1>
+      </div>
     </div>
 
     <!-- ── Loading state ────────────────────────────────────────────── -->
     <div id="loadingState">
-      <div class="header">
-        <h1>🐟 Fish Species</h1>
-        <p>Loading species…</p>
-      </div>
       <div class="loading-indicator">
         <div class="fishing-animation">🎣<span class="bobber">●</span></div>
         <p>Loading fish species…</p>
@@ -28,24 +35,15 @@
 
     <!-- ── Error state ──────────────────────────────────────────────── -->
     <div id="errorState" class="hidden">
-      <div class="header">
-        <h1>🐟 Fish Species</h1>
-      </div>
       <div class="error-card">
         <p class="error-icon">⚠️</p>
         <p id="errorMsg">Unable to load fish species. Please check your connection and try again.</p>
         <button id="retryBtn" class="primary-button">🔄 Try Again</button>
       </div>
-      <a href="./index.html" class="back-button">← Back to Home</a>
     </div>
 
     <!-- ── List state ───────────────────────────────────────────────── -->
     <div id="listState" class="hidden">
-      <div class="header">
-        <h1>🐟 Fish Species</h1>
-        <p>Manage the fish species data</p>
-      </div>
-
       <div class="controls">
         <input
           type="text"
@@ -60,7 +58,7 @@
             <button class="status-filter-btn" data-status="Active">Active</button>
             <button class="status-filter-btn" data-status="Inactive">Inactive</button>
           </div>
-          <a href="./create-fish-species.html" class="add-species-btn">➕ Add Species</a>
+          <a href="./create-fish-species.html" class="add-species-btn secondary-button button-small button-raised">＋ Add Species</a>
         </div>
       </div>
 
@@ -80,7 +78,6 @@
 
       <p id="emptyState" class="empty-state hidden">No species match your search.</p>
 
-      <a href="./index.html" class="back-button">← Back to Home</a>
     </div>
   </div>
 

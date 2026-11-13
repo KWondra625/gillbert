@@ -5,21 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Edit Body of Water · Gillbert</title>
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
-  <link rel="stylesheet" href="./assets/top-home-link.css" />
+  <link rel="stylesheet" href="./assets/theme.css" />
+  <link rel="stylesheet" href="./assets/base.css" />
+  <link rel="stylesheet" href="./assets/topbar.css" />
+  <script src="./assets/settings.js"></script>
+  <script src="./assets/season.js"></script>
   <link rel="stylesheet" href="./assets/edit-body-of-water.css" />
 </head>
-<body>
-  <div class="container">
-    <div class="top-nav">
-      <a href="./bodies-of-water-listing.html" class="top-home-link top-home-link--on-light" aria-label="Back to Bodies of Water">← Bodies of Water</a>
+<body class="layout-card">
+  <header class="topbar" id="topbar" data-back-href="./bodies-of-water-listing.html" data-back-label="Bodies of Water"></header>
+  <script src="./assets/topbar.js"></script>
+  <div class="page-head">
+    <span class="page-head-tile" aria-hidden="true">✏️</span>
+    <div>
+      <p class="page-head-label">Admin</p>
+      <h1 id="formHeading">Edit Body of Water</h1>
     </div>
-
+  </div>
+  <div class="container">
     <!-- ── Loading state ────────────────────────────────────────────── -->
     <div id="loadingState">
-      <div class="header">
-        <h1>✏️ Edit Body of Water</h1>
-        <p>Loading details…</p>
-      </div>
       <div class="loading-indicator">
         <div class="fishing-animation">🎣<span class="bobber">●</span></div>
         <p>Reeling in the details…</p>
@@ -28,9 +33,6 @@
 
     <!-- ── Error state ──────────────────────────────────────────────── -->
     <div id="errorState" class="hidden">
-      <div class="header">
-        <h1>✏️ Edit Body of Water</h1>
-      </div>
       <div class="error-card">
         <p class="error-icon">⚠️</p>
         <p id="errorMsg">Unable to load this record. Please check your connection and try again.</p>
@@ -41,11 +43,6 @@
 
     <!-- ── Form state ───────────────────────────────────────────────── -->
     <div id="formState" class="hidden">
-      <div class="header">
-        <h1 id="formHeading">✏️ Edit Body of Water</h1>
-        <p>Update this record's details</p>
-      </div>
-
       <form id="waterForm" novalidate>
 
         <!-- Name -->
@@ -76,7 +73,7 @@
           <label for="dnrSearchInput">🔍 Search WI DNR <span class="optional-mark">(by name or WBIC, optional)</span></label>
           <div class="dnr-search-row">
             <input type="text" id="dnrSearchInput" placeholder="e.g. Pine Lake or 299100" />
-            <button type="button" id="dnrSearchBtn" class="dnr-search-btn">Search</button>
+            <button type="button" id="dnrSearchBtn" class="dnr-search-btn primary-button">Search</button>
           </div>
           <p class="field-hint">Link this record to the official DNR entry to pull in its details.</p>
           <div id="dnrSearchStatus" class="dnr-search-status hidden"></div>
@@ -115,10 +112,6 @@
 
     <!-- ── Submitting state ─────────────────────────────────────────── -->
     <div id="submittingState" class="hidden">
-      <div class="header">
-        <h1>✏️ Edit Body of Water</h1>
-        <p>Saving your changes…</p>
-      </div>
       <div class="loading-indicator">
         <div class="fishing-animation">🎣<span class="bobber">●</span></div>
         <p>Updating Gillbert's records…</p>

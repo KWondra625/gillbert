@@ -47,9 +47,9 @@ test.describe('someone who is neither the owner nor an admin', () => {
   test('sees no Edit link, and the edit page refuses them', async ({ page }) => {
     const c = await ownersCatch();
     await page.goto(detailUrl(c));
-    await expect(page.locator('.detail-card-header h2')).toContainText(c.catchNumber);
+    await expect(page.locator('#catchTitle')).toContainText(c.catchNumber);
     await expect(page.locator('#editCatchLink')).toBeHidden();
-    await expect(page.locator('#verifyToggle')).toBeHidden();
+    await expect(page.locator('#verifyToggle')).toHaveCount(0); // only admins get More (and Verify)
 
     await page.goto(editUrl(c));
     await expect(page.locator('#errorMsg')).toHaveText("You don't have permission to edit this catch.");
@@ -63,7 +63,7 @@ test.describe('the angler who caught it, before it is verified', () => {
     const c = await ownersCatch();
     await page.goto(detailUrl(c));
     await expect(page.locator('#editCatchLink')).toBeVisible();
-    await expect(page.locator('#verifyToggle')).toBeHidden();
+    await expect(page.locator('#verifyToggle')).toHaveCount(0); // an owner can edit but not verify
 
     await page.locator('#editCatchLink').click();
     await expect(page.locator('#catchForm')).toBeVisible();
@@ -79,6 +79,7 @@ test('an admin verifies it', async ({ page }) => {
   await unlockAdmin(page);
   await page.goto(detailUrl(c));
   await expect(page.locator('.pending-review-badge')).toBeVisible();
+  await page.locator('#moreBtn').click();
   await page.locator('#verifyToggle').click();
   await expect(page.locator('.verified-badge')).toBeVisible();
   await expect.poll(async () => (await ownersCatch()).verifiedAt, { timeout: 20_000 }).toBeTruthy();
@@ -102,6 +103,7 @@ test('an admin can still edit a verified catch, and can unverify it', async ({ p
   await unlockAdmin(page);
   await page.goto(detailUrl(c));
   await expect(page.locator('#editCatchLink')).toBeVisible();
+  await page.locator('#moreBtn').click();
   await page.locator('#verifyToggle').click();
   await expect(page.locator('.pending-review-badge')).toBeVisible();
   await expect.poll(async () => (await ownersCatch()).verifiedAt, { timeout: 20_000 }).toBeNull();

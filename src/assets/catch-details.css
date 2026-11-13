@@ -2,22 +2,6 @@
   box-sizing: border-box;
 }
 
-body {
-  margin: 0;
-  padding: 16px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
-  min-height: 100vh;
-  padding-top: max(16px, env(safe-area-inset-top));
-  padding-bottom: max(16px, env(safe-area-inset-bottom));
-}
-
-.container {
-  width: 100%;
-  max-width: 700px;
-  margin: 0 auto;
-}
-
 .status {
   text-align: center;
   font-size: 16px;
@@ -29,50 +13,7 @@ body {
 /* Loading */
 .loading-indicator {
   display: none;
-  text-align: center;
-  padding: 40px 20px;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  margin-bottom: 24px;
-}
-
-.loading-indicator.visible {
-  display: block;
-}
-
-.fishing-animation {
-  font-size: 48px;
-  margin-bottom: 12px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.bobber {
-  display: inline-block;
-  margin-left: 8px;
-  font-size: 24px;
-  animation: bobbing 2s ease-in-out infinite;
-}
-
-@keyframes bobbing {
-  0%, 100% {
-    transform: translateY(0px);
-    opacity: 0.6;
-  }
-  50% {
-    transform: translateY(-12px);
-    opacity: 1;
-  }
-}
-
-.loading-indicator p {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 500;
-  color: #4FACFE;
 }
 
 /* Detail Card */
@@ -84,17 +25,73 @@ body {
   margin-bottom: 32px;
 }
 
-.detail-card-header {
-  background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
-  padding: 20px 24px;
-  color: white;
+/* ─── Summary: a big angler photo, with who, when, the fish and where beside it ───
+ * Beside, not below, so the bigger photo doesn't push the rest of the page down. */
+.catch-summary {
+  display: grid;
+  gap: 10px;
+  padding: 18px 20px 16px;
 }
 
-.detail-card-header h2 {
-  margin: 0;
-  font-size: 28px;
+.summary-by {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 14px;
+  align-items: center;
+}
+
+.summary-avatar {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  color: #ffffff;
+  font-size: 32px;
+  font-weight: 800;
+  box-shadow: var(--gb-photo-ring);
+}
+
+.summary-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* "Caught by Kent S on Pine Lake", then the date */
+.summary-who {
+  font-size: 15px;
+  color: var(--gb-ink-2);
+  line-height: 1.35;
+}
+
+.summary-who b {
   font-weight: 700;
-  word-break: break-word;
+  color: var(--gb-ink);
+}
+
+.summary-when {
+  font-size: 13px;
+  color: var(--gb-muted);
+}
+
+.summary-status {
+  margin-top: 4px;
+}
+
+.summary-fish {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--gb-ink);
+}
+
+@media (min-width: 600px) {
+  .summary-fish {
+    font-size: 26px;
+  }
 }
 
 .pending-review-badge,
@@ -130,7 +127,7 @@ body {
   display: flex;
   gap: 12px;
   padding: 12px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--gb-line-soft);
   font-size: 15px;
   line-height: 1.5;
   align-items: flex-start;
@@ -142,13 +139,13 @@ body {
 
 .detail-label {
   font-weight: 600;
-  color: #4FACFE;
+  color: var(--gb-accent);
   min-width: 160px;
   flex-shrink: 0;
 }
 
 .detail-value {
-  color: #333;
+  color: var(--gb-ink-2);
   word-break: break-word;
 }
 
@@ -166,163 +163,81 @@ body {
   gap: 4px;
   padding: 3px 10px;
   border-radius: 20px;
-  background: #f0f8ff;
-  color: #1a75d1;
+  background: var(--gb-accent-soft);
+  color: var(--gb-accent-700);
   font-size: 12px;
   font-weight: 700;
   text-decoration: none;
-  border: 1px solid #d0eaff;
+  border: 1px solid var(--gb-accent-border);
   white-space: nowrap;
   vertical-align: middle;
   transition: transform 0.15s, background 0.15s;
 }
 
 .dnr-link:hover {
-  background: #e0f0ff;
+  background: var(--gb-accent-100);
 }
 
 .dnr-link:active {
   transform: scale(0.96);
 }
 
-/* Summary block */
-.detail-summary {
-  margin-top: 0;
-  margin-bottom: 16px;
-  padding: 16px;
-  background: #f0f8ff;
-  border-left: 4px solid #4FACFE;
-  border-radius: 4px;
-  font-size: 14px;
-  line-height: 1.7;
-  color: #333;
-}
-
-.detail-summary-label {
-  font-weight: 700;
-  color: #4FACFE;
-  margin-bottom: 8px;
-  font-size: 14px;
-}
-
-.detail-summary p {
-  margin: 0;
-}
-
-.detail-summary-byline {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.detail-summary-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.detail-angler-avatar {
-  flex-shrink: 0;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  object-fit: cover;
-  background: white;
-  border: 2px solid white;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
-}
-
-/* ─── Card Footer (Edit + Record Info triggers) ─── */
+/* ─── Card Footer: "ⓘ Record info" (everyone) or "More ▾" (admins) ─── */
 .detail-card-footer {
-  padding: 10px 24px;
-  border-top: 1px solid #f0f0f0;
-  background: #fafafa;
+  padding: 6px 16px;
+  border-top: 1px solid var(--gb-line-soft);
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
 }
 
-.record-info-trigger {
+/* ─── More (admins): one row per action, like the shack's trays ─── */
+.more-list {
+  display: grid;
+  gap: 4px;
+}
+
+.more-item {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  border-radius: var(--gb-radius-control);
   background: none;
-  border: none;
-  color: #bbb;
-  font-size: 12px;
-  font-weight: 600;
+  color: var(--gb-ink);
+  font-family: inherit;
+  text-align: left;
   cursor: pointer;
-  padding: 4px 0;
-  letter-spacing: 0.02em;
-  transition: color 0.2s;
 }
 
-.record-info-trigger:hover {
-  color: #4FACFE;
+.more-item:hover,
+.more-item:focus-visible {
+  background: var(--gb-accent-soft);
+  outline: none;
 }
 
-.detail-card-footer-admin {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-right: auto;
-}
-
-.edit-catch-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 14px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
-  color: white;
-  font-size: 12px;
-  font-weight: 700;
-  text-decoration: none;
-  box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.edit-catch-trigger:active {
-  transform: scale(0.96);
-}
-
-.edit-catch-trigger.hidden {
-  display: none;
-}
-
-.verify-toggle-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 14px;
-  border: none;
-  border-radius: 16px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
-}
-
-.verify-toggle-trigger:active {
-  transform: scale(0.96);
-}
-
-.verify-toggle-trigger:disabled {
+.more-item:disabled {
   opacity: 0.6;
   cursor: default;
 }
 
-.verify-toggle-trigger.hidden {
-  display: none;
+.more-item b {
+  display: block;
+  font-size: 15px;
 }
 
-.verify-toggle-trigger--pending {
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-  color: #0d5c3f;
-  box-shadow: 0 2px 8px rgba(67, 233, 123, 0.3);
+.more-item span span {
+  display: block;
+  font-size: 12px;
+  color: var(--gb-muted);
 }
 
-.verify-toggle-trigger--verified {
-  background: #f0f0f0;
-  color: #888;
+.more-ico {
+  font-size: 20px;
+  text-align: center;
 }
 
 /* ─── Record Info Modal ──────────────────────── */
@@ -360,13 +275,13 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px 12px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--gb-line-soft);
 }
 
 .ri-modal-title {
   font-size: 15px;
   font-weight: 700;
-  color: #555;
+  color: var(--gb-ink-3);
 }
 
 .ri-modal-close {
@@ -374,13 +289,13 @@ body {
   border: none;
   font-size: 28px;
   line-height: 1;
-  color: #aaa;
+  color: var(--gb-faintest);
   cursor: pointer;
   padding: 0;
 }
 
 .ri-modal-close:hover {
-  color: #555;
+  color: var(--gb-ink-3);
 }
 
 .ri-modal-body {
@@ -388,7 +303,7 @@ body {
 }
 
 .ri-modal-body .detail-row--audit {
-  border-bottom-color: #f0f0f0;
+  border-bottom-color: var(--gb-line-soft);
   padding: 10px 0;
 }
 
@@ -479,7 +394,7 @@ body {
   margin-left: 4px;
   border-top: 12px solid transparent;
   border-bottom: 12px solid transparent;
-  border-left: 20px solid #4FACFE;
+  border-left: 20px solid var(--gb-accent);
 }
 
 .media-video-label {
@@ -562,7 +477,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.92);
-  color: #1a1a1a;
+  color: var(--gb-ink);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
@@ -730,16 +645,23 @@ body {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #4FACFE;
-  border-bottom: 1px solid #e8f4ff;
-  background: #f0f8ff;
+  color: var(--gb-accent);
+  border-bottom: 1px solid var(--gb-accent-75);
+  background: var(--gb-accent-soft);
 }
 
-.detail-card-section-label {
+.detail-card-section-label,
+.detail-media-section .detail-section-label {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+/* "＋ Add photos" / "Done" in the media heading: a normal button, not heading caps */
+.detail-section-label .button-small {
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 /* ─── Media Section (inside card) ───────────────── */
@@ -750,8 +672,8 @@ body {
 }
 
 .detail-media-section .detail-section-label {
-  background: #f0f8ff;
-  border-bottom-color: #e8f4ff;
+  background: var(--gb-accent-soft);
+  border-bottom-color: var(--gb-accent-75);
   margin-bottom: 0;
 }
 
@@ -791,28 +713,9 @@ body {
 .detail-media-empty-text {
   margin: 0;
   font-size: 14px;
-  color: #555;
+  color: var(--gb-ink-3);
   font-style: italic;
   text-align: center;
-}
-
-.detail-upload-btn {
-  display: block;
-  margin-top: 16px;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
-  color: white;
-  text-decoration: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  text-align: center;
-  box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.detail-upload-btn:active {
-  transform: scale(0.98);
 }
 
 /* ─── Admin Media Delete Button ──────────────────── */
@@ -861,37 +764,6 @@ body {
   transition: background 0.25s;
 }
 
-/* ─── Manage Media Button ────────────────────────── */
-.manage-media-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  border: none;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  background: #fff0f0;
-  color: #b91c1c;
-  box-shadow: 0 1px 4px rgba(185, 28, 28, 0.15);
-  transition: transform 0.2s, background 0.2s;
-}
-
-.manage-media-trigger:active {
-  transform: scale(0.96);
-}
-
-.manage-media-trigger.hidden {
-  display: none;
-}
-
-.manage-media-trigger--active {
-  background: #f0f0f0;
-  color: #555;
-  box-shadow: none;
-}
-
 /* ─── Delete Confirmation Modal ──────────────────── */
 .dm-modal {
   display: none;
@@ -922,7 +794,7 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px 12px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--gb-line-soft);
 }
 
 .dm-modal-title {
@@ -936,13 +808,13 @@ body {
   border: none;
   font-size: 28px;
   line-height: 1;
-  color: #aaa;
+  color: var(--gb-faintest);
   cursor: pointer;
   padding: 0;
 }
 
 .dm-modal-close:hover {
-  color: #555;
+  color: var(--gb-ink-3);
 }
 
 .dm-modal-body {
@@ -970,7 +842,7 @@ body {
 }
 
 .dm-preview-placeholder {
-  color: #aaa;
+  color: var(--gb-faintest);
   font-size: 14px;
   padding: 32px;
   text-align: center;
@@ -979,13 +851,13 @@ body {
 
 .dm-info {
   font-size: 13px;
-  color: #666;
+  color: var(--gb-muted);
   margin-bottom: 12px;
   line-height: 1.5;
 }
 
 .dm-info strong {
-  color: #333;
+  color: var(--gb-ink-2);
   word-break: break-all;
 }
 
@@ -1010,7 +882,7 @@ body {
   flex: 1;
   padding: 13px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--gb-radius-button);
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
@@ -1027,15 +899,6 @@ body {
   transform: none;
 }
 
-.dm-btn--cancel {
-  background: #f0f0f0;
-  color: #555;
-}
-
-.dm-btn--cancel:hover:not(:disabled) {
-  background: #e4e4e4;
-}
-
 .dm-btn--delete {
   background: #dc2626;
   color: white;
@@ -1046,33 +909,8 @@ body {
 }
 
 /* ─── Back Button ────────────────────────────────── */
-.back-button {
-  display: block;
-  width: 100%;
-  padding: 16px 12px;
-  font-size: 15px;
-  font-weight: 700;
-  border-radius: 10px;
-  background: white;
-  color: #4FACFE;
-  text-decoration: none;
-  text-align: center;
-  margin-bottom: 32px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  transition: box-shadow 0.2s, transform 0.2s;
-}
-
-.back-button:active {
-  transform: scale(0.98);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
 /* Mobile */
 @media (max-width: 768px) {
-  .header h1 {
-    font-size: 36px;
-  }
-
   .detail-label {
     min-width: 130px;
   }
@@ -1095,7 +933,6 @@ body {
   .detail-label {
     min-width: unset;
   }
-
 
 }
 
@@ -1128,26 +965,3 @@ body {
   padding-bottom: 8px;
 }
 
-.lost-catch-btn {
-  display: block;
-  padding: 12px 16px;
-  border-radius: 10px;
-  font-weight: 700;
-  text-decoration: none;
-  text-align: center;
-}
-
-.lost-catch-btn--primary {
-  background: #4FACFE;
-  color: white;
-}
-
-.lost-catch-btn--secondary {
-  background: white;
-  color: #4FACFE;
-  border: 2px solid #4FACFE;
-}
-
-.lost-catch-btn:active {
-  transform: scale(0.98);
-}

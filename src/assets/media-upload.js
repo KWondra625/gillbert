@@ -27,19 +27,24 @@ function rejectReason(file) {
   return null;
 }
 
-// Fired immediately so it's resolved (or in flight) by the time the user hits Upload.
-// Multiple files in one upload are always attributed to the same person.
-const uploadedByAnglerIdPromise = (async () => {
+// The anglers list, fetched once: for who's uploading, and for the catch card's angler photo.
+const anglersPromise = (async () => {
   try {
     const res = await fetch(LOOKUP_URL, { headers: { 'X-API-Key': API_KEY } });
-    if (!res.ok) return null;
+    if (!res.ok) return [];
     const raw = await res.json();
     const data = Array.isArray(raw) ? raw[0] : raw;
-    return await resolveMyAnglerId(data.anglers || []);
+    return data.anglers || [];
   } catch {
-    return null;
+    return [];
   }
 })();
+
+// Fired immediately so it's resolved (or in flight) by the time the user hits Upload.
+// Multiple files in one upload are always attributed to the same person.
+const uploadedByAnglerIdPromise = anglersPromise
+  .then(anglers => resolveMyAnglerId(anglers))
+  .catch(() => null);
 
 const el = {
   noCatchState:     document.getElementById('noCatchState'),
@@ -117,7 +122,7 @@ async function loadCatchDetails(catchNumber) {
     if (!res.ok) throw new Error(`GET failed: ${res.status}`);
     const data = await res.json();
     const catchData = Array.isArray(data) ? data[0] : data;
-    renderCatchCard(catchNumber, catchData);
+    renderCatchCard(catchNumber, catchData, await anglersPromise);
     document.title = `Upload to ${catchNumber} · Gillbert`;
   } catch (err) {
     console.error(err);
@@ -125,26 +130,30 @@ async function loadCatchDetails(catchNumber) {
   }
 }
 
-function renderCatchCard(catchNumber, data) {
+// A smaller copy of the summary at the top of Catch Details: the angler's photo, the fish,
+// "Caught by … on …" and the date, so the catch looks the same on both pages.
+function renderCatchCard(catchNumber, data, anglers = []) {
   if (!data) {
     el.catchCard.innerHTML = `<div class="catch-card-id">${escapeHtml(catchNumber)}</div>`;
     return;
   }
 
-  const rows = [
-    data.anglerName      && ['Angler',       data.anglerName],
-    data.fishSpeciesName && ['Species',       data.fishSpeciesName],
-    data.bodyOfWaterName && ['Body of Water', data.bodyOfWaterName],
-    data.caughtWhen      && ['Caught When',   formatCaughtWhen(data.caughtWhen)],
-  ].filter(Boolean);
+  const angler = anglers.find(a => a.id === data.anglerId);
+  const avatar = GillbertAvatar.html({ id: data.anglerId, profilePhotoReadUrl: angler && angler.profilePhotoReadUrl },
+    data.anglerName, 'catch-card-avatar');
+  const species = data.fishSpeciesName || 'Fish';
+  const fish = data.length != null && data.length !== '' ? `${data.length}" ${species}` : species;
 
   el.catchCard.innerHTML = `
     <div class="catch-card-id">${escapeHtml(catchNumber)}</div>
-    ${rows.map(([label, value]) => `
-      <div class="catch-card-row">
-        <span class="catch-card-label">${label}</span>
-        <span class="catch-card-value">${escapeHtml(String(value))}</span>
-      </div>`).join('')}`;
+    <div class="catch-card-summary">
+      ${avatar}
+      <div class="catch-card-main">
+        <div class="catch-card-fish">${escapeHtml(fish)}</div>
+        <div class="catch-card-who">Caught by <b>${escapeHtml(data.anglerName || 'Unknown angler')}</b>${data.bodyOfWaterName ? ` on <b>${escapeHtml(data.bodyOfWaterName)}</b>` : ''}</div>
+        ${data.caughtWhen ? `<div class="catch-card-when">${escapeHtml(formatCaughtWhen(data.caughtWhen))}</div>` : ''}
+      </div>
+    </div>`;
 }
 
 // --- Upload ------------------------------------------------------------------

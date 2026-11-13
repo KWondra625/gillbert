@@ -5,18 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content" />
   <title>Gillbert - Catch Listing</title>
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/theme.css" />
+  <link rel="stylesheet" href="./assets/base.css" />
+  <link rel="stylesheet" href="./assets/topbar.css" />
+  <script src="./assets/settings.js"></script>
+  <script src="./assets/season.js"></script>
   <link rel="stylesheet" href="./assets/catches-listing.css" />
-  <link rel="stylesheet" href="./assets/top-home-link.css" />
 </head>
-<body>
+<body class="layout-open">
   <div class="container">
-    <div class="top-nav">
-      <a href="./index.html" id="topBackLink" class="top-home-link" aria-label="Go back to Home">← Home</a>
-    </div>
+    <header class="topbar" id="topbar"></header>
+    <script src="./assets/topbar.js"></script>
 
-    <div class="header">
-      <h1>🎣 All Catches</h1>
-      <p>Browse catch records</p>
+    <div class="page-head">
+      <span class="page-head-tile" aria-hidden="true">🎣</span>
+      <div>
+        <p class="page-head-label">Catches</p>
+        <h1>All Catches</h1>
+      </div>
     </div>
 
     <div class="controls">
@@ -28,7 +34,7 @@
           placeholder="Search catches..."
           title="Search by Catch ID, Angler, Fish Species, or Body of Water"
         />
-        <button id="searchBtn" class="search-button">🔍 Search</button>
+        <button id="searchBtn" class="search-button primary-button">🔍 Search</button>
       </div>
 
       <div class="filter-bar">
@@ -91,22 +97,23 @@
       </div>
     </div>
 
-    <div id="catchesContainer" class="catches-grid">
+    <div id="catchesContainer" class="catch-groups">
       <!-- Cards will be inserted here -->
     </div>
 
     <div id="paginationContainer" class="pagination-container">
-      <button id="prevBtn" class="pagination-button">← Previous</button>
+      <button id="prevBtn" class="pagination-button secondary-button">← Previous</button>
       <span id="pageInfo" class="page-info"></span>
-      <button id="nextBtn" class="pagination-button">Next →</button>
+      <button id="nextBtn" class="pagination-button secondary-button">Next →</button>
     </div>
 
-    <a href="./index.html" id="bottomBackLink" class="back-button">← Back to Home</a>
+    <a href="./index.html" id="bottomBackLink" class="back-button" hidden>← Back to Home</a>
   </div>
 
   <script src="./assets/config.js"></script>
   <script src="./assets/admin.js"></script>
   <script src="./assets/date-format.js"></script>
+  <script src="./assets/avatar.js"></script>
   <script src="./assets/catches-listing.js"></script>
 </body>
 </html>
