@@ -1,6 +1,8 @@
 # Media thumbnails (#38)
 
 Status: **draft for Kurt's review**, 2026-11-14. Nothing here is on a server yet.
+Phase 1 (catch photos) and phase 3 (video posters) are built in the pages and the workflow
+draft; phase 2 (profile photos) is waiting on a question (see "Phase 2").
 
 ## Why
 
@@ -38,8 +40,9 @@ twice:
   no **Attach** (like profile photo files today).
 - **Log Catch Media Details (commit):** refuses a file name ending `-thumb.jpg`/`-view.jpg`.
 
-**Videos: not in this round** (see open questions). Video tiles keep loading the start of
-the video for their first frame.
+For each **video** (phase 3): one file, its **poster frame**, stored as the video's
+thumbnail (`<ID>-thumb.jpg`, 1200 px, q82, in `thumbnail_url`; no viewing copy). See
+"Phase 3".
 
 ## Database
 
@@ -51,17 +54,18 @@ server before its workflows change:
 - `thumbnails_updated_at` (timestamptz)
 
 `vw_catch_media_details` gets the four columns appended at the end, plus
-`thumbnail_status`: `done` (has both URLs), `failed` (has an error), `missing` (a complete
-photo with neither), or null (videos, and photos still converting).
+`thumbnail_status`: `done` (a photo with both URLs, a video with its poster), `failed` (has
+an error), `missing` (a complete photo or video without them), or null (still converting).
 
 ## n8n
 
-**New: `Gillbert - Media - Make Thumbnails`** (sub-workflow, input `mediaId`). One photo per run:
-1. Load the row; stop quietly unless it's a complete photo.
+**New: `Gillbert - Media - Make Thumbnails`** (sub-workflow, input `mediaId`). One file per run:
+1. Load the row; stop quietly unless it's a complete photo or video.
 2. Download the original from its `read_url` (public read). On Staging most rows point at
    Production's storage: the original is only *read* from there. Thumbnails are always
    written to **this server's own storage**, so Staging never writes to Production storage.
-3. Make both sizes with `magick` (in the same image that already converts HEIC).
+3. Make both sizes with `magick` (in the same image that already converts HEIC). For a
+   video, `ffmpeg` grabs one frame instead (see "Phase 3").
 4. Upload both, then save the URLs (`thumbnail_error` cleared), or save the error.
 5. Returns `{ ok, mediaId, thumbnailUrl, viewingUrl, error }`. Never throws.
 6. Same temp-file pattern and sweep as Convert Media (`/tmp/gillbert_*`).
@@ -73,15 +77,17 @@ selected photos one at a time, so each call is short (no webhook timeouts, light
 and the page can show each photo's progress.
 
 **Changed:**
-- **Log Catch Media Details (commit):** photos recorded as complete straight away (JPEG/PNG)
+- **Log Catch Media Details (commit):** photos recorded as complete straight away (JPEG/PNG/WebP)
   start Make Thumbnails without waiting, like it starts Convert Media today. Also refuses a
   `-thumb.jpg`/`-view.jpg` file (see "One photo, one tile").
-- **Convert Media:** after Mark Complete for a photo, start Make Thumbnails without waiting.
-  (A HEIC is thumbnailed from its converted JPEG.)
+- **Convert Media:** after Mark Complete, start Make Thumbnails without waiting. (A HEIC is
+  thumbnailed from its converted JPEG; every video, MOV or MP4, goes through Convert Media.)
+- **GIFs are left out:** a thumbnail would freeze an animated GIF. They keep loading the
+  original, and the view gives them no thumbnail status (none on Staging today).
 - **GET Catch Media:** the response mapping adds `thumbnailUrl`, `viewingUrl`,
   `thumbnailStatus`, `thumbnailError` (the mapping lists fields explicitly).
-- **POST Delete Catch Media:** deletes all three files, then the record (see "Deleting a
-  photo" below).
+- **POST Delete Catch Media:** deletes the copies and the original, then the record (see
+  "Deleting a photo" below).
 - **Media Admin scan:** a `-thumb`/`-view` file whose ID has a record counts as known;
   one whose record is gone is listed as a file with no record, so leftovers from a failed
   delete still show up. `delete-orphan` accepts those names; the page offers only Delete.
@@ -92,7 +98,8 @@ Thumbnail failures never fail the upload: the photo is complete and viewable eit
 
 All three files go with the record, in one delete (the 🗑️ on the catch page, or Delete on
 Media Activity: both call POST Delete Catch Media, the only way media is deleted).
-- **Order:** thumbnail, viewing copy, original, then the record. Today it's original then
+- **Order:** thumbnail, viewing copy, original, then the record (a video: poster, video,
+  record). Today it's original then
   record; the record stays last, so the photo only disappears from the page once every file
   is gone.
 - **A file that's already gone is fine** (an older photo with no copies yet, or a second try
@@ -101,7 +108,7 @@ Media Activity: both call POST Delete Catch Media, the only way media is deleted
 - **Any other failure stops the delete** before the record goes: the photo stays on its
   catch, the page shows the error, and pressing delete again finishes the job.
 - **Deleted while its thumbnails are being made:** Make Thumbnails saves its URLs only if
-  the record still exists. If it's gone, it deletes the two files it just wrote, so nothing
+  the record still exists. If it's gone, it deletes the file(s) it just wrote, so nothing
   is left behind.
 - **Anything left behind anyway** (e.g. the server restarted mid-delete) shows up in Storage
   Check as a file with no record, offering Delete only.
@@ -109,12 +116,14 @@ Media Activity: both call POST Delete Catch Media, the only way media is deleted
 ## Pages
 
 - **Catch details:** photo tiles (and their blurred backdrop) use `thumbnailUrl`; the
-  lightbox uses `viewingUrl`. A photo without them uses the original, as today.
+  lightbox uses `viewingUrl`. A photo without them uses the original, as today. Video tiles:
+  see "Phase 3". The lightbox gets **Download original** (see below).
 - **Home card:** `thumbnailUrl`, else the original.
 - **Media Activity:** a third tab, **🖼️ Media Thumbnails**, and a summary tile counting
-  photos without thumbnails.
-  - Lists complete photos that are `missing` or `failed` (newest first, with the error for
-    failed ones), each with a checkbox, a preview, its catch and size.
+  photos and videos without thumbnails.
+  - Lists complete photos and videos that are `missing` or `failed` (newest first, with the
+    error for failed ones), each with a checkbox, a preview (🎬 for a video with no poster
+    yet), its catch and size.
   - Check 1 to 10 (the rest disable at 10; "Select 10" tops the selection up to ten), then
     **Generate Thumbnails**. The page runs the selected photos one at a time, showing each
     row's progress (⏳ → ✅ or ⚠️ with the reason). **Stop** finishes the current photo and
@@ -123,24 +132,44 @@ Media Activity: both call POST Delete Catch Media, the only way media is deleted
     and generating for a photo that already has thumbnails just remakes them.
   - Doubles as the repair tool: a photo whose automatic generation failed at upload shows
     up here as `failed`.
-- Not changed: video tiles, profile photos (`angler-media`), the catches listing.
+- Not changed: profile photos (`angler-media`, see "Phase 2"), the catches listing.
+
+### Download original
+
+A **⬇️ Download original** button in the lightbox, top left (across from ✕), on photos only:
+the video player has its own download.
+- A plain link to the original. **Make Thumbnails marks each photo's original "save as
+  `<its uploaded name>`"** in storage (`Content-Disposition`), so the browser downloads it
+  under that name (e.g. `IMG_1234.jpg`), on phones too. Pictures shown on the page aren't
+  affected; the setting only applies when the file is opened as a page.
+- Until a photo is marked (it hasn't been through Make Thumbnails yet), the link opens the
+  original in a new tab instead. So Release 2's backfill also makes older photos
+  downloadable.
+- Marked only when the original is in **that server's own storage**, so Staging never
+  writes to Production storage. On the develop site, photos kept in Production storage
+  open in a tab.
+- Considered and dropped: the page fetching the file itself. Storage refuses that for any
+  site it doesn't belong to (Staging storage refuses even the local site), and every refusal
+  shows as a browser error on every photo opened.
 
 ## Releases
 
 **Release 1 (new uploads):** migration, view, the two new workflows, the four changed ones,
-pages. Photos uploaded after it get thumbnails; older ones keep working from originals.
-Verified on Staging first (upload JPEG + HEIC; check both files, the URLs, the tiles and
-lightbox; delete one and check its thumbnails go; Storage Check shows nothing new).
+pages. Photos and videos uploaded after it get thumbnails; older ones keep working from
+originals. Verified on Staging first (upload JPEG + HEIC + MP4 + MOV; check the files, the
+URLs, the tiles and lightbox; delete one of each and check their copies go; Storage Check
+shows nothing new).
 
 **Release 2 (existing photos, any time after):** no code. On Production, open Media
-Activity → Media Thumbnails and generate in batches of up to 10 until none are missing.
+Activity → Media Thumbnails and generate in batches of up to 10 until none are missing
+(Staging's data today: 148 photos and 32 videos).
 Written as a runbook step; Staging first.
 
 ## Decisions (Kurt, 2026-11-14)
 
 1. **Three phases, all on this branch before it merges:** phase 1 catch photos (this doc),
-   phase 2 profile photos, phase 3 video poster images. Phases 2 and 3 get their own
-   sections here before they're built.
+   phase 2 profile photos, phase 3 video poster images. Phases 2 and 3 have their own
+   sections below.
 2. **"Download original"** link in the lightbox (full-size file).
 3. **Sizes: 1200 / 2048 px**, quality 82 / 85, color profile kept (see "Sizes" below).
 
@@ -156,3 +185,46 @@ Written as a runbook step; Staging first.
 - **Keep the color profile:** `+profile "!icc,*"` instead of `-strip` removes camera and GPS
   data but keeps the ICC profile, so iPhone (Display P3) photos don't come out duller.
 - Checked by eye on Staging: original vs both copies side by side, on a phone and the laptop.
+
+## Phase 2: profile photos (question for Kurt)
+
+Checked before designing anything: **profile photos are already small.** The crop screen
+saves the cropped square at the size of the crop box on screen, so every profile photo is
+about 226 px square and 12-34 KB (all 8 on Staging measured). They're shown at 24-96 px.
+A thumbnail would save almost nothing, and storing two copies of a 20 KB file adds a
+workflow, columns and clean-up for no visible gain.
+
+The one real gap goes the other way: **226 px is slightly soft at the largest size** (96 px
+on the angler edit page is 288 screen pixels on a 3x phone).
+
+Options:
+1. **Drop phase 2** (recommended): profile photos are already the size a thumbnail would be.
+2. **Make new crops sharper instead:** save the crop at a fixed 512 px square (about 40-60
+   KB), a small change in the crop screen. Existing photos stay as they are until re-cropped.
+3. Build thumbnails for them anyway, as for catch photos (not recommended, see above).
+
+## Phase 3: video poster frames
+
+**Why:** each video tile today loads the start of its video to show a first frame, holding
+one of the browser's 6 connections per video. With a poster, a tile loads one small picture and **no video until it's tapped**.
+
+**Made by** the same Make Thumbnails workflow (and endpoint, page tab and buttons):
+- `ffmpeg -ss 1 -i <read_url> -frames:v 1 -q:v 2 frame.jpg`: one frame about a second in,
+  past a black first frame (a clip shorter than that uses its first frame). ffmpeg reads
+  only the parts of the video it needs, straight from the URL, and turns phone videos
+  upright by itself.
+- Then the same `magick` step as a photo thumbnail: 1200 px, q82, color profile kept.
+- Stored as `<ID>-thumb.jpg` in `thumbnail_url`; `viewing_url` stays empty. Same name
+  pattern as photos, so deleting, Storage Check and "one photo, one tile" need nothing new.
+- All 180 media paths on Staging (148 photos; 32 videos: 15 MP4, 17 MOV) match the
+  workflow's path rules.
+
+**Pages (built):**
+- **Video tile with a poster:** the poster with the same blurred fill as photo tiles, so
+  vertical phone videos aren't cropped, plus the ▶ overlay. No `<video>` element until
+  tapped.
+- **No poster yet:** the video's start, as today. **A poster that fails to load** (e.g.
+  missing from storage) falls back to the same.
+- **Lightbox:** the poster shows while the video loads.
+- **Media Thumbnails tab:** videos without a poster are listed with 🎬 in place of a
+  preview, and generated like photos.

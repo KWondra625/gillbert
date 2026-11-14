@@ -90,8 +90,8 @@ function mediaStatus(m) {
 
 const needsAttention = m => ['failed', 'stuck'].includes(mediaStatus(m));
 const isConverting = m => ['submitted', 'processing'].includes(mediaStatus(m));
-// Complete photos with no thumbnails yet, or whose last attempt failed (#38). The API
-// leaves thumbnailStatus null for videos and for photos still converting.
+// Complete photos and videos with no thumbnails yet, or whose last attempt failed (#38).
+// The API leaves thumbnailStatus null for files still converting.
 const needsThumbnails = m => ['missing', 'failed'].includes(m.thumbnailStatus);
 
 // POSTs JSON and only accepts an explicit `success: true` (an empty 200 is a failed workflow).
@@ -474,10 +474,14 @@ function renderThumbs() {
       const canPick = needsThumbnails(m) && !thumbsRunning && (checked || !full);
       const state = progress ? progress.state : m.thumbnailStatus === 'failed' ? 'error' : null;
       const message = progress ? progress.message : m.thumbnailError;
-      const label = escapeHtml(m.originalFileName || m.blobPath || `Photo #${m.id}`);
+      const isVideo = m.mediaType === 'Video';
+      const label = escapeHtml(m.originalFileName || m.blobPath || `${isVideo ? 'Video' : 'Photo'} #${m.id}`);
       const catchUrl = `./catch-details.html?catchNumber=${encodeURIComponent(m.catchNumber || '')}`;
-      const preview = /^https:\/\//.test(m.thumbnailUrl || m.readUrl || '')
-        ? `<img class="thumbs-preview" src="${escapeHtml(encodeURI(m.thumbnailUrl || m.readUrl))}" alt="" loading="lazy">` : '';
+      // A photo previews itself; a video only once it has a poster frame (an <img> can't show a video)
+      const previewUrl = m.thumbnailUrl || (isVideo ? '' : m.readUrl);
+      const preview = /^https:\/\//.test(previewUrl || '')
+        ? `<img class="thumbs-preview" src="${escapeHtml(encodeURI(previewUrl))}" alt="" loading="lazy">`
+        : `<span class="thumbs-preview thumbs-preview--none" aria-hidden="true">${isVideo ? '🎬' : '📷'}</span>`;
       return `
       <li class="media-row thumbs-row${state ? ` thumbs-row--${state}` : ''}" data-id="${m.id}">
         <label class="thumbs-pick">

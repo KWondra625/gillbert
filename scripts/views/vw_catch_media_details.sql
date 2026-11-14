@@ -30,11 +30,14 @@ CREATE OR REPLACE VIEW vw_catch_media_details AS
            cm.viewing_url AS viewing_url,
            cm.thumbnail_error AS thumbnail_error,
            cm.thumbnails_updated_at AS thumbnails_updated_at,
-           -- done / failed / missing for complete photos; null for videos and for photos
-           -- still converting (they get thumbnails once complete).
+           -- done / failed / missing for complete photos and videos; null for files still
+           -- converting (they get thumbnails once complete). A photo needs both copies; a
+           -- video has one, its poster frame (thumbnail_url), and no viewing copy. GIFs: none.
            CASE
-               WHEN cm.media_type <> 'Photo' OR cm.status <> 'complete' THEN NULL
-               WHEN cm.thumbnail_url IS NOT NULL AND cm.viewing_url IS NOT NULL THEN 'done'
+               WHEN cm.media_type NOT IN ('Photo', 'Video') OR cm.status <> 'complete'
+                    OR cm.content_type = 'image/gif' THEN NULL   -- a thumbnail would freeze an animated GIF
+               WHEN cm.media_type = 'Photo' AND cm.thumbnail_url IS NOT NULL AND cm.viewing_url IS NOT NULL THEN 'done'
+               WHEN cm.media_type = 'Video' AND cm.thumbnail_url IS NOT NULL THEN 'done'
                WHEN cm.thumbnail_error IS NOT NULL THEN 'failed'
                ELSE 'missing'
            END AS thumbnail_status

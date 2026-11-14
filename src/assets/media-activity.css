@@ -620,6 +620,13 @@
   background: var(--gb-accent-150);
 }
 
+.thumbs-preview--none {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+}
+
 .thumbs-state {
   margin-top: 4px;
   font-weight: 600;

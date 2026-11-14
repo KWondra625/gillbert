@@ -1,6 +1,7 @@
--- One-time migration: thumbnails for catch photos (#38). Each photo gets a small thumbnail
--- (tiles, home card) and a mid-size viewing copy (lightbox), made by the
--- "Gillbert - Media - Make Thumbnails" workflow at upload or from Media Activity.
+-- One-time migration: thumbnails for catch media (#38). Each photo gets a small thumbnail
+-- (tiles, home card) and a mid-size viewing copy (lightbox); each video gets a poster frame
+-- (its thumbnail, no viewing copy). Made by the "Gillbert - Media - Make Thumbnails"
+-- workflow at upload or from Media Activity.
 --
 --   thumbnail_url, viewing_url  null until made; pages use the original until then
 --   thumbnail_error             why the last attempt failed (null after a success)

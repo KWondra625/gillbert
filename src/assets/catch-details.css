@@ -606,6 +606,27 @@
   opacity: 1;
 }
 
+/* Download original (#38): top left, across from the close button */
+.lightbox-download {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 1;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  opacity: 0.85;
+}
+
+.lightbox-download:hover,
+.lightbox-download:focus-visible {
+  opacity: 1;
+}
+
 .lightbox-nav {
   position: absolute;
   top: 50%;

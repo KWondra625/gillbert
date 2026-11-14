@@ -1085,7 +1085,9 @@ test.describe('media badges', () => {
     await page.route(url => url.pathname.endsWith('/get-catches'), route => route.fulfill({ json: [
       { ...first, catchNumber: 'Catch 99-001', anglerId: 901, anglerName: 'With Photo', catchMediaCount: 3, catchMediaProcessingCount: 1,
         createdAt: new Date().toISOString() },
-      { ...first, catchNumber: 'Catch 99-002', anglerId: 902, anglerName: 'No Photo', catchMediaCount: 0, catchMediaProcessingCount: 0 },
+      // An old date of its own: copying Staging's newest catch would make it New on a day one was added
+      { ...first, catchNumber: 'Catch 99-002', anglerId: 902, anglerName: 'No Photo', catchMediaCount: 0, catchMediaProcessingCount: 0,
+        createdAt: '2026-01-01T12:00:00Z' },
     ] }));
     await page.goto('catches-listing.html');
 
@@ -1240,6 +1242,64 @@ test.describe('media thumbnails', () => {
     await expect(page.locator('#lightboxImg')).toHaveAttribute('src', `${FAKE_STORAGE}/2.jpg`);
   });
 
+  test('Download original links to the full-size original, which storage marks to save; not shown for videos', async ({ page, context }) => {
+    const state = { items: [withThumbs(1, { originalFileName: 'IMG_1234.jpg' }),
+      mediaItem(2, { mediaType: 'Video', contentType: 'video/mp4', readUrl: `${FAKE_STORAGE}/2.mp4` })] };
+    await mockMediaList(page, state);
+    await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+
+    await page.locator('.media-tile[data-media-id="1"]').click();
+    const link = page.locator('#lightboxDownload');
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute('href', `${FAKE_STORAGE}/1.jpg`); // the original, not a copy
+    await expect(link).toHaveAttribute('target', '_blank'); // an original not marked yet opens in a tab
+    // Clicking opens a new tab straight away; the catch page stays as it was. (The save itself
+    // is the browser's own handling of a "save as" file, checked for real on Staging.)
+    await Promise.all([context.waitForEvent('page'), link.click()]);
+    await expect(page.locator('#lightbox')).toBeVisible();
+
+    await page.locator('#lightboxNext').click();
+    await expect(page.locator('#lightboxVideo')).toBeVisible();
+    await expect(link).toBeHidden();
+  });
+
+  test('a video with a poster frame shows it on its tile and loads no video until tapped', async ({ page }) => {
+    const video = (id, extra) => mediaItem(id, { mediaType: 'Video', contentType: 'video/mp4', readUrl: `${FAKE_STORAGE}/${id}.mp4`, ...extra });
+    const state = { items: [video(1, { thumbnailUrl: `${FAKE_STORAGE}/1-thumb.jpg`, thumbnailStatus: 'done' }), video(2, { thumbnailStatus: 'missing' })] };
+    await mockMediaList(page, state);
+    const videoRequests = [];
+    page.on('request', r => { if (r.url().includes('.mp4')) videoRequests.push(r.url()); });
+    await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+
+    const withPoster = page.locator('.media-tile--video[data-media-id="1"]');
+    await expect(withPoster.locator('.media-tile-poster')).toHaveAttribute('src', `${FAKE_STORAGE}/1-thumb.jpg`);
+    await expect(withPoster.locator('video')).toHaveCount(0);
+    // A video without one still previews its first frame, as before
+    // (#t=0.1 is dropped again when the fake file won't play; see addPreviewFallback)
+    await expect(page.locator('.media-tile--video[data-media-id="2"] video')).toHaveAttribute('src', /\/2\.mp4(#t=0\.1)?$/);
+    expect(videoRequests.some(u => u.includes('/1.mp4'))).toBe(false);
+
+    await withPoster.click();
+    await expect(page.locator('#lightboxVideo')).toHaveAttribute('src', `${FAKE_STORAGE}/1.mp4`);
+    await expect(page.locator('#lightboxVideo')).toHaveAttribute('poster', `${FAKE_STORAGE}/1-thumb.jpg`);
+    await page.locator('#lightboxNext').click();
+    await expect(page.locator('#lightboxVideo')).not.toHaveAttribute('poster', /./);
+  });
+
+  test.describe('when a poster frame is missing from storage', () => {
+    test.use({ allowConsoleErrors: true }); // the browser logs the missing image
+
+    test('the video tile falls back to the start of the video', async ({ page }) => {
+      await mockMediaList(page, { items: [mediaItem(1, { mediaType: 'Video', contentType: 'video/mp4',
+        readUrl: `${FAKE_STORAGE}/1.mp4`, thumbnailUrl: `${FAKE_STORAGE}/1-thumb.jpg`, thumbnailStatus: 'done' })] });
+      await page.route(`${FAKE_STORAGE}/1-thumb.jpg`, route => route.fulfill({ status: 404, body: '' }));
+      await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+      const tile = page.locator('.media-tile--video[data-media-id="1"]');
+      await expect(tile.locator('video')).toHaveAttribute('src', /\/1\.mp4(#t=0\.1)?$/);
+      await expect(tile.locator('img')).toHaveCount(0);
+    });
+  });
+
   test.describe('Media Activity tab', () => {
     test.beforeEach(async ({ page }) => {
       await page.route(url => url.pathname.endsWith('/catch-media/admin'), route => route.fulfill({ json: cleanScan }));
@@ -1282,6 +1342,26 @@ test.describe('media thumbnails', () => {
       await expect(page.locator('#thumbsList input:enabled')).toHaveCount(12);
       await page.locator('#thumbsClearBtn').click();
       await expect(page.locator('#thumbsList input:checked')).toHaveCount(0);
+    });
+
+    test('lists videos without a poster frame too, with a placeholder instead of a preview', async ({ page }) => {
+      await mockMediaList(page, { items: [
+        mediaItem(500, { mediaType: 'Video', contentType: 'video/mp4', readUrl: `${FAKE_STORAGE}/500.mp4`, originalFileName: 'clip.mp4', thumbnailStatus: 'missing' }),
+        mediaItem(501, { mediaType: 'Video', contentType: 'video/mp4', readUrl: `${FAKE_STORAGE}/501.mp4`,
+          thumbnailUrl: `${FAKE_STORAGE}/501-thumb.jpg`, thumbnailStatus: 'done' }),
+        mediaItem(502, { thumbnailStatus: 'missing' })] });
+      await page.goto('media-activity.html');
+      await page.locator('#thumbsTab').click();
+
+      const rows = page.locator('#thumbsList .thumbs-row');
+      await expect(rows).toHaveCount(2); // the video that has its poster isn't listed
+      const videoRow = page.locator('#thumbsList .thumbs-row[data-id="500"]');
+      await expect(videoRow).toContainText('clip.mp4');
+      await expect(videoRow.locator('.thumbs-preview--none')).toHaveText('🎬');
+      await expect(videoRow.locator('img')).toHaveCount(0); // never an <img> of a video file
+      await expect(page.locator('#thumbsList .thumbs-row[data-id="502"] img.thumbs-preview')).toHaveAttribute('src', `${FAKE_STORAGE}/502.jpg`);
+      await videoRow.locator('input').check();
+      await expect(page.locator('#thumbsRunBtn')).toBeEnabled();
     });
 
     test.describe('with one photo failing', () => {
