@@ -324,6 +324,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
+  container-type: inline-size; /* lets tiles size against the grid's width (cqw) */
 }
 
 /* Individual media tile */
@@ -363,6 +364,23 @@
   inset: 0;
   filter: blur(16px) brightness(0.85);
   transform: scale(1.15); /* hides the blur's soft edges */
+}
+
+/* One column (phones: under 2 x 200px + gap): no row to keep even, so a photo tile takes
+   the photo's own shape, full width, up to 3:4 tall. Taller shots (9:16) are held at 3:4
+   with the blur at the sides; the min-height holds the space while the photo loads. */
+@container (max-width: 411.98px) {
+  .media-tile--photo {
+    aspect-ratio: auto;
+    min-height: 56cqw;
+    display: flex;
+    align-items: center;
+  }
+
+  .media-tile--photo .media-tile-photo {
+    height: auto;
+    max-height: 133cqw;
+  }
 }
 
 /* Video tile */
