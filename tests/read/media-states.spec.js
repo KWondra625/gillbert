@@ -1169,7 +1169,9 @@ test.describe('profile photo HEIC', () => {
 // the photo's full resolution, so profile photos stay small. This guards that: a cropperjs
 // upgrade (#29) that changed it would quietly start saving multi-megabyte profile photos.
 test.describe('profile photo size', () => {
-  test('a crop from a big photo is saved small (at most 800 px on its long side)', async ({ page }) => {
+  // Answers the photo endpoints in the browser and measures the uploaded crop; then picks a
+  // made-up photo of the given size and confirms the crop box as it opens (80% of the photo).
+  async function cropAndMeasure(page, photoW, photoH) {
     await unlockAdmin(page);
     await page.route(url => url.pathname.endsWith('/anglers/get-photo-sas'), route => route.fulfill({ json: {
       uploadUrl: `${FAKE_STORAGE}/put/crop.jpg?sig=x`, readUrl: `${FAKE_STORAGE}/crop.jpg`,
@@ -1194,26 +1196,35 @@ test.describe('profile photo size', () => {
     await page.goto('edit-angler.html?id=1');
     await expect(page.locator('#anglerForm')).toBeVisible();
 
-    // A 4000 x 3000 photo, made in the page (a phone camera's size)
-    await page.evaluate(async () => {
+    await page.evaluate(async ([W, H]) => {
       const c = document.createElement('canvas');
-      c.width = 4000; c.height = 3000;
+      c.width = W; c.height = H;
       const g = c.getContext('2d');
-      g.fillStyle = '#2a6'; g.fillRect(0, 0, 4000, 3000);
-      g.fillStyle = '#fff'; g.fillRect(1000, 750, 2000, 1500);
+      g.fillStyle = '#2a6'; g.fillRect(0, 0, W, H);
+      g.fillStyle = '#fff'; g.fillRect(W / 4, H / 4, W / 2, H / 2);
       const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.9));
       const dt = new DataTransfer();
-      dt.items.add(new File([blob], 'big.jpg', { type: 'image/jpeg' }));
+      dt.items.add(new File([blob], 'photo.jpg', { type: 'image/jpeg' }));
       const input = document.getElementById('profilePhotoInput');
       input.files = dt.files;
       input.dispatchEvent(new Event('change', { bubbles: true }));
-    });
+    }, [photoW, photoH]);
     await expect(page.locator('#cropModal')).toHaveClass(/open/);
     await page.locator('#cropConfirmBtn').click();
     await expect.poll(() => page.evaluate(() => window.__uploadedSize || null)).not.toBeNull();
-    const { w, h } = await page.evaluate(() => window.__uploadedSize);
-    expect(Math.max(w, h), `saved crop is ${w}x${h}`).toBeLessThanOrEqual(800);
-    expect(Math.min(w, h)).toBeGreaterThan(100);
+    return page.evaluate(() => window.__uploadedSize);
+  }
+
+  test('a crop from a phone photo is saved at 512 px square (#38: sharp, still small)', async ({ page }) => {
+    const { w, h } = await cropAndMeasure(page, 4000, 3000); // a phone camera's size
+    expect(`${w}x${h}`).toBe('512x512');
+  });
+
+  test('a crop from a small photo is saved at its own size, never stretched', async ({ page }) => {
+    const { w, h } = await cropAndMeasure(page, 300, 300);
+    expect(w, `saved crop is ${w}x${h}`).toBe(h);
+    expect(w).toBeLessThanOrEqual(300);
+    expect(w).toBeGreaterThan(100);
   });
 });
 

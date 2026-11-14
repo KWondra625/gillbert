@@ -1,8 +1,8 @@
 # Media thumbnails (#38)
 
 Status: **draft for Kurt's review**, 2026-11-14. Nothing here is on a server yet.
-Phase 1 (catch photos) and phase 3 (video posters) are built in the pages and the workflow
-draft; phase 2 (profile photos) is waiting on a question (see "Phase 2").
+All three phases are built in the pages; phases 1 and 3 also in the workflow draft
+(phase 2 needs no server change).
 
 ## Why
 
@@ -186,7 +186,15 @@ Written as a runbook step; Staging first.
   data but keeps the ICC profile, so iPhone (Display P3) photos don't come out duller.
 - Checked by eye on Staging: original vs both copies side by side, on a phone and the laptop.
 
-## Phase 2: profile photos (question for Kurt)
+## Phase 2: profile photos — sharper crops (decided, built)
+
+**Kurt, 2026-11-14: option 2.** The crop screen now saves at **512 px square** (JPEG 0.92,
+about 40-60 KB), instead of at the size of the box on screen. A crop from a smaller area of
+the photo than that is saved at its own size, never stretched. Pages only (the crop happens
+in the browser): no workflow, database or storage change. Existing profile photos stay as
+they are until their angler crops a new one. Same on the angler edit page and My Profile.
+
+Background, as found:
 
 Checked before designing anything: **profile photos are already small.** The crop screen
 saves the cropped square at the size of the crop box on screen, so every profile photo is
@@ -197,7 +205,7 @@ workflow, columns and clean-up for no visible gain.
 The one real gap goes the other way: **226 px is slightly soft at the largest size** (96 px
 on the angler edit page is 288 screen pixels on a 3x phone).
 
-Options:
+Options considered:
 1. **Drop phase 2** (recommended): profile photos are already the size a thumbnail would be.
 2. **Make new crops sharper instead:** save the crop at a fixed 512 px square (about 40-60
    KB), a small change in the crop screen. Existing photos stay as they are until re-cropped.

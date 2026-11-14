@@ -210,13 +210,29 @@ function createProfilePhotoWidget({ getAnglerId, elements: el }) {
     el.input.value = '';
   }
 
+  const PROFILE_PHOTO_SIDE = 512;
+
+  // The crop's size in the photo's own pixels: the box on screen divided by how much the
+  // photo is scaled to fit the crop area.
+  function cropOutputSize() {
+    const [a, b] = el.cropperImage.$getTransform ? el.cropperImage.$getTransform() : [1, 0];
+    const scale = Math.hypot(a, b) || 1;
+    const sourceSide = Math.floor(el.cropperSelection.width / scale);
+    const side = Math.max(1, Math.min(PROFILE_PHOTO_SIDE, sourceSide || PROFILE_PHOTO_SIDE));
+    return { width: side, height: side };
+  }
+
   async function confirmCrop() {
     const originalFile = pendingOriginalFile;
     // $toCanvas() below is async, so without this a fast double-click could
     // start two upload pipelines before either reaches uploadProfilePhoto.
     el.cropConfirmBtn.disabled = true;
     try {
-      const canvas = await el.cropperSelection.$toCanvas();
+      // Saved at 512 px square (#38 phase 2): sharp at the largest size it's shown (96 px on
+      // a 3x phone screen is 288), ~40-60 KB. Left alone, the crop is saved at the size of
+      // the box on screen (~226 px), slightly soft. A crop from a smaller area of the photo
+      // than that is saved at its own size, never stretched.
+      const canvas = await el.cropperSelection.$toCanvas(cropOutputSize());
       const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
       if (!blob) throw new Error('Canvas produced no image data.');
       const croppedName = (originalFile.name || 'photo').replace(/\.[^.]+$/, '') + '-cropped.jpg';
