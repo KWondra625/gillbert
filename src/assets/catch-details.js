@@ -862,7 +862,9 @@ function buildMediaTile(item) {
   // Photo (jpeg, png, etc.)
   return `
     <div class="media-tile media-tile--photo" data-media-id="${item.id || ''}">
+      <img class="media-tile-backdrop" src="${encodeURI(readUrl)}" alt="" aria-hidden="true" loading="lazy" />
       <img
+        class="media-tile-photo"
         src="${encodeURI(readUrl)}"
         alt="Catch photo"
         loading="lazy"

@@ -351,6 +351,20 @@
   display: block;
 }
 
+/* Photo tile: show the whole photo (any shape), with a blurred copy of it
+   filling the leftover space, so vertical phone photos aren't cropped. */
+.media-tile .media-tile-photo {
+  position: relative;
+  object-fit: contain;
+}
+
+.media-tile .media-tile-backdrop {
+  position: absolute;
+  inset: 0;
+  filter: blur(16px) brightness(0.85);
+  transform: scale(1.15); /* hides the blur's soft edges */
+}
+
 /* Video tile */
 .media-tile video {
   width: 100%;
