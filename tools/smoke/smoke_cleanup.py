@@ -5,8 +5,8 @@ counters so the next real catch gets the next number.
 Everything newer than the baseline (the newest catch restored from the Pi) is smoke-test data: the anglers
 aren't told until the clean-up is done.
 
-  python infra/ops/smoke_cleanup.py bridge01 --baseline 147,171,112,636             # DRY RUN: list what would go
-  python infra/ops/smoke_cleanup.py bridge01 --baseline 147,171,112,636 --delete    # delete the media
+  python tools/smoke/smoke_cleanup.py bridge01 --baseline 147,171,112,636             # DRY RUN: list what would go
+  python tools/smoke/smoke_cleanup.py bridge01 --baseline 147,171,112,636 --delete    # delete the media
 
 --baseline is STEP 0 of smoke_cleanup.sql: newest catch, catch_media, conversation and chat_message ids right after
 the restore. After a clean --delete it writes smoke_cleanup.ready.sql (gitignored) with the baseline filled in, so

@@ -3,9 +3,9 @@
 Sends GET requests only (n8n webhooks plus a 1-byte read of a media file or two in Azure). Writes nothing.
 Never prints keys, media links or catch data; only counts, field names and PASS/FAIL lines.
 
-  python infra/ops/smoke_check.py bridge01 --expect production
-  python infra/ops/smoke_check.py lab01 --expect staging
-  python infra/ops/smoke_check.py bridge01 --compare-with api     # the night: new production vs the frozen Pi
+  python tools/smoke/smoke_check.py bridge01 --expect production
+  python tools/smoke/smoke_check.py lab01 --expect staging
+  python tools/smoke/smoke_check.py bridge01 --compare-with api     # the night: new production vs the frozen Pi
 
 Servers: bridge01, lab01 (the Pi), api (the Pi's old hostname). Keys come from the gitignored
 .claude/.env.gillbert-smoke (BRIDGE01_KEY=..., PI_KEY=...; use each server's direct_connect key from the
