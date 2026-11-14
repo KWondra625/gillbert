@@ -51,11 +51,13 @@
         <button class="stat-tile" data-goto="attention" id="statAttentionTile"><span class="stat-num" id="statAttention">0</span><span class="stat-label">⚠️ need attention</span></button>
         <button class="stat-tile" data-goto="converting" id="statConvertingTile"><span class="stat-num" id="statConverting">0</span><span class="stat-label">⏳ converting</span></button>
         <button class="stat-tile stat-tile--text" data-goto="storage" id="statStorageTile"><span class="stat-num" id="statStorage">Checking…</span><span class="stat-label">🧹 storage</span></button>
+        <button class="stat-tile" data-goto="thumbnails" id="statThumbsTile"><span class="stat-num" id="statThumbs">0</span><span class="stat-label">🖼️ without thumbnails</span></button>
       </div>
 
       <div class="tabs" role="tablist">
         <button class="tab tab--active" role="tab" id="uploadsTab" data-tab="uploads" aria-selected="true" aria-controls="uploadsPanel">📋 Uploads <span class="tab-count" id="uploadsTabCount"></span></button>
         <button class="tab" role="tab" id="storageTab" data-tab="storage" aria-selected="false" aria-controls="storagePanel">🧹 Storage Check <span class="tab-count" id="storageTabCount">…</span></button>
+        <button class="tab" role="tab" id="thumbsTab" data-tab="thumbnails" aria-selected="false" aria-controls="thumbsPanel">🖼️ Media Thumbnails <span class="tab-count" id="thumbsTabCount"></span></button>
       </div>
 
       <!-- ── Uploads ────────────────────────────────────────────────── -->
@@ -92,6 +94,21 @@
           <button id="scanBtn" class="secondary-button">🔍 Scan Again</button>
         </div>
         <div id="scanResult" class="scan-result hidden"></div>
+      </section>
+
+      <!-- ── Media thumbnails ───────────────────────────────────────── -->
+      <section id="thumbsPanel" class="hidden" role="tabpanel" aria-labelledby="thumbsTab">
+        <p class="card-intro">Photos get a small thumbnail (tiles) and a mid-size copy (full-screen view) when they're uploaded; until then pages load the full-size photo. These photos don't have them yet, or making them failed. Check up to 10 and press Generate Thumbnails: they're made one at a time. Safe to stop, and to run again.</p>
+        <div class="toolbar thumbs-toolbar">
+          <button id="thumbsSelectBtn" class="secondary-button button-small">☑️ Select 10</button>
+          <button id="thumbsClearBtn" class="secondary-button button-small">Clear</button>
+          <button id="thumbsRefreshBtn" class="secondary-button button-small">🔄 Refresh</button>
+          <span class="toolbar-spacer"></span>
+          <button id="thumbsStopBtn" class="secondary-button button-small hidden">⏹️ Stop</button>
+          <button id="thumbsRunBtn" class="primary-button button-small" disabled>🖼️ Generate Thumbnails</button>
+        </div>
+        <div id="thumbsStatus" class="status" role="status"></div>
+        <ul id="thumbsList" class="media-list thumbs-list"></ul>
       </section>
     </div>
   </div>

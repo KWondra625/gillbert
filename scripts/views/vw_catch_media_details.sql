@@ -24,7 +24,20 @@ CREATE OR REPLACE VIEW vw_catch_media_details AS
                     AND cm.status_updated_at < CURRENT_TIMESTAMP - INTERVAL '30 minutes'
                    THEN 'stuck'
                ELSE cm.status
-           END AS display_status
+           END AS display_status,
+           -- Thumbnails (#38), appended after display_status for the same reason.
+           cm.thumbnail_url AS thumbnail_url,
+           cm.viewing_url AS viewing_url,
+           cm.thumbnail_error AS thumbnail_error,
+           cm.thumbnails_updated_at AS thumbnails_updated_at,
+           -- done / failed / missing for complete photos; null for videos and for photos
+           -- still converting (they get thumbnails once complete).
+           CASE
+               WHEN cm.media_type <> 'Photo' OR cm.status <> 'complete' THEN NULL
+               WHEN cm.thumbnail_url IS NOT NULL AND cm.viewing_url IS NOT NULL THEN 'done'
+               WHEN cm.thumbnail_error IS NOT NULL THEN 'failed'
+               ELSE 'missing'
+           END AS thumbnail_status
     FROM catch_media cm INNER JOIN catches c ON cm.catch_id = c.id
            LEFT JOIN anglers a ON cm.uploaded_by_angler_id = a.id
     ORDER BY cm.id;

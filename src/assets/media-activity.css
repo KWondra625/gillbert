@@ -119,7 +119,7 @@
 
 .stat-strip {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 10px;
   margin-bottom: 18px;
 }
@@ -567,6 +567,72 @@
   border-color: #f4e3a6;
 }
 
+/* ── Media thumbnails tab (#38) ──────────────────────────────────── */
+
+/* Checkbox, preview, then the file and its details; rows needing thumbnails are amber */
+.thumbs-row {
+  display: grid;
+  grid-template-columns: auto 64px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  border-left-color: #e0a100;
+}
+
+.thumbs-row--running,
+.thumbs-row--queued {
+  border-left-color: var(--gb-accent-600);
+}
+
+.thumbs-row--done {
+  border-left-color: #2e9e5b;
+}
+
+.thumbs-row--error {
+  border-left-color: #d92d20;
+  background: #fff4f3;
+  border-color: #fcd4d0;
+}
+
+.thumbs-pick {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+}
+
+.thumbs-pick input {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.thumbs-pick input:disabled {
+  cursor: not-allowed;
+}
+
+.thumbs-preview {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--gb-accent-150);
+}
+
+.thumbs-state {
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.thumbs-toolbar {
+  flex-wrap: wrap;
+}
+
+#thumbsPanel .card-intro {
+  margin-bottom: 12px;
+}
+
 /* ── Phones ──────────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
@@ -574,10 +640,22 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
+  /* Five tiles in two columns: the last one spans the row */
+  .stat-strip .stat-tile:last-child {
+    grid-column: 1 / -1;
+  }
+
+  /* Three equal tabs; a long label wraps to a second line instead of running off-screen */
   .tab {
-    flex: 1;
-    padding: 10px 6px;
-    font-size: 14px;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 8px 4px;
+    font-size: 13px;
+    line-height: 1.3;
+    text-align: center;
+  }
+
+  .tab-count {
     white-space: nowrap;
   }
 

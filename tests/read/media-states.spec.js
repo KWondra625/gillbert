@@ -886,6 +886,28 @@ test.describe('media activity page', () => {
     await expect(page.locator('#statStorage')).toHaveText('1 issue');
   });
 
+  test('a leftover thumbnail copy can be deleted but not attached (it would show the photo twice)', async ({ page }) => {
+    await unlockAdmin(page);
+    await mockMediaList(page, { items: [mediaItem(30)] });
+    const old = 'Tue, 27 Oct 2026 01:00:00 GMT';
+    await page.route(url => url.pathname.endsWith('/catch-media/admin'), route => route.fulfill({ json: { ...cleanScan, orphanFiles: [
+      { blobPath: 'catches/Catch-26-001/ABCDEFGH12-thumb.jpg', sizeBytes: 2048, lastModified: old, catchNumber: 'Catch 26-001' },
+      { blobPath: 'catches/Catch-26-001/ABCDEFGH12-view.jpg', sizeBytes: 4096, lastModified: old, catchNumber: 'Catch 26-001' },
+      { blobPath: 'catches/Catch-26-001/ZYXWVUTS98.jpg', sizeBytes: 8192, lastModified: old, catchNumber: 'Catch 26-001' }] } }));
+    await page.goto('media-activity.html');
+    await page.locator('#storageTab').click();
+
+    const rows = page.locator('#scanResult .media-row');
+    await expect(rows).toHaveCount(3);
+    for (const i of [0, 1]) {
+      await expect(rows.nth(i)).toContainText('Catch 26-001 thumbnail copy');
+      await expect(rows.nth(i).locator('[data-action="attach"]')).toHaveCount(0);
+      await expect(rows.nth(i).locator('[data-action="delete-orphan"]')).toHaveCount(1);
+    }
+    // An ordinary file with no record can still be attached
+    await expect(rows.nth(2).locator('[data-action="attach"]')).toHaveCount(1);
+  });
+
   test('files with no record can be previewed and opened, when the scan gives a link', async ({ page }) => {
     await unlockAdmin(page);
     await mockMediaList(page, { items: [mediaItem(30)] });
@@ -1190,6 +1212,143 @@ test.describe('profile photo size', () => {
     const { w, h } = await page.evaluate(() => window.__uploadedSize);
     expect(Math.max(w, h), `saved crop is ${w}x${h}`).toBeLessThanOrEqual(800);
     expect(Math.min(w, h)).toBeGreaterThan(100);
+  });
+});
+
+// Media thumbnails (#38): the pages use the small copies when a photo has them, and Media
+// Activity can make them for photos that don't. All answered in the browser.
+test.describe('media thumbnails', () => {
+  const withThumbs = (id, extra = {}) => mediaItem(id, {
+    thumbnailUrl: `${FAKE_STORAGE}/${id}-thumb.jpg`, viewingUrl: `${FAKE_STORAGE}/${id}-view.jpg`,
+    thumbnailStatus: 'done', ...extra });
+
+  test('catch page tiles use the thumbnail and the lightbox the viewing copy, else the original', async ({ page }) => {
+    const state = { items: [withThumbs(1), mediaItem(2, { thumbnailStatus: 'missing' })] };
+    await mockMediaList(page, state);
+    await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+
+    await expect(page.locator('.media-tile--photo')).toHaveCount(2);
+    const srcs = await page.$$eval('.media-tile-photo', imgs => imgs.map(i => i.getAttribute('src')));
+    expect(srcs.sort()).toEqual([`${FAKE_STORAGE}/1-thumb.jpg`, `${FAKE_STORAGE}/2.jpg`]);
+    // The blurred backdrop uses the same small file, not the original
+    await expect(page.locator('[data-media-id="1"] .media-tile-backdrop')).toHaveAttribute('src', `${FAKE_STORAGE}/1-thumb.jpg`);
+
+    await page.locator('.media-tile[data-media-id="1"]').click();
+    await expect(page.locator('#lightboxImg')).toHaveAttribute('src', `${FAKE_STORAGE}/1-view.jpg`);
+    await page.locator('#lightboxClose').click();
+    await page.locator('.media-tile[data-media-id="2"]').click();
+    await expect(page.locator('#lightboxImg')).toHaveAttribute('src', `${FAKE_STORAGE}/2.jpg`);
+  });
+
+  test.describe('Media Activity tab', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.route(url => url.pathname.endsWith('/catch-media/admin'), route => route.fulfill({ json: cleanScan }));
+      await unlockAdmin(page);
+    });
+
+    // 12 photos needing thumbnails (11 missing, 1 failed), plus two that don't belong in the list
+    function listWithMissing() {
+      const items = [];
+      for (let i = 1; i <= 11; i++) items.push(mediaItem(100 + i, { thumbnailStatus: 'missing', uploadedAt: `2026-10-${String(i).padStart(2, '0')}T12:00:00Z` }));
+      items.push(mediaItem(200, { thumbnailStatus: 'failed', thumbnailError: 'magick failed (exit 1)', uploadedAt: '2026-10-20T12:00:00Z' }));
+      items.push(withThumbs(300));
+      items.push(mediaItem(400, { mediaType: 'Video', contentType: 'video/mp4', thumbnailStatus: null }));
+      return items;
+    }
+
+    test('lists photos without thumbnails and caps the selection at 10', async ({ page }) => {
+      await mockMediaList(page, { items: listWithMissing() });
+      await page.goto('media-activity.html');
+
+      await expect(page.locator('#statThumbs')).toHaveText('12');
+      await page.locator('#statThumbsTile').click();
+      await expect(page.locator('#thumbsPanel')).toBeVisible();
+      const rows = page.locator('#thumbsList .thumbs-row');
+      await expect(rows).toHaveCount(12);
+      // Newest first; the failed one shows why
+      await expect(rows.first()).toContainText('file-200.jpg');
+      await expect(rows.first()).toContainText('magick failed (exit 1)');
+      await expect(page.locator('#thumbsRunBtn')).toBeDisabled();
+
+      await page.locator('#thumbsSelectBtn').click();
+      await expect(page.locator('#thumbsList input:checked')).toHaveCount(10);
+      await expect(page.locator('#thumbsList input:not(:checked)')).toHaveCount(2);
+      for (const box of await page.locator('#thumbsList input:not(:checked)').all()) await expect(box).toBeDisabled();
+      await expect(page.locator('#thumbsRunBtn')).toHaveText('🖼️ Generate Thumbnails (10)');
+
+      // Unchecking one frees a slot (by id: the list re-renders after each change)
+      const firstId = await page.locator('#thumbsList input:checked').first().getAttribute('data-id');
+      await page.locator(`#thumbsList input[data-id="${firstId}"]`).uncheck();
+      await expect(page.locator('#thumbsList input:enabled')).toHaveCount(12);
+      await page.locator('#thumbsClearBtn').click();
+      await expect(page.locator('#thumbsList input:checked')).toHaveCount(0);
+    });
+
+    test.describe('with one photo failing', () => {
+      test.use({ allowConsoleErrors: true }); // the page logs the failed photo
+
+      test('generates the selected photos one at a time and shows each result', async ({ page }) => {
+        await mockMediaList(page, { items: listWithMissing() });
+        const calls = [];
+        let inFlight = 0, maxInFlight = 0;
+        await page.route(url => url.pathname.endsWith('/catch-media/thumbnails'), async route => {
+          const { mediaId } = route.request().postDataJSON();
+          calls.push(mediaId);
+          inFlight++; maxInFlight = Math.max(maxInFlight, inFlight);
+          await new Promise(r => setTimeout(r, 150));
+          inFlight--;
+          if (mediaId === 110) return route.fulfill({ status: 500, json: { success: false, message: 'Could not read the photo' } });
+          return route.fulfill({ json: { success: true, mediaId,
+            thumbnailUrl: `${FAKE_STORAGE}/${mediaId}-thumb.jpg`, viewingUrl: `${FAKE_STORAGE}/${mediaId}-view.jpg` } });
+        });
+        await page.goto('media-activity.html');
+        await page.locator('#thumbsTab').click();
+  
+        for (const id of [111, 110, 109]) await page.locator(`#thumbsList input[data-id="${id}"]`).check();
+        await page.locator('#thumbsRunBtn').click();
+  
+        await expect(page.locator('#thumbsStatus')).toHaveText('2 done, 1 failed.');
+        expect(calls).toEqual([111, 110, 109]);   // in the order they were checked
+        expect(maxInFlight).toBe(1);               // never two at once
+        await expect(page.locator('.thumbs-row[data-id="111"]')).toContainText('✅ Done');
+        await expect(page.locator('.thumbs-row[data-id="110"]')).toContainText('Could not read the photo');
+        await expect(page.locator('.thumbs-row[data-id="110"] input')).toBeEnabled();   // can try again
+        await expect(page.locator('.thumbs-row[data-id="111"] input')).toBeDisabled();
+        await expect(page.locator('#statThumbs')).toHaveText('10');
+  
+        // Refresh forgets this visit's results and shows the list as the server has it
+        await page.locator('#thumbsRefreshBtn').click();
+        await expect(page.locator('.thumbs-row[data-id="111"]')).not.toContainText('✅ Done');
+      });
+    });
+
+    test('Stop finishes the current photo and skips the rest', async ({ page }) => {
+      await mockMediaList(page, { items: listWithMissing() });
+      const calls = [];
+      let release;
+      await page.route(url => url.pathname.endsWith('/catch-media/thumbnails'), async route => {
+        const { mediaId } = route.request().postDataJSON();
+        calls.push(mediaId);
+        if (calls.length === 1) await new Promise(r => { release = r; });
+        return route.fulfill({ json: { success: true, mediaId, thumbnailUrl: `${FAKE_STORAGE}/t.jpg`, viewingUrl: `${FAKE_STORAGE}/v.jpg` } });
+      });
+      await page.goto('media-activity.html');
+      await page.locator('#thumbsTab').click();
+      await page.locator('#thumbsSelectBtn').click();
+      await page.locator('#thumbsRunBtn').click();
+
+      await expect.poll(() => calls.length).toBe(1);
+      await expect(page.locator('#thumbsStopBtn')).toBeVisible();
+      await page.locator('#thumbsStopBtn').click();
+      await expect(page.locator('#thumbsStopBtn')).toHaveText('Stopping after this one…');
+      release();
+
+      await expect(page.locator('#thumbsStatus')).toHaveText('1 done, 9 skipped (stopped).');
+      expect(calls).toHaveLength(1);
+      await expect(page.locator('#thumbsStopBtn')).toBeHidden();
+      // The skipped ones are still selected, ready to run again
+      await expect(page.locator('#thumbsList input:checked')).toHaveCount(9);
+    });
   });
 });
 

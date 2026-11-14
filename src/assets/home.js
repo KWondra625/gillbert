@@ -178,7 +178,7 @@ async function addRememberPhoto(card, c) {
     img.alt = '';
     // A photo that won't load leaves the card as it was, not a broken image
     img.onerror = () => { img.remove(); card.classList.add('no-photo'); };
-    img.src = encodeURI(photo.readUrl);
+    img.src = encodeURI(photo.thumbnailUrl || photo.readUrl); // small thumbnail when it has one (#38)
     card.classList.remove('no-photo');
     card.prepend(img);
   } catch (err) {

@@ -14,5 +14,9 @@ CREATE TABLE IF NOT EXISTS catch_media (
     error_message text,
     status_updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    thumbnail_url varchar(255),
+    viewing_url varchar(255),
+    thumbnail_error text,
+    thumbnails_updated_at TIMESTAMPTZ
 );

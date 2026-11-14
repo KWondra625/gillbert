@@ -7,6 +7,7 @@ const CATCH_MEDIA_RETRY_URL  = API_BASE + "catch-media/retry";
 const CATCH_MEDIA_DELETE_URL = API_BASE + "catch-media/delete";
 const CATCH_MEDIA_COMMIT_URL = API_BASE + "catch-media/commit";
 const CATCH_MEDIA_ADMIN_URL  = API_BASE + "catch-media/admin";
+const CATCH_MEDIA_THUMBS_URL = API_BASE + "catch-media/thumbnails";
 
 const PAGE_SIZE = 50;
 const STATE_IDS = ['loadingState', 'errorState', 'listState'];
@@ -38,6 +39,16 @@ const el = {
   scanBtn:      document.getElementById('scanBtn'),
   scanResult:   document.getElementById('scanResult'),
   catchFilter:  document.getElementById('catchFilter'),
+  statThumbs:       document.getElementById('statThumbs'),
+  statThumbsTile:   document.getElementById('statThumbsTile'),
+  thumbsTabCount:   document.getElementById('thumbsTabCount'),
+  thumbsList:       document.getElementById('thumbsList'),
+  thumbsStatus:     document.getElementById('thumbsStatus'),
+  thumbsSelectBtn:  document.getElementById('thumbsSelectBtn'),
+  thumbsClearBtn:   document.getElementById('thumbsClearBtn'),
+  thumbsRunBtn:     document.getElementById('thumbsRunBtn'),
+  thumbsStopBtn:    document.getElementById('thumbsStopBtn'),
+  thumbsRefreshBtn: document.getElementById('thumbsRefreshBtn'),
 };
 
 let allMedia = [];
@@ -79,6 +90,9 @@ function mediaStatus(m) {
 
 const needsAttention = m => ['failed', 'stuck'].includes(mediaStatus(m));
 const isConverting = m => ['submitted', 'processing'].includes(mediaStatus(m));
+// Complete photos with no thumbnails yet, or whose last attempt failed (#38). The API
+// leaves thumbnailStatus null for videos and for photos still converting.
+const needsThumbnails = m => ['missing', 'failed'].includes(m.thumbnailStatus);
 
 // POSTs JSON and only accepts an explicit `success: true` (an empty 200 is a failed workflow).
 async function postJson(url, body) {
@@ -123,6 +137,10 @@ function renderSummary() {
   el.statAttentionTile.classList.toggle('stat-tile--alert', attention > 0);
   el.statConvertingTile.classList.toggle('stat-tile--warn', converting > 0);
   el.uploadsTabCount.textContent = `(${allMedia.length})`;
+  const noThumbs = allMedia.filter(needsThumbnails).length;
+  el.statThumbs.textContent = noThumbs;
+  el.statThumbsTile.classList.toggle('stat-tile--warn', noThumbs > 0);
+  el.thumbsTabCount.textContent = `(${noThumbs})`;
 }
 
 // ── Tabs + tiles ───────────────────────────────────────────────────────
@@ -135,6 +153,7 @@ function showTab(name) {
   });
   document.getElementById('uploadsPanel').classList.toggle('hidden', name !== 'uploads');
   document.getElementById('storagePanel').classList.toggle('hidden', name !== 'storage');
+  document.getElementById('thumbsPanel').classList.toggle('hidden', name !== 'thumbnails');
 }
 
 function setFilter(name) {
@@ -148,7 +167,7 @@ document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', (
 
 // Each tile jumps to what it counts: a filter on the Uploads tab, or the Storage Check tab
 document.querySelectorAll('.stat-tile').forEach(tile => tile.addEventListener('click', () => {
-  if (tile.dataset.goto === 'storage') return showTab('storage');
+  if (tile.dataset.goto === 'storage' || tile.dataset.goto === 'thumbnails') return showTab(tile.dataset.goto);
   showTab('uploads');
   setFilter(tile.dataset.goto);
 }));
@@ -301,11 +320,15 @@ function renderScan() {
 
   // Catch media can be attached back to its catch; a profile photo file nothing points at
   // (e.g. from an interrupted save) can only be deleted: re-upload it from the angler page.
+  // A leftover thumbnail or viewing copy (#38) can only be deleted too: attaching it would
+  // show the same photo twice on its catch.
   const orphanRows = orphans.map((f, i) => {
     const isPhoto = f.container === 'angler-media';
-    const owner = isPhoto ? (f.anglerId ? `Angler #${f.anglerId} profile photo` : 'Profile photo') : f.catchNumber;
+    const isCopy = /-(thumb|view)\.jpg$/i.test(f.blobPath || '');
+    const owner = isPhoto ? (f.anglerId ? `Angler #${f.anglerId} profile photo` : 'Profile photo')
+      : isCopy ? `${f.catchNumber || 'Catch'} thumbnail copy` : f.catchNumber;
     const recent = isRecent(f);
-    const attach = isPhoto ? '' : `
+    const attach = (isPhoto || isCopy) ? '' : `
         <button class="row-action" data-orphan="${i}" data-action="attach" data-label="📎 Attach to ${escapeHtml(f.catchNumber || 'catch')}">📎 Attach to ${escapeHtml(f.catchNumber || 'catch')}</button>`;
     return `
     <li class="media-row ${recent ? 'media-row--recent' : 'media-row--failed'}">
@@ -406,6 +429,165 @@ async function runScanAction(button, busyLabel, action) {
   }
 }
 
+// ── Media thumbnails (#38) ─────────────────────────────────────────────
+
+// Up to 10 at a time: making thumbnails is heavy work for the server (a Pi on Staging).
+// The selected photos go one per request, so each request is short and every row can
+// show its own progress. Stop lets the current one finish and skips the rest.
+const THUMBS_MAX = 10;
+const thumbsSelected = new Set();   // media ids, in the order they were checked
+const thumbsProgress = new Map();   // id → { state: 'queued'|'running'|'done'|'error', message }
+let thumbsRunning = false;
+let thumbsStopRequested = false;
+let thumbsShown = PAGE_SIZE;
+
+const THUMB_STATE_LABELS = {
+  queued:  '⏳ Waiting',
+  running: '⏳ Generating…',
+  done:    '✅ Done',
+  error:   '⚠️ Failed',
+};
+
+function setThumbsStatus(msg, isError = false) {
+  el.thumbsStatus.textContent = msg;
+  el.thumbsStatus.classList.toggle('status--error', isError);
+}
+
+// Photos that need thumbnails, plus any this visit has worked on (so a finished row stays
+// on screen with its ✅ until the next Refresh), newest first like the Uploads tab.
+function thumbsCandidates() {
+  return allMedia.filter(m => needsThumbnails(m) || thumbsProgress.has(m.id));
+}
+
+function renderThumbs() {
+  const items = thumbsCandidates();
+  // Drop selections that are no longer listed (deleted, or done by an earlier run)
+  for (const id of thumbsSelected) if (!items.some(m => m.id === id && needsThumbnails(m))) thumbsSelected.delete(id);
+
+  if (!items.length) {
+    el.thumbsList.innerHTML = '<li class="media-empty">Every photo has its thumbnails 🎉</li>';
+  } else {
+    const full = thumbsSelected.size >= THUMBS_MAX;
+    el.thumbsList.innerHTML = items.slice(0, thumbsShown).map(m => {
+      const progress = thumbsProgress.get(m.id);
+      const checked = thumbsSelected.has(m.id);
+      const canPick = needsThumbnails(m) && !thumbsRunning && (checked || !full);
+      const state = progress ? progress.state : m.thumbnailStatus === 'failed' ? 'error' : null;
+      const message = progress ? progress.message : m.thumbnailError;
+      const label = escapeHtml(m.originalFileName || m.blobPath || `Photo #${m.id}`);
+      const catchUrl = `./catch-details.html?catchNumber=${encodeURIComponent(m.catchNumber || '')}`;
+      const preview = /^https:\/\//.test(m.thumbnailUrl || m.readUrl || '')
+        ? `<img class="thumbs-preview" src="${escapeHtml(encodeURI(m.thumbnailUrl || m.readUrl))}" alt="" loading="lazy">` : '';
+      return `
+      <li class="media-row thumbs-row${state ? ` thumbs-row--${state}` : ''}" data-id="${m.id}">
+        <label class="thumbs-pick">
+          <input type="checkbox" data-id="${m.id}"${checked ? ' checked' : ''}${canPick ? '' : ' disabled'}>
+          <span class="visually-hidden">Select ${label}</span>
+        </label>
+        ${preview}
+        <div class="row-body">
+          <div class="row-file">${label}</div>
+          <div class="row-meta">
+            <a class="row-catch" href="${catchUrl}">${escapeHtml(m.catchNumber || 'Unknown catch')}</a>
+            · ${formatSize(m.fileSizeInBytes)} · ${escapeHtml(formatDateTime(m.uploadedAt))}
+          </div>
+          ${state ? `<div class="thumbs-state">${THUMB_STATE_LABELS[state]}</div>` : ''}
+          ${message && state === 'error' ? `<div class="row-error">${escapeHtml(message)}</div>` : ''}
+        </div>
+      </li>`;
+    }).join('') + (items.length > thumbsShown
+      ? `<li class="media-empty"><button class="secondary-button" id="thumbsMoreBtn">Show more</button></li>` : '');
+  }
+
+  const n = thumbsSelected.size;
+  el.thumbsRunBtn.disabled = thumbsRunning || n === 0;
+  el.thumbsRunBtn.textContent = n ? `🖼️ Generate Thumbnails (${n})` : '🖼️ Generate Thumbnails';
+  el.thumbsSelectBtn.disabled = thumbsRunning || !items.some(needsThumbnails);
+  el.thumbsClearBtn.disabled = thumbsRunning || n === 0;
+  el.thumbsStopBtn.classList.toggle('hidden', !thumbsRunning);
+  el.thumbsStopBtn.disabled = thumbsStopRequested;
+  el.thumbsStopBtn.textContent = thumbsStopRequested ? 'Stopping after this one…' : '⏹️ Stop';
+}
+
+el.thumbsList.addEventListener('change', e => {
+  const box = e.target.closest('input[type="checkbox"]');
+  if (!box) return;
+  const id = Number(box.dataset.id);
+  if (box.checked && thumbsSelected.size < THUMBS_MAX) thumbsSelected.add(id);
+  else thumbsSelected.delete(id);
+  renderThumbs();
+});
+
+el.thumbsList.addEventListener('click', e => {
+  if (e.target.id !== 'thumbsMoreBtn') return;
+  thumbsShown += PAGE_SIZE;
+  renderThumbs();
+});
+
+// "Select 10": tops the selection up to 10 with the next photos in the list
+el.thumbsSelectBtn.addEventListener('click', () => {
+  for (const m of thumbsCandidates()) {
+    if (thumbsSelected.size >= THUMBS_MAX) break;
+    if (needsThumbnails(m)) thumbsSelected.add(m.id);
+  }
+  renderThumbs();
+});
+
+el.thumbsClearBtn.addEventListener('click', () => {
+  thumbsSelected.clear();
+  renderThumbs();
+});
+
+el.thumbsStopBtn.addEventListener('click', () => {
+  thumbsStopRequested = true;
+  renderThumbs();
+});
+
+el.thumbsRunBtn.addEventListener('click', runThumbnails);
+
+async function runThumbnails() {
+  const ids = [...thumbsSelected];
+  if (!ids.length || thumbsRunning) return;
+  thumbsRunning = true;
+  thumbsStopRequested = false;
+  for (const id of ids) thumbsProgress.set(id, { state: 'queued' });
+  setThumbsStatus('');
+  renderThumbs();
+
+  let done = 0, failed = 0;
+  for (const id of ids) {
+    if (thumbsStopRequested) break;
+    thumbsProgress.set(id, { state: 'running' });
+    renderThumbs();
+    try {
+      const r = await postJson(CATCH_MEDIA_THUMBS_URL, { mediaId: id });
+      const m = allMedia.find(x => x.id === id);
+      if (m) Object.assign(m, { thumbnailUrl: r.thumbnailUrl, viewingUrl: r.viewingUrl, thumbnailStatus: 'done', thumbnailError: null });
+      thumbsProgress.set(id, { state: 'done' });
+      done++;
+    } catch (err) {
+      console.error(err);
+      thumbsProgress.set(id, { state: 'error', message: err.message });
+      failed++;
+    }
+    thumbsSelected.delete(id);
+    renderSummary();
+    renderThumbs();
+  }
+
+  // Anything skipped by Stop goes back to plain "needs thumbnails", still selected
+  const skipped = ids.filter(id => thumbsProgress.get(id)?.state === 'queued');
+  skipped.forEach(id => thumbsProgress.delete(id));
+  thumbsRunning = false;
+  thumbsStopRequested = false;
+  setThumbsStatus([
+    done ? `${done} done` : '',
+    failed ? `${failed} failed` : '',
+    skipped.length ? `${skipped.length} skipped (stopped)` : '',
+  ].filter(Boolean).join(', ') + '.', failed > 0);
+  renderThumbs();
+}
+
 // ── Load ───────────────────────────────────────────────────────────────
 
 // Numbers each load: a slower, older one (e.g. a Refresh that answers after a delete's reload)
@@ -427,6 +609,7 @@ async function loadMedia({ keepState = false } = {}) {
     renderSummary();
     renderCatchFilter();
     renderList();
+    renderThumbs();
     showState('listState');
   } catch (err) {
     if (loadId !== latestLoad) return;
@@ -456,5 +639,12 @@ async function init() {
 
 el.retryLoadBtn.addEventListener('click', () => loadMedia());
 el.refreshBtn.addEventListener('click', () => { setStatus(''); loadMedia({ keepState: true }); });
+// The thumbnails tab's Refresh also clears this visit's ✅/⚠️ rows (not during a run)
+el.thumbsRefreshBtn.addEventListener('click', () => {
+  if (thumbsRunning) return;
+  thumbsProgress.clear();
+  setThumbsStatus('');
+  loadMedia({ keepState: true });
+});
 
 init();

@@ -859,13 +859,14 @@ function buildMediaTile(item) {
       </div>`;
   }
 
-  // Photo (jpeg, png, etc.)
+  // Photo (jpeg, png, etc.): the small thumbnail when it has one (#38), else the original
+  const tileUrl = encodeURI(item.thumbnailUrl || readUrl);
   return `
     <div class="media-tile media-tile--photo" data-media-id="${item.id || ''}">
-      <img class="media-tile-backdrop" src="${encodeURI(readUrl)}" alt="" aria-hidden="true" loading="lazy" />
+      <img class="media-tile-backdrop" src="${tileUrl}" alt="" aria-hidden="true" loading="lazy" />
       <img
         class="media-tile-photo"
-        src="${encodeURI(readUrl)}"
+        src="${tileUrl}"
         alt="Catch photo"
         loading="lazy"
         onerror="this.closest('.media-tile').replaceWith(brokenTile())"
@@ -1061,7 +1062,8 @@ function showLightboxItem(index) {
     el.lightboxImg.classList.add('hidden');
     el.lightboxImg.src = '';
   } else {
-    el.lightboxImg.src = item.readUrl;
+    // The mid-size viewing copy when it has one (#38), else the original
+    el.lightboxImg.src = item.viewingUrl || item.readUrl;
     el.lightboxImg.classList.remove('hidden');
     el.lightboxVideo.classList.add('hidden');
     el.lightboxVideo.pause();
