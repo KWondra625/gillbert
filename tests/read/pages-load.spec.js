@@ -27,6 +27,22 @@ test('notifications.html points a local copy at Staging ntfy', async ({ page }) 
   await expect(page.locator('#topicName')).toHaveText('gillbert-catches');
 });
 
+// ntfy's one-tap subscribe link only works in its Android app: Safari on iPhone calls it an
+// invalid address. iOS gets the by-hand steps open instead of the button.
+test('notifications.html: iPhone gets the by-hand steps, other phones the one-tap button', async ({ page }) => {
+  await page.goto('notifications.html');
+  const ios = await page.evaluate(() => /iPhone|iPad|iPod/.test(navigator.userAgent));
+  if (ios) {
+    await expect(page.locator('#subscribeLink')).toBeHidden();
+    await expect(page.locator('#manualSteps')).toHaveAttribute('open', '');
+    await expect(page.locator('#subscribeIntro')).toContainText('by hand');
+    await expect(page.locator('#serverUrl')).toBeVisible();
+  } else {
+    await expect(page.locator('#subscribeLink')).toBeVisible();
+    await expect(page.locator('#manualSteps')).not.toHaveAttribute('open', '');
+  }
+});
+
 test('notifications.html: the App Store badge opens the Apple easter egg first', async ({ page }) => {
   await page.goto('notifications.html');
   const modal = page.locator('#appleModal');

@@ -13,6 +13,20 @@ document.getElementById('subscribeLink').href = `ntfy://${NTFY_HOST}/${NTFY_TOPI
 document.getElementById('topicName').textContent = NTFY_TOPIC;
 document.getElementById('serverUrl').textContent = `https://${NTFY_HOST}`;
 
+// iPhone and iPad: ntfy's one-tap subscribe link (ntfy://) only works in its Android app;
+// Safari answers it with "the address is invalid". So iOS gets the by-hand steps, already
+// open, instead of a button that can't work. (iPads can report themselves as a Mac: a
+// touch screen gives them away.)
+const IS_IOS = /iPhone|iPad|iPod/.test(navigator.userAgent)
+  || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+if (IS_IOS) {
+  document.getElementById('subscribeLink').classList.add('hidden'); // .primary-button's display would beat the hidden attribute
+  document.getElementById('subscribeIntro').textContent =
+    "On iPhone and iPad, add the subscription in ntfy by hand. It takes a minute: copy each value below into ntfy.";
+  document.getElementById('manualSteps').open = true;
+  document.getElementById('manualStepsSummary').textContent = 'Add it in ntfy';
+}
+
 document.querySelectorAll('.copy-button').forEach((button) => {
   button.addEventListener('click', async () => {
     const text = document.getElementById(button.dataset.copy).textContent;
