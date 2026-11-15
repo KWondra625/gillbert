@@ -52,3 +52,11 @@ left out: finding them means reading every video file.)
   forwarding page: Kurt has no bookmarks to the old address.
 - The admin menu entry, the page title and heading, and the Features page say Media
   Management.
+
+## Applied on Staging
+
+- 2026-11-14: Retry and Convert Media changes (`tools/n8n-migration/media_rework/deploy_apple_formats.py`,
+  backups in its snapshots/); both read back OK and active. Tried on the smallest legacy MOV
+  (id 72, Catch 26-081, 33.5 MB): converted in 29 s to an 8.9 MB MP4 in Staging's storage,
+  poster frame made automatically, the original in Production's storage untouched. 16 left
+  for Kurt to try the tab.
