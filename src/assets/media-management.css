@@ -649,7 +649,7 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
-  /* Three equal tabs; a long label wraps to a second line instead of running off-screen */
+  /* Four equal tabs; a long label wraps to a second line instead of running off-screen */
   .tab {
     flex: 1 1 0;
     min-width: 0;

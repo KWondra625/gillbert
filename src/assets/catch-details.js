@@ -881,7 +881,9 @@ function buildMediaTile(item) {
       </div>`;
   }
 
-  // Photo (jpeg, png, etc.): the small thumbnail when it has one (#38), else the original
+  // Photo (jpeg, png, etc.): the small thumbnail when it has one (#38), else the original.
+  // A thumbnail that won't load falls back to the original; only an original that won't
+  // load shows the tile as unavailable.
   const tileUrl = encodeURI(item.thumbnailUrl || readUrl);
   return `
     <div class="media-tile media-tile--photo" data-media-id="${item.id || ''}">
@@ -891,10 +893,22 @@ function buildMediaTile(item) {
         src="${tileUrl}"
         alt="Catch photo"
         loading="lazy"
-        onerror="this.closest('.media-tile').replaceWith(brokenTile())"
+        data-original-url="${escapeHtml(encodeURI(readUrl))}"
+        onerror="photoTileFailed(this)"
       />
       ${caption}${deleteBtn}
     </div>`;
+}
+
+function photoTileFailed(img) {
+  const original = img.dataset.originalUrl;
+  if (original && img.getAttribute('src') !== original) {
+    const backdrop = img.closest('.media-tile').querySelector('.media-tile-backdrop');
+    if (backdrop) backdrop.src = original;
+    img.src = original;
+    return;
+  }
+  img.closest('.media-tile').replaceWith(brokenTile());
 }
 
 function canManageFailedMedia(item) {
@@ -1085,9 +1099,13 @@ function showLightboxItem(index) {
     el.lightboxVideo.src = item.readUrl;
     el.lightboxVideo.classList.remove('hidden');
     el.lightboxImg.classList.add('hidden');
+    el.lightboxImg.onerror = null;
     el.lightboxImg.src = '';
   } else {
     // The mid-size viewing copy when it has one (#38), else the original
+    // A viewing copy that won't load falls back to the original
+    el.lightboxImg.onerror = item.viewingUrl
+      ? () => { el.lightboxImg.onerror = null; el.lightboxImg.src = item.readUrl; } : null;
     el.lightboxImg.src = item.viewingUrl || item.readUrl;
     el.lightboxImg.classList.remove('hidden');
     el.lightboxVideo.classList.add('hidden');
@@ -1120,6 +1138,7 @@ function navigateLightbox(delta) {
 
 function closeLightbox() {
   el.lightbox.classList.remove('open');
+  el.lightboxImg.onerror = null;
   el.lightboxImg.src = '';
   el.lightboxVideo.pause();
   el.lightboxVideo.removeAttribute('src');

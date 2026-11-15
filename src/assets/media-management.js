@@ -443,6 +443,10 @@ async function runScanAction(button, busyLabel, action) {
 // its ✅/⚠️ until that tab's Refresh.
 const BATCH_MAX = 10;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// One batch at a time across the tabs: both are heavy for the server, and a MOV being
+// converted shouldn't get its thumbnail made from the old file at the same moment.
+let batchBusy = null;          // the key of the tab running a batch, or null
+const batchTabs = [];          // each tab's render, so the others can update their buttons
 
 function makeBatchTab(cfg) {
   const $ = suffix => document.getElementById(cfg.key + suffix);
@@ -505,7 +509,9 @@ function makeBatchTab(cfg) {
     }
 
     const n = selected.size;
-    ui.run.disabled = running || n === 0;
+    const otherBusy = batchBusy !== null && batchBusy !== cfg.key;
+    ui.run.disabled = running || otherBusy || n === 0;
+    ui.run.title = otherBusy ? 'Another tab is running: one batch at a time' : '';
     ui.run.textContent = n ? `${cfg.runLabel} (${n})` : cfg.runLabel;
     ui.select.disabled = running || !items.some(cfg.needs);
     ui.clear.disabled = running || n === 0;
@@ -550,8 +556,10 @@ function makeBatchTab(cfg) {
 
   ui.run.addEventListener('click', async () => {
     const ids = [...selected];
-    if (!ids.length || running) return;
+    if (!ids.length || running || batchBusy) return;
     running = true;
+    batchBusy = cfg.key;
+    batchTabs.forEach(r => r());
     stopRequested = false;
     for (const id of ids) progress.set(id, { state: 'queued' });
     setBatchStatus('');
@@ -580,6 +588,7 @@ function makeBatchTab(cfg) {
     const skipped = ids.filter(id => progress.get(id)?.state === 'queued');
     skipped.forEach(id => progress.delete(id));
     running = false;
+    batchBusy = null;
     stopRequested = false;
     setBatchStatus([
       counts.done ? `${counts.done} ${cfg.doneWord}` : '',
@@ -587,9 +596,10 @@ function makeBatchTab(cfg) {
       counts.waiting ? `${counts.waiting} still converting` : '',
       skipped.length ? `${skipped.length} skipped (stopped)` : '',
     ].filter(Boolean).join(', ') + '.', counts.error > 0);
-    render();
+    batchTabs.forEach(r => r());
   });
 
+  batchTabs.push(render);
   return { render };
 }
 
@@ -599,7 +609,7 @@ const thumbsTab = makeBatchTab({
   needs: needsThumbnails,
   lastFailed: m => m.thumbnailStatus === 'failed',
   lastError: m => m.thumbnailError,
-  previewOriginal: m => m.mediaType !== 'Video',
+  previewOriginal: m => m.mediaType !== 'Video' && !APPLE_TYPES.includes(m.contentType),
   runLabel: '🖼️ Generate Thumbnails',
   doneWord: 'done',
   emptyText: 'Every photo has its thumbnails 🎉',
@@ -640,18 +650,23 @@ const appleTab = makeBatchTab({
   stateLabels: { queued: '⏳ Waiting', running: '⏳ Converting…', done: '✅ Converted',
                  error: '⚠️ Failed', waiting: '⏳ Still converting' },
   async runOne(id) {
-    const m = allMedia.find(x => x.id === id);
-    if (!m) throw new Error('This file is no longer listed');
+    const first = allMedia.find(x => x.id === id);
+    if (!first) throw new Error('This file is no longer listed');
+    const catchNumber = first.catchNumber;
     await postJson(CATCH_MEDIA_RETRY_URL, { mediaId: id });
     const started = Date.now();
     while (Date.now() - started < APPLE_WAIT_MS) {
       await sleep(APPLE_POLL_MS);
       let row;
-      try { row = await fetchMediaRow(m); } catch { continue; } // couldn't check: try again
+      try { row = await fetchMediaRow({ id, catchNumber }); } catch { continue; } // couldn't check: try again
       if (!row) throw new Error('This file was deleted while converting');
-      Object.assign(m, row);
+      // The list may have been reloaded meanwhile: update the record it shows now
+      const m = allMedia.find(x => x.id === id);
+      if (m) Object.assign(m, row);
       const st = mediaStatus(row);
-      if (st === 'complete') return { state: 'done' };
+      // Done only when it's complete AND no longer an Apple file
+      if (st === 'complete' && !APPLE_TYPES.includes(row.contentType)) return { state: 'done' };
+      if (st === 'complete' && Date.now() - started > 60_000) throw new Error('Finished, but the file is still in an Apple format');
       if (st === 'failed' || st === 'stuck') throw new Error(row.errorMessage || "Couldn't convert");
     }
     return { state: 'waiting', message: 'Taking a while: Uploads shows how it ends.' };

@@ -704,7 +704,7 @@ test.describe('upload page large files', () => {
 // result add their own answer (Playwright tries the newest route first).
 const cleanScan = { success: true, scannedAt: new Date().toISOString(), fileCount: 1, rowCount: 1, orphanFiles: [], missingFiles: [] };
 
-test.describe('media activity page', () => {
+test.describe('media management page', () => {
   test.beforeEach(async ({ page }) => {
     await page.route(url => url.pathname.endsWith('/catch-media/admin'), route => route.fulfill({ json: cleanScan }));
   });
@@ -1507,5 +1507,82 @@ test.describe('Media Management: Apple Formats tab', () => {
       await expect(page.locator('#appleList .thumbs-row[data-id="2"]')).toContainText('ffmpeg failed (exit 1)');
       await expect(page.locator('#statApple')).toHaveText('0'); // neither is a complete Apple file any more
     });
+  });
+});
+
+// Code review follow-ups (2026-11-14)
+test.describe('media fallbacks and batch locking', () => {
+  test.use({ allowConsoleErrors: true }); // the missing copies are logged
+
+  test('a thumbnail or viewing copy that will not load falls back to the original', async ({ page }) => {
+    await mockMediaList(page, { items: [mediaItem(1, { thumbnailUrl: `${FAKE_STORAGE}/1-thumb.jpg`,
+      viewingUrl: `${FAKE_STORAGE}/1-view.jpg`, thumbnailStatus: 'done' })] });
+    await page.route(/1-(thumb|view)\.jpg$/, route => route.fulfill({ status: 404, body: '' }));
+    await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    const tile = page.locator('.media-tile--photo[data-media-id="1"]');
+    await expect(tile.locator('.media-tile-photo')).toHaveAttribute('src', `${FAKE_STORAGE}/1.jpg`);
+    await expect(tile.locator('.media-tile-backdrop')).toHaveAttribute('src', `${FAKE_STORAGE}/1.jpg`);
+    await expect(page.locator('.media-tile-broken')).toHaveCount(0);
+    await tile.click();
+    await expect(page.locator('#lightboxImg')).toHaveAttribute('src', `${FAKE_STORAGE}/1.jpg`);
+  });
+
+  test('a photo whose original will not load still shows as unavailable', async ({ page }) => {
+    await mockMediaList(page, { items: [mediaItem(1)] });
+    await page.route(`${FAKE_STORAGE}/1.jpg`, route => route.fulfill({ status: 404, body: '' }));
+    await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    await expect(page.locator('.media-tile-broken')).toHaveCount(1);
+  });
+
+  test('Apple Formats keeps waiting while the record still shows the Apple file', async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.route(url => url.pathname.endsWith('/catch-media/admin'), route => route.fulfill({ json: cleanScan }));
+    await unlockAdmin(page);
+    const old = mediaItem(1, { mediaType: 'Video', contentType: 'video/quicktime', blobPath: 'catches/x/1.mov', readUrl: `${FAKE_STORAGE}/1.mov` });
+    const state = { items: [old] };
+    await mockMediaList(page, state);
+    let checks = 0, retried = false;
+    // Checks after the retry: the first still sees the old complete MOV, the second the MP4
+    await page.route(url => url.pathname.endsWith('/catch-media/get') && url.searchParams.get('catchNumber'), route => {
+      if (retried && ++checks >= 2) state.items = [{ ...old, contentType: 'video/mp4', blobPath: 'catches/x/1.mp4' }];
+      return route.fulfill({ json: state.items });
+    });
+    await page.route(url => url.pathname.endsWith('/catch-media/retry'), route => {
+      retried = true;
+      return route.fulfill({ json: { success: true, mediaId: 1, status: 'submitted' } });
+    });
+    await page.goto('media-management.html');
+    await page.locator('#appleTab').click();
+    await page.locator('#appleSelectBtn').click();
+    await page.locator('#appleRunBtn').click();
+    await expect(page.locator('#appleStatus')).toHaveText('1 converted.', { timeout: 30_000 });
+    expect(checks).toBeGreaterThanOrEqual(2);
+  });
+
+  test('one batch at a time: while thumbnails run, Convert is locked', async ({ page }) => {
+    await page.route(url => url.pathname.endsWith('/catch-media/admin'), route => route.fulfill({ json: cleanScan }));
+    await unlockAdmin(page);
+    await mockMediaList(page, { items: [mediaItem(1, { thumbnailStatus: 'missing' }),
+      mediaItem(2, { mediaType: 'Video', contentType: 'video/quicktime', blobPath: 'catches/x/2.mov', readUrl: `${FAKE_STORAGE}/2.mov` })] });
+    let release;
+    const held = new Promise(r => { release = r; });
+    await page.route(url => url.pathname.endsWith('/catch-media/thumbnails'), async route => {
+      await held;
+      return route.fulfill({ json: { success: true, mediaId: 1, thumbnailUrl: `${FAKE_STORAGE}/1-thumb.jpg`, viewingUrl: `${FAKE_STORAGE}/1-view.jpg` } });
+    });
+    await page.goto('media-management.html');
+    await page.locator('#appleTab').click();
+    await page.locator('#appleSelectBtn').click();
+    await expect(page.locator('#appleRunBtn')).toBeEnabled();
+    await page.locator('#thumbsTab').click();
+    await page.locator('#thumbsSelectBtn').click();
+    await page.locator('#thumbsRunBtn').click();
+    await page.locator('#appleTab').click();
+    await expect(page.locator('#appleRunBtn')).toBeDisabled();
+    release();
+    await page.locator('#thumbsTab').click();
+    await expect(page.locator('#thumbsStatus')).toHaveText('1 done.');
+    await page.locator('#appleTab').click();
+    await expect(page.locator('#appleRunBtn')).toBeEnabled();
   });
 });
