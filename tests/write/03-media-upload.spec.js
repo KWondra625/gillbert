@@ -130,6 +130,43 @@ async function displayedJpegSize(readUrl) {
   return orientation >= 5 ? { width: height, height: width, orientation } : { width, height, orientation };
 }
 
+// #38: after an upload finishes, Make Thumbnails runs by itself. A photo gets a 1200 px
+// thumbnail and a 2048 px viewing copy; a video gets a 1200 px poster frame; a GIF gets
+// neither (a thumbnail would freeze it). Waits for them and checks each copy.
+const THUMBNAIL_TIMEOUT = 120_000;
+async function expectThumbnails(item, c) {
+  if (c.type === 'image/gif') {
+    expect(item.thumbnailStatus, 'a GIF keeps its original only').toBeNull();
+    return item;
+  }
+  let now = item;
+  await expect.poll(async () => {
+    now = (await mediaFor(target.catchNumber)).find(m => m.id === item.id) || {};
+    return now.thumbnailStatus === 'failed' ? `failed: ${now.thumbnailError}` : now.thumbnailStatus;
+  }, { timeout: THUMBNAIL_TIMEOUT, intervals: [2_000, 5_000] }).toBe('done');
+
+  const copies = [['thumbnail', now.thumbnailUrl, 1200]];
+  if (c.mediaType === 'Photo') copies.push(['viewing copy', now.viewingUrl, 2048]);
+  else expect(now.viewingUrl, 'a video has no viewing copy').toBeNull();
+  for (const [label, url, side] of copies) {
+    expect(url, `${label} is in the Staging storage account`).toContain(STAGING_STORAGE_HOST);
+    const res = await fetch(url);
+    expect(res.status, `${label} is readable`).toBe(200);
+    expect(res.headers.get('content-type')).toBe('image/jpeg');
+    const p = await displayedJpegSize(url);
+    expect(Math.max(p.width, p.height), `${label} is at most ${side} px (${p.width}x${p.height})`).toBeLessThanOrEqual(side);
+    expect(Math.min(p.width, p.height)).toBeGreaterThan(0);
+    if (c.portrait) expect(p.height, `${c.file}: the ${label} is upright (${p.width}x${p.height})`).toBeGreaterThan(p.width);
+  }
+  if (c.mediaType === 'Photo') {
+    // Download original: the original is marked to save under its uploaded name
+    const cd = (await fetch(now.readUrl, { method: 'HEAD' })).headers.get('content-disposition') || '';
+    expect(cd, 'the original is marked "save as"').toContain('attachment');
+    expect(cd).toContain(encodeURIComponent(now.originalFileName));
+  }
+  return now;
+}
+
 async function expectServed(item, type) {
   const res = await fetch(item.readUrl);
   expect(res.status, `${item.readUrl} is readable`).toBe(200);
@@ -138,7 +175,7 @@ async function expectServed(item, type) {
 
 for (const c of CASES) {
   test(`upload ${c.file} → stored as ${c.type}`, async ({ page }) => {
-    test.setTimeout(CONVERSION_TIMEOUT + 90_000);
+    test.setTimeout(CONVERSION_TIMEOUT + THUMBNAIL_TIMEOUT + 90_000);
     const before = await mediaFor(target.catchNumber);
     await upload(page, [c.file]);
 
@@ -156,8 +193,48 @@ for (const c of CASES) {
       const p = await displayedJpegSize(item.readUrl);
       expect(p.height, `${c.file} displays upright (${p.width}x${p.height}, orientation ${p.orientation})`).toBeGreaterThan(p.width);
     }
+    await expectThumbnails(item, c);
   });
 }
+
+// #38: one delete removes the photo's thumbnail and viewing copy with it, and leaves
+// nothing for Storage Check to find.
+test('deleting a photo removes its thumbnail and viewing copy too', async ({ page }) => {
+  test.setTimeout(THUMBNAIL_TIMEOUT + 90_000);
+  const before = await mediaFor(target.catchNumber);
+  await upload(page, ['photo.jpg']);
+  const [item] = await waitForNewMedia(before, 1, 30_000);
+  const done = await expectThumbnails(item, CASES[0]);
+  const files = [done.readUrl, done.thumbnailUrl, done.viewingUrl];
+  for (const url of files) expect((await fetch(url, { method: 'HEAD' })).status).toBe(200);
+
+  await apiPost('catch-media/delete', { mediaId: done.id });
+  for (const url of files) expect((await fetch(url, { method: 'HEAD' })).status, `${url.split('/').pop()} is gone`).toBe(404);
+  expect((await mediaFor(target.catchNumber)).some(m => m.id === done.id), 'the record is gone').toBe(false);
+  const scan = await apiPost('catch-media/admin', { action: 'scan' });
+  const base = done.blobPath.replace(/\.[^.]+$/, '');
+  expect(scan.orphanFiles.filter(f => f.blobPath.startsWith(base)), 'nothing left behind').toEqual([]);
+});
+
+// #38: the catch page uses the copies (tile → thumbnail, full screen → viewing copy, video
+// tile → its poster and no video until tapped) and offers Download original on photos.
+test('the catch page shows the thumbnails, poster frames and Download original', async ({ page }) => {
+  const all = (await mediaFor(target.catchNumber)).filter(m => m.thumbnailStatus === 'done');
+  const photo = all.find(m => m.mediaType === 'Photo');
+  const video = all.find(m => m.mediaType === 'Video');
+  test.skip(!photo || !video, 'needs a photo and a video with thumbnails on the test catch');
+  await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(target.catchNumber)}`);
+
+  const photoTile = page.locator(`.media-tile--photo[data-media-id="${photo.id}"]`);
+  await expect(photoTile.locator('.media-tile-photo')).toHaveAttribute('src', encodeURI(photo.thumbnailUrl));
+  const videoTile = page.locator(`.media-tile--video[data-media-id="${video.id}"]`);
+  await expect(videoTile.locator('.media-tile-poster')).toHaveAttribute('src', encodeURI(video.thumbnailUrl));
+  await expect(videoTile.locator('video')).toHaveCount(0);
+
+  await photoTile.click();
+  await expect(page.locator('#lightboxImg')).toHaveAttribute('src', photo.viewingUrl);
+  await expect(page.locator('#lightboxDownload')).toHaveAttribute('href', photo.readUrl);
+});
 
 // Files over 8 MB go up in blocks that Azure stitches together; the stored file must match
 // the original byte for byte. A JPEG with padding after its end marker is still a valid
@@ -276,14 +353,14 @@ test.describe('when things go wrong', () => {
     expect(Buffer.from(await res.arrayBuffer()).equals(big), 'stored bytes match the original').toBe(true);
   });
 
-  test('Media Activity: Retry runs a failed file again, and Delete removes it and its file', async ({ page }) => {
+  test('Media page: Retry runs a failed file again, and Delete removes it and its file', async ({ page }) => {
     test.setTimeout(CONVERSION_TIMEOUT + 90_000);
     const failed = (await mediaFor(target.catchNumber))
       .find(m => m.originalFileName === 'broken.heic' && m.displayStatus === 'failed');
     test.skip(!failed, 'needs the failed broken.heic from the test above');
 
     await unlockAdmin(page);
-    await page.goto('media-activity.html');
+    await page.goto('media.html');
     await page.locator('#catchFilter').selectOption(target.catchNumber);
     await page.locator(`.row-action[data-action="retry"][data-id="${failed.id}"]`).click();
     await expect(page.locator('#status')).toContainText('Retry started.');
@@ -320,7 +397,7 @@ test('Storage Check: a file with no record can be previewed from the page, then 
 
   try {
     await unlockAdmin(page);
-    await page.goto('media-activity.html');
+    await page.goto('media.html');
     await page.locator('#storageTab').click();
     const row = page.locator('#scanResult .media-row', { hasText: slot.blobPath });
     await expect(row).toHaveCount(1, { timeout: 30_000 });

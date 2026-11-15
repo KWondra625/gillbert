@@ -1,12 +1,15 @@
-// Media Activity: admin-only list of every catch media upload with its status, so failed
-// or stuck conversions stand out (with Retry/Delete), plus a storage check for files that
-// have no media record (#10, #16). Two tabs; the storage check runs by itself on load.
+// Media (formerly Media Activity), admin only. Four tabs: Upload History, every catch media
+// upload with its status, so failed or stuck conversions stand out (with Retry/Delete);
+// Thumbnail Generation, to make the small copies for files without them (#38); Apple Formats,
+// to convert older HEIC/MOV files; and a storage check for files with no record and records
+// with no file (#10, #16), which runs by itself on load.
 
 const CATCH_MEDIA_GET_URL    = API_BASE + "catch-media/get";
 const CATCH_MEDIA_RETRY_URL  = API_BASE + "catch-media/retry";
 const CATCH_MEDIA_DELETE_URL = API_BASE + "catch-media/delete";
 const CATCH_MEDIA_COMMIT_URL = API_BASE + "catch-media/commit";
 const CATCH_MEDIA_ADMIN_URL  = API_BASE + "catch-media/admin";
+const CATCH_MEDIA_THUMBS_URL = API_BASE + "catch-media/thumbnails";
 
 const PAGE_SIZE = 50;
 const STATE_IDS = ['loadingState', 'errorState', 'listState'];
@@ -22,13 +25,8 @@ const STATUS_LABELS = {
 const el = {
   errorMsg:     document.getElementById('errorMsg'),
   retryLoadBtn: document.getElementById('retryLoadBtn'),
-  statTotal:          document.getElementById('statTotal'),
-  statAttention:      document.getElementById('statAttention'),
-  statAttentionTile:  document.getElementById('statAttentionTile'),
-  statConverting:     document.getElementById('statConverting'),
-  statConvertingTile: document.getElementById('statConvertingTile'),
-  statStorage:        document.getElementById('statStorage'),
-  statStorageTile:    document.getElementById('statStorageTile'),
+  attentionCount:     document.getElementById('attentionCount'),
+  convertingCount:    document.getElementById('convertingCount'),
   uploadsTabCount:    document.getElementById('uploadsTabCount'),
   storageTabCount:    document.getElementById('storageTabCount'),
   status:       document.getElementById('status'),
@@ -38,6 +36,8 @@ const el = {
   scanBtn:      document.getElementById('scanBtn'),
   scanResult:   document.getElementById('scanResult'),
   catchFilter:  document.getElementById('catchFilter'),
+  thumbsTabCount:   document.getElementById('thumbsTabCount'),
+  appleTabCount:    document.getElementById('appleTabCount'),
 };
 
 let allMedia = [];
@@ -79,6 +79,9 @@ function mediaStatus(m) {
 
 const needsAttention = m => ['failed', 'stuck'].includes(mediaStatus(m));
 const isConverting = m => ['submitted', 'processing'].includes(mediaStatus(m));
+// Complete photos and videos with no thumbnails yet, or whose last attempt failed (#38).
+// The API leaves thumbnailStatus null for files still converting.
+const needsThumbnails = m => ['missing', 'failed'].includes(m.thumbnailStatus);
 
 // POSTs JSON and only accepts an explicit `success: true` (an empty 200 is a failed workflow).
 async function postJson(url, body) {
@@ -117,15 +120,16 @@ function armOrRun(button, label, run) {
 function renderSummary() {
   const attention = allMedia.filter(needsAttention).length;
   const converting = allMedia.filter(isConverting).length;
-  el.statTotal.textContent = allMedia.length;
-  el.statAttention.textContent = attention;
-  el.statConverting.textContent = converting;
-  el.statAttentionTile.classList.toggle('stat-tile--alert', attention > 0);
-  el.statConvertingTile.classList.toggle('stat-tile--warn', converting > 0);
+  // Upload History counts every upload, in red when any need attention; its chips count theirs
   el.uploadsTabCount.textContent = `(${allMedia.length})`;
+  el.uploadsTabCount.classList.toggle('tab-count--alert', attention > 0);
+  el.attentionCount.textContent = `(${attention})`;
+  el.convertingCount.textContent = `(${converting})`;
+  el.thumbsTabCount.textContent = `(${allMedia.filter(needsThumbnails).length})`;
+  el.appleTabCount.textContent = `(${allMedia.filter(needsConverting).length})`;
 }
 
-// ── Tabs + tiles ───────────────────────────────────────────────────────
+// ── Tabs ───────────────────────────────────────────────────────
 
 function showTab(name) {
   document.querySelectorAll('.tab').forEach(tab => {
@@ -135,6 +139,8 @@ function showTab(name) {
   });
   document.getElementById('uploadsPanel').classList.toggle('hidden', name !== 'uploads');
   document.getElementById('storagePanel').classList.toggle('hidden', name !== 'storage');
+  document.getElementById('thumbsPanel').classList.toggle('hidden', name !== 'thumbnails');
+  document.getElementById('applePanel').classList.toggle('hidden', name !== 'apple');
 }
 
 function setFilter(name) {
@@ -145,13 +151,6 @@ function setFilter(name) {
 }
 
 document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => showTab(tab.dataset.tab)));
-
-// Each tile jumps to what it counts: a filter on the Uploads tab, or the Storage Check tab
-document.querySelectorAll('.stat-tile').forEach(tile => tile.addEventListener('click', () => {
-  if (tile.dataset.goto === 'storage') return showTab('storage');
-  showTab('uploads');
-  setFilter(tile.dataset.goto);
-}));
 
 function renderList() {
   const filtered = allMedia.filter(m =>
@@ -178,7 +177,7 @@ function renderList() {
     const typeIcon = type === 'video' ? '🎬 ' : type === 'photo' ? '📷 ' : '';
     const by = m.uploadedByAnglerName ? ` <span class="row-by">by ${escapeHtml(m.uploadedByAnglerName)}</span>` : '';
     // One markup for both layouts: wide screens lay the cells out as table columns,
-    // phones as a card (see media-activity.css).
+    // phones as a card (see media.css).
     return `
       <li class="media-row media-row--${status}">
         <span class="row-status">${STATUS_LABELS[status] || escapeHtml(status)}</span>
@@ -283,13 +282,8 @@ let lastScan = null;
 const RECENT_MS = 60 * 60 * 1000;
 const isRecent = f => Boolean(f.lastModified) && Date.now() - new Date(f.lastModified) < RECENT_MS;
 
-// The Storage tile and the tab heading show how the last scan went
+// The Storage Check tab's count shows how the last scan went
 function setStorageSummary(state, issues = 0) {
-  el.statStorage.textContent = state === 'checking' ? 'Checking…'
-    : state === 'error' ? "Couldn't check"
-    : issues ? `${issues} ${issues === 1 ? 'issue' : 'issues'}` : 'All clear ✅';
-  el.statStorageTile.classList.toggle('stat-tile--alert', state === 'error' || (state === 'done' && issues > 0));
-  el.statStorageTile.classList.toggle('stat-tile--ok', state === 'done' && !issues);
   el.storageTabCount.textContent = state === 'checking' ? '…' : state === 'error' ? '(!)' : issues ? `(${issues})` : '✅';
   el.storageTabCount.classList.toggle('tab-count--alert', state === 'error' || issues > 0);
 }
@@ -301,11 +295,15 @@ function renderScan() {
 
   // Catch media can be attached back to its catch; a profile photo file nothing points at
   // (e.g. from an interrupted save) can only be deleted: re-upload it from the angler page.
+  // A leftover thumbnail or viewing copy (#38) can only be deleted too: attaching it would
+  // show the same photo twice on its catch.
   const orphanRows = orphans.map((f, i) => {
     const isPhoto = f.container === 'angler-media';
-    const owner = isPhoto ? (f.anglerId ? `Angler #${f.anglerId} profile photo` : 'Profile photo') : f.catchNumber;
+    const isCopy = /-(thumb|view)\.jpg$/i.test(f.blobPath || '');
+    const owner = isPhoto ? (f.anglerId ? `Angler #${f.anglerId} profile photo` : 'Profile photo')
+      : isCopy ? `${f.catchNumber || 'Catch'} thumbnail copy` : f.catchNumber;
     const recent = isRecent(f);
-    const attach = isPhoto ? '' : `
+    const attach = (isPhoto || isCopy) ? '' : `
         <button class="row-action" data-orphan="${i}" data-action="attach" data-label="📎 Attach to ${escapeHtml(f.catchNumber || 'catch')}">📎 Attach to ${escapeHtml(f.catchNumber || 'catch')}</button>`;
     return `
     <li class="media-row ${recent ? 'media-row--recent' : 'media-row--failed'}">
@@ -406,6 +404,246 @@ async function runScanAction(button, busyLabel, action) {
   }
 }
 
+// ── Batch lists: Thumbnail Generation (#38) and Apple Formats ───────────────
+
+// Both tabs work the same way: tick up to 10 files (the rest disable; "Select 10" tops up),
+// press the button, and they're done one at a time, each row showing its progress. Up to
+// 10 because the work is heavy for the server (a Pi on Staging); one at a time so each
+// request is short and every row can show its own result. Stop lets the current one finish
+// and skips the rest, which stay selected. A row this visit worked on stays listed with
+// its ✅/⚠️ until that tab's Refresh.
+const BATCH_MAX = 10;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+// One batch at a time across the tabs: both are heavy for the server, and a MOV being
+// converted shouldn't get its thumbnail made from the old file at the same moment.
+let batchBusy = null;          // the key of the tab running a batch, or null
+const batchTabs = [];          // each tab's render, so the others can update their buttons
+
+function makeBatchTab(cfg) {
+  const $ = suffix => document.getElementById(cfg.key + suffix);
+  const ui = { list: $('List'), status: $('Status'), select: $('SelectBtn'), clear: $('ClearBtn'),
+               run: $('RunBtn'), stop: $('StopBtn'), refresh: $('RefreshBtn') };
+  const selected = new Set();   // media ids, in the order they were checked
+  const progress = new Map();   // id → { state: 'queued'|'running'|'done'|'error'|'waiting', message }
+  let running = false, stopRequested = false, shownCount = PAGE_SIZE;
+
+  function setBatchStatus(msg, isError = false) {
+    ui.status.textContent = msg;
+    ui.status.classList.toggle('status--error', isError);
+  }
+
+  const candidates = () => allMedia.filter(m => cfg.needs(m) || progress.has(m.id));
+
+  function render() {
+    const items = candidates();
+    // Drop selections that are no longer listed (deleted, or done by an earlier run)
+    for (const id of selected) if (!items.some(m => m.id === id && cfg.needs(m))) selected.delete(id);
+
+    if (!items.length) {
+      ui.list.innerHTML = `<li class="media-empty">${cfg.emptyText}</li>`;
+    } else {
+      const full = selected.size >= BATCH_MAX;
+      ui.list.innerHTML = items.slice(0, shownCount).map(m => {
+        const p = progress.get(m.id);
+        const checked = selected.has(m.id);
+        const canPick = cfg.needs(m) && !running && (checked || !full);
+        const state = p ? p.state : cfg.lastFailed(m) ? 'error' : null;
+        const message = p ? p.message : cfg.lastError(m);
+        const isVideo = m.mediaType === 'Video';
+        const label = escapeHtml(m.originalFileName || m.blobPath || `${isVideo ? 'Video' : 'Photo'} #${m.id}`);
+        const catchUrl = `./catch-details.html?catchNumber=${encodeURIComponent(m.catchNumber || '')}`;
+        // A preview only from a file an <img> can show: a thumbnail, or a photo browsers can
+        // read (not a video, not a HEIC)
+        const previewUrl = m.thumbnailUrl || (cfg.previewOriginal(m) ? m.readUrl : '');
+        const preview = /^https:\/\//.test(previewUrl || '')
+          ? `<img class="thumbs-preview" src="${escapeHtml(encodeURI(previewUrl))}" alt="" loading="lazy">`
+          : `<span class="thumbs-preview thumbs-preview--none" aria-hidden="true">${isVideo ? '🎬' : '📷'}</span>`;
+        return `
+        <li class="media-row thumbs-row${state ? ` thumbs-row--${state}` : ''}" data-id="${m.id}">
+          <label class="thumbs-pick">
+            <input type="checkbox" data-id="${m.id}"${checked ? ' checked' : ''}${canPick ? '' : ' disabled'}>
+            <span class="visually-hidden">Select ${label}</span>
+          </label>
+          ${preview}
+          <div class="row-body">
+            <div class="row-file">${label}</div>
+            <div class="row-meta">
+              <a class="row-catch" href="${catchUrl}">${escapeHtml(m.catchNumber || 'Unknown catch')}</a>
+              · ${formatSize(m.fileSizeInBytes)} · ${escapeHtml(formatDateTime(m.uploadedAt))}
+            </div>
+            ${state ? `<div class="thumbs-state">${cfg.stateLabels[state]}</div>` : ''}
+            ${message && ['error', 'waiting'].includes(state) ? `<div class="row-error">${escapeHtml(message)}</div>` : ''}
+          </div>
+        </li>`;
+      }).join('') + (items.length > shownCount
+        ? `<li class="media-empty"><button class="secondary-button" data-more="${cfg.key}">Show more</button></li>` : '');
+    }
+
+    const n = selected.size;
+    const otherBusy = batchBusy !== null && batchBusy !== cfg.key;
+    ui.run.disabled = running || otherBusy || n === 0;
+    ui.run.title = otherBusy ? 'Another tab is running: one batch at a time' : '';
+    ui.run.textContent = n ? `${cfg.runLabel} (${n})` : cfg.runLabel;
+    ui.select.disabled = running || !items.some(cfg.needs);
+    ui.clear.disabled = running || n === 0;
+    ui.stop.classList.toggle('hidden', !running);
+    ui.stop.disabled = stopRequested;
+    ui.stop.textContent = stopRequested ? 'Stopping after this one…' : '⏹️ Stop';
+  }
+
+  ui.list.addEventListener('change', e => {
+    const box = e.target.closest('input[type="checkbox"]');
+    if (!box) return;
+    const id = Number(box.dataset.id);
+    if (box.checked && selected.size < BATCH_MAX) selected.add(id);
+    else selected.delete(id);
+    render();
+  });
+
+  ui.list.addEventListener('click', e => {
+    if (e.target.dataset.more !== cfg.key) return;
+    shownCount += PAGE_SIZE;
+    render();
+  });
+
+  ui.select.addEventListener('click', () => {
+    for (const m of candidates()) {
+      if (selected.size >= BATCH_MAX) break;
+      if (cfg.needs(m)) selected.add(m.id);
+    }
+    render();
+  });
+
+  ui.clear.addEventListener('click', () => { selected.clear(); render(); });
+  ui.stop.addEventListener('click', () => { stopRequested = true; render(); });
+
+  // Refresh also clears this visit's ✅/⚠️ rows (not during a run)
+  ui.refresh.addEventListener('click', () => {
+    if (running) return;
+    progress.clear();
+    setBatchStatus('');
+    loadMedia({ keepState: true });
+  });
+
+  ui.run.addEventListener('click', async () => {
+    const ids = [...selected];
+    if (!ids.length || running || batchBusy) return;
+    running = true;
+    batchBusy = cfg.key;
+    batchTabs.forEach(r => r());
+    stopRequested = false;
+    for (const id of ids) progress.set(id, { state: 'queued' });
+    setBatchStatus('');
+    render();
+
+    const counts = { done: 0, error: 0, waiting: 0 };
+    for (const id of ids) {
+      if (stopRequested) break;
+      progress.set(id, { state: 'running' });
+      render();
+      let result;
+      try {
+        result = (await cfg.runOne(id)) || { state: 'done' };
+      } catch (err) {
+        console.error(err);
+        result = { state: 'error', message: err.message };
+      }
+      progress.set(id, result);
+      counts[result.state]++;
+      selected.delete(id);
+      renderSummary();
+      render();
+    }
+
+    // Anything skipped by Stop goes back to plain "needs doing", still selected
+    const skipped = ids.filter(id => progress.get(id)?.state === 'queued');
+    skipped.forEach(id => progress.delete(id));
+    running = false;
+    batchBusy = null;
+    stopRequested = false;
+    setBatchStatus([
+      counts.done ? `${counts.done} ${cfg.doneWord}` : '',
+      counts.error ? `${counts.error} failed` : '',
+      counts.waiting ? `${counts.waiting} still converting` : '',
+      skipped.length ? `${skipped.length} skipped (stopped)` : '',
+    ].filter(Boolean).join(', ') + '.', counts.error > 0);
+    batchTabs.forEach(r => r());
+  });
+
+  batchTabs.push(render);
+  return { render };
+}
+
+// Thumbnail Generation (#38): photos and videos without their copies, or whose last try failed
+const thumbsTab = makeBatchTab({
+  key: 'thumbs',
+  needs: needsThumbnails,
+  lastFailed: m => m.thumbnailStatus === 'failed',
+  lastError: m => m.thumbnailError,
+  previewOriginal: m => m.mediaType !== 'Video' && !APPLE_TYPES.includes(m.contentType),
+  runLabel: '🖼️ Generate Thumbnails',
+  doneWord: 'done',
+  emptyText: 'Every photo has its thumbnails 🎉',
+  stateLabels: { queued: '⏳ Waiting', running: '⏳ Generating…', done: '✅ Done', error: '⚠️ Failed' },
+  async runOne(id) {
+    const r = await postJson(CATCH_MEDIA_THUMBS_URL, { mediaId: id });
+    const m = allMedia.find(x => x.id === id);
+    if (m) Object.assign(m, { thumbnailUrl: r.thumbnailUrl, viewingUrl: r.viewingUrl, thumbnailStatus: 'done', thumbnailError: null });
+  },
+});
+
+// Apple Formats: complete files still stored as HEIC/HEIF or MOV, from before uploads were
+// converted. Convert starts the same conversion as an upload (through Retry, which accepts
+// these), then checks the record every few seconds until it's complete or failed: a video
+// can take minutes, too long for one request to wait. After 15 minutes it moves on.
+const APPLE_TYPES = ['image/heic', 'image/heif', 'video/quicktime'];
+const APPLE_POLL_MS = 5000;
+const APPLE_WAIT_MS = 15 * 60 * 1000;
+const needsConverting = m => mediaStatus(m) === 'complete' && APPLE_TYPES.includes(m.contentType);
+
+async function fetchMediaRow(m) {
+  const url = `${CATCH_MEDIA_GET_URL}?catchNumber=${encodeURIComponent(m.catchNumber || '')}`;
+  const res = await fetch(url, { headers: { 'X-API-Key': API_KEY } });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  return (Array.isArray(data) ? data : data.media || []).find(x => x && x.id === m.id) || null;
+}
+
+const appleTab = makeBatchTab({
+  key: 'apple',
+  needs: needsConverting,
+  lastFailed: () => false,
+  lastError: () => null,
+  previewOriginal: () => false, // browsers can't all show HEIC or MOV
+  runLabel: '🍎 Convert',
+  doneWord: 'converted',
+  emptyText: 'Nothing left in an Apple format 🎉',
+  stateLabels: { queued: '⏳ Waiting', running: '⏳ Converting…', done: '✅ Converted',
+                 error: '⚠️ Failed', waiting: '⏳ Still converting' },
+  async runOne(id) {
+    const first = allMedia.find(x => x.id === id);
+    if (!first) throw new Error('This file is no longer listed');
+    const catchNumber = first.catchNumber;
+    await postJson(CATCH_MEDIA_RETRY_URL, { mediaId: id });
+    const started = Date.now();
+    while (Date.now() - started < APPLE_WAIT_MS) {
+      await sleep(APPLE_POLL_MS);
+      let row;
+      try { row = await fetchMediaRow({ id, catchNumber }); } catch { continue; } // couldn't check: try again
+      if (!row) throw new Error('This file was deleted while converting');
+      // The list may have been reloaded meanwhile: update the record it shows now
+      const m = allMedia.find(x => x.id === id);
+      if (m) Object.assign(m, row);
+      const st = mediaStatus(row);
+      // Done only when it's complete AND no longer an Apple file
+      if (st === 'complete' && !APPLE_TYPES.includes(row.contentType)) return { state: 'done' };
+      if (st === 'complete' && Date.now() - started > 60_000) throw new Error('Finished, but the file is still in an Apple format');
+      if (st === 'failed' || st === 'stuck') throw new Error(row.errorMessage || "Couldn't convert");
+    }
+    return { state: 'waiting', message: 'Taking a while: Uploads shows how it ends.' };
+  },
+});
+
 // ── Load ───────────────────────────────────────────────────────────────
 
 // Numbers each load: a slower, older one (e.g. a Refresh that answers after a delete's reload)
@@ -427,6 +665,8 @@ async function loadMedia({ keepState = false } = {}) {
     renderSummary();
     renderCatchFilter();
     renderList();
+    thumbsTab.render();
+    appleTab.render();
     showState('listState');
   } catch (err) {
     if (loadId !== latestLoad) return;

@@ -209,6 +209,7 @@ body.has-ticker {
   width: 100%;
   aspect-ratio: 4 / 3;
   object-fit: cover;
+  object-position: center 25%; /* vertical photos: keep faces and fish, not the middle */
   border-radius: 12px;
   background: var(--gb-accent-soft);
   display: block;

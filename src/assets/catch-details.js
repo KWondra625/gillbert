@@ -64,6 +64,7 @@ const el = {
   lightboxPrev:     document.getElementById('lightboxPrev'),
   lightboxNext:     document.getElementById('lightboxNext'),
   lightboxCounter:  document.getElementById('lightboxCounter'),
+  lightboxDownload: document.getElementById('lightboxDownload'),
   backButton:       document.getElementById('backButton'),
 };
 
@@ -675,6 +676,21 @@ function videoPreviewUrl(url) {
   return `${encodeURI(url)}#t=0.1`;
 }
 
+// A poster frame that won't load (e.g. deleted from storage): show the start of the video
+// instead, as tiles did before posters.
+function videoPosterFailed(img) {
+  const tile = img.closest('.media-tile');
+  if (!tile) return;
+  const video = document.createElement('video');
+  video.src = videoPreviewUrl(img.dataset.videoUrl);
+  video.preload = 'metadata';
+  video.muted = true;
+  video.playsInline = true;
+  addPreviewFallback(video);
+  tile.querySelectorAll('.media-tile-backdrop, .media-tile-poster').forEach(n => n.remove());
+  tile.prepend(video);
+}
+
 function addPreviewFallback(video) {
   video.addEventListener('error', () => {
     if (video.src.includes('#t=')) video.src = video.src.replace(/#t=[^#]*$/, '');
@@ -846,11 +862,17 @@ function buildMediaTile(item) {
       </div>`;
   }
 
-  // Video
+  // Video: its poster frame when it has one (#38), so the tile loads a small picture and no
+  // video at all until it's tapped; else the start of the video, as before
   if (mediaType === 'Video') {
+    const preview = item.thumbnailUrl
+      ? `<img class="media-tile-backdrop" src="${encodeURI(item.thumbnailUrl)}" alt="" aria-hidden="true" loading="lazy" />
+        <img class="media-tile-photo media-tile-poster" src="${encodeURI(item.thumbnailUrl)}" alt="Catch video"
+          loading="lazy" data-video-url="${escapeHtml(readUrl)}" onerror="videoPosterFailed(this)" />`
+      : `<video src="${videoPreviewUrl(readUrl)}" preload="metadata" muted playsinline></video>`;
     return `
       <div class="media-tile media-tile--video" data-media-id="${item.id || ''}">
-        <video src="${videoPreviewUrl(readUrl)}" preload="metadata" muted playsinline></video>
+        ${preview}
         <div class="media-play-overlay">
           <div class="media-play-btn"></div>
           <div class="media-video-label">Video</div>
@@ -859,17 +881,34 @@ function buildMediaTile(item) {
       </div>`;
   }
 
-  // Photo (jpeg, png, etc.)
+  // Photo (jpeg, png, etc.): the small thumbnail when it has one (#38), else the original.
+  // A thumbnail that won't load falls back to the original; only an original that won't
+  // load shows the tile as unavailable.
+  const tileUrl = encodeURI(item.thumbnailUrl || readUrl);
   return `
     <div class="media-tile media-tile--photo" data-media-id="${item.id || ''}">
+      <img class="media-tile-backdrop" src="${tileUrl}" alt="" aria-hidden="true" loading="lazy" />
       <img
-        src="${encodeURI(readUrl)}"
+        class="media-tile-photo"
+        src="${tileUrl}"
         alt="Catch photo"
         loading="lazy"
-        onerror="this.closest('.media-tile').replaceWith(brokenTile())"
+        data-original-url="${escapeHtml(encodeURI(readUrl))}"
+        onerror="photoTileFailed(this)"
       />
       ${caption}${deleteBtn}
     </div>`;
+}
+
+function photoTileFailed(img) {
+  const original = img.dataset.originalUrl;
+  if (original && img.getAttribute('src') !== original) {
+    const backdrop = img.closest('.media-tile').querySelector('.media-tile-backdrop');
+    if (backdrop) backdrop.src = original;
+    img.src = original;
+    return;
+  }
+  img.closest('.media-tile').replaceWith(brokenTile());
 }
 
 function canManageFailedMedia(item) {
@@ -1054,18 +1093,39 @@ function showLightboxItem(index) {
   if (!item) return;
 
   if (item.mediaType === 'Video') {
+    // The poster frame shows while the video loads (#38)
+    if (item.thumbnailUrl) el.lightboxVideo.poster = item.thumbnailUrl;
+    else el.lightboxVideo.removeAttribute('poster');
     el.lightboxVideo.src = item.readUrl;
     el.lightboxVideo.classList.remove('hidden');
     el.lightboxImg.classList.add('hidden');
+    el.lightboxImg.onerror = null;
     el.lightboxImg.src = '';
+    // Plays as it opens (tapping a video means "watch this"), with sound, since it follows a
+    // tap or swipe. A browser that won't allow it (e.g. low-power mode) leaves it paused with
+    // its ▶ as before. Swiping away stops it: a new src, or the photo branch below.
+    el.lightboxVideo.play().catch(() => {});
   } else {
-    el.lightboxImg.src = item.readUrl;
+    // The mid-size viewing copy when it has one (#38), else the original
+    // A viewing copy that won't load falls back to the original
+    el.lightboxImg.onerror = item.viewingUrl
+      ? () => { el.lightboxImg.onerror = null; el.lightboxImg.src = item.readUrl; } : null;
+    el.lightboxImg.src = item.viewingUrl || item.readUrl;
     el.lightboxImg.classList.remove('hidden');
     el.lightboxVideo.classList.add('hidden');
     el.lightboxVideo.pause();
     el.lightboxVideo.removeAttribute('src');
     el.lightboxVideo.load();
   }
+
+  // Download original (#38): photos only, since video players have their own download. A
+  // plain link to the original: storage marks each original "save as <its uploaded name>"
+  // (set by Make Thumbnails), so the browser downloads it; an original not marked yet just
+  // opens in a new tab. (The link's own `download` name only works on this site's address,
+  // which the originals aren't.)
+  const isPhoto = item.mediaType !== 'Video';
+  el.lightboxDownload.classList.toggle('hidden', !isPhoto);
+  el.lightboxDownload.href = isPhoto ? item.readUrl : '';
 
   const multiple = lightboxSequence.length > 1;
   el.lightboxPrev.classList.toggle('hidden', !multiple || index === 0);
@@ -1082,6 +1142,7 @@ function navigateLightbox(delta) {
 
 function closeLightbox() {
   el.lightbox.classList.remove('open');
+  el.lightboxImg.onerror = null;
   el.lightboxImg.src = '';
   el.lightboxVideo.pause();
   el.lightboxVideo.removeAttribute('src');

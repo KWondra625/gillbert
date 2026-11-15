@@ -44,7 +44,7 @@
           <a href="./anglers-listing.html"><span class="tray-ico">🎣</span><span><b>Anglers</b><span>Records, aliases and logins</span></span></a>
           <a href="./bodies-of-water-listing.html"><span class="tray-ico">💧</span><span><b>Bodies of water</b><span>Lakes and their DNR links</span></span></a>
           <a href="./fish-species-listing.html"><span class="tray-ico">🐟</span><span><b>Fish species</b><span>Names and DNR details</span></span></a>
-          <a href="./media-activity.html"><span class="tray-ico">🗂️</span><span><b>Media activity</b><span>Uploads, retries and stray files</span></span></a>
+          <a href="./media.html"><span class="tray-ico">🗂️</span><span><b>Media</b><span>Uploads, thumbnails, conversions and storage</span></span></a>
           <a href="./under-the-hood.html"><span class="tray-ico">🏗️</span><span><b>Under the hood</b><span>Servers and versions</span></span></a>
           <a href="./settings.html"><span class="tray-ico">⚙️</span><span><b>Settings</b><span>Season, welcome line, Remember when</span></span></a>
         </div>

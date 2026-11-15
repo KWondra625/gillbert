@@ -1,7 +1,7 @@
 // Layer 1, read-only: the catches listing and catch detail pages, checked against
 // what the Staging API says the data is.
 const { test, expect, unlockAdmin, STAGING_STORAGE_HOST } = require('../support/fixtures');
-const { getCatches, getLookups, getCatchMedia } = require('../support/staging-api');
+const { getCatches, getLookups, getCatchMedia, getAllMedia } = require('../support/staging-api');
 
 const PER_PAGE = 24;
 let catches;
@@ -10,6 +10,31 @@ test.beforeAll(async () => {
   catches = await getCatches();
   expect(catches.length, 'Staging should have catches to test with').toBeGreaterThan(0);
 });
+
+// Every catch's media in one call (catch-media/get with no catch number returns all
+// of it, like the Media page), shared by the video tests. One lookup per catch took
+// ~28 s for 91 catches, and ~40 s with two workers at once: most of a 45 s test.
+let allMediaPromise;
+function allCatchMedia() {
+  allMediaPromise ||= getAllMedia().then(rows => catches
+    .map(c => ({ c, media: rows.filter(m => m.catchNumber === c.catchNumber) }))
+    .filter(({ media }) => media.length > 0));
+  return allMediaPromise;
+}
+
+// A file matching `wanted` on the catch with the fewest bytes to load overall. Tiles load
+// full-size photos (until #38) and the browser opens only 6 connections to the storage
+// server, so on a photo-heavy catch a video waits behind tens of MB of photos. Video
+// tests check that a video loads, not how the page copes with that queue.
+async function onLightestCatch(wanted) {
+  let best = null;
+  for (const { c, media } of await allCatchMedia()) {
+    const m = media.find(wanted);
+    const pageBytes = media.reduce((sum, x) => sum + Number(x.fileSizeInBytes || 0), 0);
+    if (m && (!best || pageBytes < best.pageBytes)) best = { c, m, pageBytes };
+  }
+  return best;
+}
 
 // Searches once the first page has rendered, and waits for the search's own response.
 // (Searching while the initial load is still in flight lets that slower, unfiltered
@@ -195,13 +220,7 @@ test.describe('catch detail', () => {
   });
 
   test('a video opens in the lightbox and starts playing', async ({ page }) => {
-    // The smallest MP4 on Staging, so each run downloads as little as possible.
-    let best = null;
-    for (const c of catches.filter(c => Number(c.catchMediaCount) > 0)) {
-      for (const m of await getCatchMedia(c.catchNumber)) {
-        if (m.contentType === 'video/mp4' && m.displayStatus === 'complete' && (!best || m.fileSizeInBytes < best.m.fileSizeInBytes)) best = { c, m };
-      }
-    }
+    const best = await onLightestCatch(m => m.contentType === 'video/mp4' && m.displayStatus === 'complete');
     test.skip(!best, 'no Staging catch has an MP4 video');
     await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(best.c.catchNumber)}`);
     await page.locator(`.media-tile--video[data-media-id="${best.m.id}"]`).click();
@@ -213,18 +232,18 @@ test.describe('catch detail', () => {
     await expect.poll(() => video.evaluate(v => v.error ? `error ${v.error.code}` : v.readyState), { timeout: 30_000 })
       .toBeGreaterThanOrEqual(2);
     expect(await video.evaluate(v => v.duration)).toBeGreaterThan(0);
+    // It plays by itself as it opens, with sound: no second tap on ▶
+    await expect.poll(() => video.evaluate(v => !v.paused && v.currentTime > 0), { timeout: 30_000 }).toBe(true);
+    expect(await video.evaluate(v => v.muted)).toBe(false);
     await page.locator('#lightboxClose').click();
     await expect(page.locator('#lightbox')).toBeHidden();
   });
 
   test("a video's delete preview shows a frame, not a black box", async ({ page }) => {
     // A video in Staging's own storage (which answers range requests); read-only: cancelled
-    let target = null;
-    for (const c of catches.filter(c => Number(c.catchMediaCount) > 0)) {
-      const v = (await getCatchMedia(c.catchNumber)).find(m => m.mediaType === 'Video' && m.displayStatus === 'complete'
-        && m.readUrl.includes(STAGING_STORAGE_HOST));
-      if (v) { target = { c, v }; break; }
-    }
+    const found = await onLightestCatch(m => m.mediaType === 'Video' && m.displayStatus === 'complete'
+      && m.readUrl.includes(STAGING_STORAGE_HOST));
+    const target = found && { c: found.c, v: found.m };
     test.skip(!target, 'no video in Staging storage');
     await unlockAdmin(page);
     await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(target.c.catchNumber)}`);
