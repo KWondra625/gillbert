@@ -158,6 +158,13 @@ the video player has its own download.
 - 2026-11-14: migration `add_thumbnail_columns.sql` and the new `vw_catch_media_details`
   (4 columns + `thumbnail_status`). Checked after: 180 rows unchanged, view has 22 columns,
   GET Catch Media and the catch page tests unaffected.
+- 2026-11-14: created **Gillbert - Media - Make Thumbnails** and **Gillbert - Media - POST
+  Make Thumbnails** (both active: n8n only lets an active workflow call a sub-workflow that
+  is itself active). Tried on 5 files: JPEG in Staging storage (173, 5.6 s, "save as" set on
+  its original), 7.7 MB sideways JPEG in Production storage (2, 4.9 s, copies upright,
+  Production file untouched), PNG (208, 2.6 s), 85 MB MP4 (172, 1.6 s), 135 MB MOV in
+  Production storage (14, 28.5 s: ffmpeg reads further into a MOV). Copies 60-850 KB,
+  posters ~150 KB. Error answers checked: unknown id, bad id, no key.
 
 **Release 1 (new uploads):** migration, view, the two new workflows, the four changed ones,
 pages. Photos and videos uploaded after it get thumbnails; older ones keep working from
