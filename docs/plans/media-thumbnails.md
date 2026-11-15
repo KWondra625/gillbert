@@ -154,6 +154,11 @@ the video player has its own download.
 
 ## Releases
 
+**Applied on Staging so far** (copied into the release runbook when it's written):
+- 2026-11-14: migration `add_thumbnail_columns.sql` and the new `vw_catch_media_details`
+  (4 columns + `thumbnail_status`). Checked after: 180 rows unchanged, view has 22 columns,
+  GET Catch Media and the catch page tests unaffected.
+
 **Release 1 (new uploads):** migration, view, the two new workflows, the four changed ones,
 pages. Photos and videos uploaded after it get thumbnails; older ones keep working from
 originals. Verified on Staging first (upload JPEG + HEIC + MP4 + MOV; check the files, the
