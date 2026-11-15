@@ -232,6 +232,9 @@ test.describe('catch detail', () => {
     await expect.poll(() => video.evaluate(v => v.error ? `error ${v.error.code}` : v.readyState), { timeout: 30_000 })
       .toBeGreaterThanOrEqual(2);
     expect(await video.evaluate(v => v.duration)).toBeGreaterThan(0);
+    // It plays by itself as it opens, with sound: no second tap on ▶
+    await expect.poll(() => video.evaluate(v => !v.paused && v.currentTime > 0), { timeout: 30_000 }).toBe(true);
+    expect(await video.evaluate(v => v.muted)).toBe(false);
     await page.locator('#lightboxClose').click();
     await expect(page.locator('#lightbox')).toBeHidden();
   });

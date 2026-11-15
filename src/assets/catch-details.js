@@ -1101,6 +1101,10 @@ function showLightboxItem(index) {
     el.lightboxImg.classList.add('hidden');
     el.lightboxImg.onerror = null;
     el.lightboxImg.src = '';
+    // Plays as it opens (tapping a video means "watch this"), with sound, since it follows a
+    // tap or swipe. A browser that won't allow it (e.g. low-power mode) leaves it paused with
+    // its ▶ as before. Swiping away stops it: a new src, or the photo branch below.
+    el.lightboxVideo.play().catch(() => {});
   } else {
     // The mid-size viewing copy when it has one (#38), else the original
     // A viewing copy that won't load falls back to the original
