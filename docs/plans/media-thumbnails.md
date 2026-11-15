@@ -119,7 +119,7 @@ Media Activity: both call POST Delete Catch Media, the only way media is deleted
   lightbox uses `viewingUrl`. A photo without them uses the original, as today. Video tiles:
   see "Phase 3". The lightbox gets **Download original** (see below).
 - **Home card:** `thumbnailUrl`, else the original.
-- **Media Activity:** a third tab, **🖼️ Media Thumbnails**, and a summary tile counting
+- **Media Activity** (now **Media**): a tab, **🖼️ Media Thumbnails** (now **Thumbnail Generation**), counting
   photos and videos without thumbnails.
   - Lists complete photos and videos that are `missing` or `failed` (newest first, with the
     error for failed ones), each with a checkbox, a preview (🎬 for a video with no poster
@@ -192,7 +192,7 @@ URLs, the tiles and lightbox; delete one of each and check their copies go; Stor
 shows nothing new).
 
 **Release 2 (existing photos, any time after):** no code. On Production, open Media
-Activity → Media Thumbnails and generate in batches of up to 10 until none are missing
+→ Thumbnail Generation and generate in batches of up to 10 until none are missing
 (Staging's data today: 148 photos and 32 videos).
 Written as a runbook step; Staging first.
 

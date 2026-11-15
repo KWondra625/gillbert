@@ -1,21 +1,24 @@
-# Media Management (admin page)
+# Media (admin page)
 
 Status: **agreed with Kurt 2026-11-14**, building on `feature/media-thumbnails` after #38.
 
-The admin **Media Activity** page becomes **Media Management**: one place to watch uploads
-and to look after the stored files.
+The admin **Media Activity** page becomes **Media** (named like Anglers and Bodies of water):
+one place to watch uploads and to look after the stored files. (It was briefly called Media
+Management; renamed 2026-11-15.)
 
 ## Tabs, in this order
 
 | Tab | What it's for |
 |---|---|
-| 📋 **Uploads** | Today's list: every upload with its status, filtered All / ⚠️ Needs attention / ⏳ Converting, with Retry and Delete. Unchanged. |
-| 🖼️ **Media Thumbnails** | Photos and videos without their thumbnails (#38): tick up to 10, Generate, one at a time, Stop. Built in #38. |
+| 📋 **Upload History** | Today's list: every upload with its status, filtered All / ⚠️ Needs attention / ⏳ Converting, with Retry and Delete. Unchanged. |
+| 🖼️ **Thumbnail Generation** | Photos and videos without their thumbnails (#38): tick up to 10, Generate, one at a time, Stop. Built in #38. |
 | 🍎 **Apple Formats** | New: files still in an Apple format, to convert to the formats every browser plays. |
 | 🧹 **Storage Check** | Records without a file, and files without a record. Unchanged. |
 
-Day-to-day monitoring first, occasional clean-up last. The summary tiles above the tabs each
-jump to their tab, with one added for Apple formats.
+Day-to-day monitoring first, occasional clean-up last. Each tab shows its count; Upload
+History's turns red when any upload needs attention, and its Needs attention and Converting
+chips show their own counts. No summary tiles above the tabs (dropped 2026-11-15: they only
+repeated the tab counts and jumped to the tabs).
 
 ## 🍎 Apple Formats
 
@@ -48,10 +51,9 @@ left out: finding them means reading every video file.)
 
 ## Page rename
 
-- `media-activity.html` → `media-management.html` (with its script and stylesheet). No
-  forwarding page: Kurt has no bookmarks to the old address.
-- The admin menu entry, the page title and heading, and the Features page say Media
-  Management.
+- `media-activity.html` → `media.html` (with its script and stylesheet `media.js` /
+  `media.css`). No forwarding page: Kurt has no bookmarks to the old address.
+- The admin menu entry, the page title and heading, and the Features page say Media.
 
 ## Applied on Staging
 

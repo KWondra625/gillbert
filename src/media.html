@@ -4,14 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex" />
-  <title>Media Management · Gillbert</title>
+  <title>Media · Gillbert</title>
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
   <link rel="stylesheet" href="./assets/theme.css" />
   <link rel="stylesheet" href="./assets/base.css" />
   <link rel="stylesheet" href="./assets/topbar.css" />
   <script src="./assets/settings.js"></script>
   <script src="./assets/season.js"></script>
-  <link rel="stylesheet" href="./assets/media-management.css" />
+  <link rel="stylesheet" href="./assets/media.css" />
 </head>
 <body class="layout-card">
   <!-- Admin-only: linked from the home page's Admin section. -->
@@ -21,7 +21,7 @@
     <span class="page-head-tile" aria-hidden="true">🗂️</span>
     <div>
       <p class="page-head-label">Admin</p>
-      <h1>Media Management</h1>
+      <h1>Media</h1>
     </div>
   </div>
   <div class="container">
@@ -45,19 +45,9 @@
     </div>
 
     <div id="listState" class="hidden">
-      <!-- Summary tiles: each one jumps to its filter or tab -->
-      <div id="summary" class="stat-strip">
-        <button class="stat-tile" data-goto="all"><span class="stat-num" id="statTotal">0</span><span class="stat-label">uploads</span></button>
-        <button class="stat-tile" data-goto="attention" id="statAttentionTile"><span class="stat-num" id="statAttention">0</span><span class="stat-label">⚠️ need attention</span></button>
-        <button class="stat-tile" data-goto="converting" id="statConvertingTile"><span class="stat-num" id="statConverting">0</span><span class="stat-label">⏳ converting</span></button>
-        <button class="stat-tile" data-goto="thumbnails" id="statThumbsTile"><span class="stat-num" id="statThumbs">0</span><span class="stat-label">🖼️ without thumbnails</span></button>
-        <button class="stat-tile" data-goto="apple" id="statAppleTile"><span class="stat-num" id="statApple">0</span><span class="stat-label">🍎 Apple formats</span></button>
-        <button class="stat-tile stat-tile--text" data-goto="storage" id="statStorageTile"><span class="stat-num" id="statStorage">Checking…</span><span class="stat-label">🧹 storage</span></button>
-      </div>
-
       <div class="tabs" role="tablist">
-        <button class="tab tab--active" role="tab" id="uploadsTab" data-tab="uploads" aria-selected="true" aria-controls="uploadsPanel">📋 Uploads <span class="tab-count" id="uploadsTabCount"></span></button>
-        <button class="tab" role="tab" id="thumbsTab" data-tab="thumbnails" aria-selected="false" aria-controls="thumbsPanel">🖼️ Media Thumbnails <span class="tab-count" id="thumbsTabCount"></span></button>
+        <button class="tab tab--active" role="tab" id="uploadsTab" data-tab="uploads" aria-selected="true" aria-controls="uploadsPanel">📋 Upload History <span class="tab-count" id="uploadsTabCount"></span></button>
+        <button class="tab" role="tab" id="thumbsTab" data-tab="thumbnails" aria-selected="false" aria-controls="thumbsPanel">🖼️ Thumbnail Generation <span class="tab-count" id="thumbsTabCount"></span></button>
         <button class="tab" role="tab" id="appleTab" data-tab="apple" aria-selected="false" aria-controls="applePanel">🍎 Apple Formats <span class="tab-count" id="appleTabCount"></span></button>
         <button class="tab" role="tab" id="storageTab" data-tab="storage" aria-selected="false" aria-controls="storagePanel">🧹 Storage Check <span class="tab-count" id="storageTabCount">…</span></button>
       </div>
@@ -67,8 +57,8 @@
         <div class="toolbar">
           <div class="filter-chips" role="group" aria-label="Filter uploads">
             <button class="filter-chip filter-chip--active" data-filter="all">All</button>
-            <button class="filter-chip" data-filter="attention">⚠️ Needs attention</button>
-            <button class="filter-chip" data-filter="converting">⏳ Converting</button>
+            <button class="filter-chip" data-filter="attention">⚠️ Needs attention <span class="chip-count" id="attentionCount"></span></button>
+            <button class="filter-chip" data-filter="converting">⏳ Converting <span class="chip-count" id="convertingCount"></span></button>
           </div>
           <label class="catch-filter">
             <span>Catch</span>
@@ -132,6 +122,6 @@
 
   <script src="./assets/config.js"></script>
   <script src="./assets/admin.js"></script>
-  <script src="./assets/media-management.js"></script>
+  <script src="./assets/media.js"></script>
 </body>
 </html>

@@ -28,7 +28,7 @@ async function getCatchMedia(catchNumber) {
   return (Array.isArray(data) ? data : data.media || []).filter(m => m && m.id);
 }
 
-// Every catch's media in one call (what Media Management loads).
+// Every catch's media in one call (what the Media page loads).
 async function getAllMedia() {
   const data = await apiGet('catch-media/get');
   return (Array.isArray(data) ? data : data.media || []).filter(m => m && m.id);

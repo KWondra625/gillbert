@@ -1,6 +1,6 @@
-// Media Management (formerly Media Activity), admin only. Four tabs: every catch media
+// Media (formerly Media Activity), admin only. Four tabs: Upload History, every catch media
 // upload with its status, so failed or stuck conversions stand out (with Retry/Delete);
-// Media Thumbnails, to make the small copies for files without them (#38); Apple Formats,
+// Thumbnail Generation, to make the small copies for files without them (#38); Apple Formats,
 // to convert older HEIC/MOV files; and a storage check for files with no record and records
 // with no file (#10, #16), which runs by itself on load.
 
@@ -25,13 +25,8 @@ const STATUS_LABELS = {
 const el = {
   errorMsg:     document.getElementById('errorMsg'),
   retryLoadBtn: document.getElementById('retryLoadBtn'),
-  statTotal:          document.getElementById('statTotal'),
-  statAttention:      document.getElementById('statAttention'),
-  statAttentionTile:  document.getElementById('statAttentionTile'),
-  statConverting:     document.getElementById('statConverting'),
-  statConvertingTile: document.getElementById('statConvertingTile'),
-  statStorage:        document.getElementById('statStorage'),
-  statStorageTile:    document.getElementById('statStorageTile'),
+  attentionCount:     document.getElementById('attentionCount'),
+  convertingCount:    document.getElementById('convertingCount'),
   uploadsTabCount:    document.getElementById('uploadsTabCount'),
   storageTabCount:    document.getElementById('storageTabCount'),
   status:       document.getElementById('status'),
@@ -41,11 +36,7 @@ const el = {
   scanBtn:      document.getElementById('scanBtn'),
   scanResult:   document.getElementById('scanResult'),
   catchFilter:  document.getElementById('catchFilter'),
-  statThumbs:       document.getElementById('statThumbs'),
-  statThumbsTile:   document.getElementById('statThumbsTile'),
   thumbsTabCount:   document.getElementById('thumbsTabCount'),
-  statApple:        document.getElementById('statApple'),
-  statAppleTile:    document.getElementById('statAppleTile'),
   appleTabCount:    document.getElementById('appleTabCount'),
 };
 
@@ -129,23 +120,16 @@ function armOrRun(button, label, run) {
 function renderSummary() {
   const attention = allMedia.filter(needsAttention).length;
   const converting = allMedia.filter(isConverting).length;
-  el.statTotal.textContent = allMedia.length;
-  el.statAttention.textContent = attention;
-  el.statConverting.textContent = converting;
-  el.statAttentionTile.classList.toggle('stat-tile--alert', attention > 0);
-  el.statConvertingTile.classList.toggle('stat-tile--warn', converting > 0);
+  // Upload History counts every upload, in red when any need attention; its chips count theirs
   el.uploadsTabCount.textContent = `(${allMedia.length})`;
-  const noThumbs = allMedia.filter(needsThumbnails).length;
-  el.statThumbs.textContent = noThumbs;
-  el.statThumbsTile.classList.toggle('stat-tile--warn', noThumbs > 0);
-  el.thumbsTabCount.textContent = `(${noThumbs})`;
-  const apple = allMedia.filter(needsConverting).length;
-  el.statApple.textContent = apple;
-  el.statAppleTile.classList.toggle('stat-tile--warn', apple > 0);
-  el.appleTabCount.textContent = `(${apple})`;
+  el.uploadsTabCount.classList.toggle('tab-count--alert', attention > 0);
+  el.attentionCount.textContent = `(${attention})`;
+  el.convertingCount.textContent = `(${converting})`;
+  el.thumbsTabCount.textContent = `(${allMedia.filter(needsThumbnails).length})`;
+  el.appleTabCount.textContent = `(${allMedia.filter(needsConverting).length})`;
 }
 
-// ── Tabs + tiles ───────────────────────────────────────────────────────
+// ── Tabs ───────────────────────────────────────────────────────
 
 function showTab(name) {
   document.querySelectorAll('.tab').forEach(tab => {
@@ -167,14 +151,6 @@ function setFilter(name) {
 }
 
 document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => showTab(tab.dataset.tab)));
-
-// Each tile jumps to what it counts: a filter on the Uploads tab, or another tab
-const TILE_TABS = ['thumbnails', 'apple', 'storage'];
-document.querySelectorAll('.stat-tile').forEach(tile => tile.addEventListener('click', () => {
-  if (TILE_TABS.includes(tile.dataset.goto)) return showTab(tile.dataset.goto);
-  showTab('uploads');
-  setFilter(tile.dataset.goto);
-}));
 
 function renderList() {
   const filtered = allMedia.filter(m =>
@@ -201,7 +177,7 @@ function renderList() {
     const typeIcon = type === 'video' ? '🎬 ' : type === 'photo' ? '📷 ' : '';
     const by = m.uploadedByAnglerName ? ` <span class="row-by">by ${escapeHtml(m.uploadedByAnglerName)}</span>` : '';
     // One markup for both layouts: wide screens lay the cells out as table columns,
-    // phones as a card (see media-management.css).
+    // phones as a card (see media.css).
     return `
       <li class="media-row media-row--${status}">
         <span class="row-status">${STATUS_LABELS[status] || escapeHtml(status)}</span>
@@ -306,13 +282,8 @@ let lastScan = null;
 const RECENT_MS = 60 * 60 * 1000;
 const isRecent = f => Boolean(f.lastModified) && Date.now() - new Date(f.lastModified) < RECENT_MS;
 
-// The Storage tile and the tab heading show how the last scan went
+// The Storage Check tab's count shows how the last scan went
 function setStorageSummary(state, issues = 0) {
-  el.statStorage.textContent = state === 'checking' ? 'Checking…'
-    : state === 'error' ? "Couldn't check"
-    : issues ? `${issues} ${issues === 1 ? 'issue' : 'issues'}` : 'All clear ✅';
-  el.statStorageTile.classList.toggle('stat-tile--alert', state === 'error' || (state === 'done' && issues > 0));
-  el.statStorageTile.classList.toggle('stat-tile--ok', state === 'done' && !issues);
   el.storageTabCount.textContent = state === 'checking' ? '…' : state === 'error' ? '(!)' : issues ? `(${issues})` : '✅';
   el.storageTabCount.classList.toggle('tab-count--alert', state === 'error' || issues > 0);
 }
@@ -433,7 +404,7 @@ async function runScanAction(button, busyLabel, action) {
   }
 }
 
-// ── Batch lists: Media Thumbnails (#38) and Apple Formats ───────────────
+// ── Batch lists: Thumbnail Generation (#38) and Apple Formats ───────────────
 
 // Both tabs work the same way: tick up to 10 files (the rest disable; "Select 10" tops up),
 // press the button, and they're done one at a time, each row showing its progress. Up to
@@ -603,7 +574,7 @@ function makeBatchTab(cfg) {
   return { render };
 }
 
-// Media Thumbnails (#38): photos and videos without their copies, or whose last try failed
+// Thumbnail Generation (#38): photos and videos without their copies, or whose last try failed
 const thumbsTab = makeBatchTab({
   key: 'thumbs',
   needs: needsThumbnails,
