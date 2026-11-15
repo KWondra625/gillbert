@@ -179,6 +179,11 @@ the video player has its own download.
   browser re-sent it on a new connection after its answer was lost), so the second record
   found its HEIC already converted and removed. Fix prepared: record each file once
   (`deploy_commit_once.py`).
+- 2026-11-14: record-once fix applied to the upload workflow (#47); upload tests re-run
+  5/5 (JPEG, HEIC, MOV, mixed batch, delete) and cleaned up.
+- 2026-11-14: partial backfill, as Kurt asked: 45 of the oldest files (38 photos, 7
+  videos), 0 failures, ~6 s each. 130 left as `missing` for Kurt to try the Media
+  Thumbnails tab. Storage Check clean (113 files, 0 with no record, 0 missing).
 
 **Release 1 (new uploads):** migration, view, the two new workflows, the four changed ones,
 pages. Photos and videos uploaded after it get thumbnails; older ones keep working from
