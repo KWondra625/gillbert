@@ -165,6 +165,20 @@ the video player has its own download.
   Production file untouched), PNG (208, 2.6 s), 85 MB MP4 (172, 1.6 s), 135 MB MOV in
   Production storage (14, 28.5 s: ffmpeg reads further into a MOV). Copies 60-850 KB,
   posters ~150 KB. Error answers checked: unknown id, bad id, no key.
+- 2026-11-14: step 3 (`tools/n8n-migration/media_rework/deploy_thumbnails_step3.py`, backups
+  in its snapshots/): GET Catch Media's 4 fields, Delete removes the copies, Media Admin
+  knows the copies, commit and Convert Media start Make Thumbnails. All 5 read back OK and
+  active. The upload step needed no change to refuse copy names: its path rule already
+  allows only letters and digits before the extension. Checked after: the API returns the
+  fields; Storage Check clean (30 files, 0 with no record, 0 missing).
+- 2026-11-14: step 4, upload tests with thumbnail checks (`write/03-media-upload.spec.js`):
+  29/29 passed on the second run: every type gets its copies, upright and within size,
+  originals marked "save as", delete removes all three files, the catch page uses the
+  copies. Test data cleaned up; Storage Check back to 30 files, 0 with no record.
+  The first run hit an older bug, not a thumbnail one: a commit recorded twice (the
+  browser re-sent it on a new connection after its answer was lost), so the second record
+  found its HEIC already converted and removed. Fix prepared: record each file once
+  (`deploy_commit_once.py`).
 
 **Release 1 (new uploads):** migration, view, the two new workflows, the four changed ones,
 pages. Photos and videos uploaded after it get thumbnails; older ones keep working from
