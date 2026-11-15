@@ -119,7 +119,7 @@
 
 .stat-strip {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 10px;
   margin-bottom: 18px;
 }
@@ -579,6 +579,7 @@
 }
 
 .thumbs-row--running,
+.thumbs-row--waiting,
 .thumbs-row--queued {
   border-left-color: var(--gb-accent-600);
 }
@@ -643,13 +644,9 @@
 /* ── Phones ──────────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
+  /* Six tiles: three rows of two */
   .stat-strip {
     grid-template-columns: repeat(2, 1fr);
-  }
-
-  /* Five tiles in two columns: the last one spans the row */
-  .stat-strip .stat-tile:last-child {
-    grid-column: 1 / -1;
   }
 
   /* Three equal tabs; a long label wraps to a second line instead of running off-screen */

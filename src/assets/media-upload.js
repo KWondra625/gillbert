@@ -392,7 +392,7 @@ function startSuccessCountdown(catchNumber) {
 // as they finish, like the catch page does. Watching starts as soon as a file is recorded as
 // converting (not after the whole batch): the loop's first check is after 2 s (a photo often
 // converts in a few seconds, well before the 10 s hand-off), then every 10 s. Gives up after 10 minutes; the
-// catch page and Media Activity have the final word after that. One loop at a time: files
+// catch page and Media Management have the final word after that. One loop at a time: files
 // that start converting later (another in the batch, or a retry) join the loop already running,
 // at its next 10 s check.
 const CONVERT_FIRST_CHECK_MS = 2 * 1000;

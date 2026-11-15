@@ -1,6 +1,8 @@
-// Media Activity: admin-only list of every catch media upload with its status, so failed
-// or stuck conversions stand out (with Retry/Delete), plus a storage check for files that
-// have no media record (#10, #16). Two tabs; the storage check runs by itself on load.
+// Media Management (formerly Media Activity), admin only. Four tabs: every catch media
+// upload with its status, so failed or stuck conversions stand out (with Retry/Delete);
+// Media Thumbnails, to make the small copies for files without them (#38); Apple Formats,
+// to convert older HEIC/MOV files; and a storage check for files with no record and records
+// with no file (#10, #16), which runs by itself on load.
 
 const CATCH_MEDIA_GET_URL    = API_BASE + "catch-media/get";
 const CATCH_MEDIA_RETRY_URL  = API_BASE + "catch-media/retry";
@@ -42,13 +44,9 @@ const el = {
   statThumbs:       document.getElementById('statThumbs'),
   statThumbsTile:   document.getElementById('statThumbsTile'),
   thumbsTabCount:   document.getElementById('thumbsTabCount'),
-  thumbsList:       document.getElementById('thumbsList'),
-  thumbsStatus:     document.getElementById('thumbsStatus'),
-  thumbsSelectBtn:  document.getElementById('thumbsSelectBtn'),
-  thumbsClearBtn:   document.getElementById('thumbsClearBtn'),
-  thumbsRunBtn:     document.getElementById('thumbsRunBtn'),
-  thumbsStopBtn:    document.getElementById('thumbsStopBtn'),
-  thumbsRefreshBtn: document.getElementById('thumbsRefreshBtn'),
+  statApple:        document.getElementById('statApple'),
+  statAppleTile:    document.getElementById('statAppleTile'),
+  appleTabCount:    document.getElementById('appleTabCount'),
 };
 
 let allMedia = [];
@@ -141,6 +139,10 @@ function renderSummary() {
   el.statThumbs.textContent = noThumbs;
   el.statThumbsTile.classList.toggle('stat-tile--warn', noThumbs > 0);
   el.thumbsTabCount.textContent = `(${noThumbs})`;
+  const apple = allMedia.filter(needsConverting).length;
+  el.statApple.textContent = apple;
+  el.statAppleTile.classList.toggle('stat-tile--warn', apple > 0);
+  el.appleTabCount.textContent = `(${apple})`;
 }
 
 // ── Tabs + tiles ───────────────────────────────────────────────────────
@@ -154,6 +156,7 @@ function showTab(name) {
   document.getElementById('uploadsPanel').classList.toggle('hidden', name !== 'uploads');
   document.getElementById('storagePanel').classList.toggle('hidden', name !== 'storage');
   document.getElementById('thumbsPanel').classList.toggle('hidden', name !== 'thumbnails');
+  document.getElementById('applePanel').classList.toggle('hidden', name !== 'apple');
 }
 
 function setFilter(name) {
@@ -165,9 +168,10 @@ function setFilter(name) {
 
 document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => showTab(tab.dataset.tab)));
 
-// Each tile jumps to what it counts: a filter on the Uploads tab, or the Storage Check tab
+// Each tile jumps to what it counts: a filter on the Uploads tab, or another tab
+const TILE_TABS = ['thumbnails', 'apple', 'storage'];
 document.querySelectorAll('.stat-tile').forEach(tile => tile.addEventListener('click', () => {
-  if (tile.dataset.goto === 'storage' || tile.dataset.goto === 'thumbnails') return showTab(tile.dataset.goto);
+  if (TILE_TABS.includes(tile.dataset.goto)) return showTab(tile.dataset.goto);
   showTab('uploads');
   setFilter(tile.dataset.goto);
 }));
@@ -197,7 +201,7 @@ function renderList() {
     const typeIcon = type === 'video' ? '🎬 ' : type === 'photo' ? '📷 ' : '';
     const by = m.uploadedByAnglerName ? ` <span class="row-by">by ${escapeHtml(m.uploadedByAnglerName)}</span>` : '';
     // One markup for both layouts: wide screens lay the cells out as table columns,
-    // phones as a card (see media-activity.css).
+    // phones as a card (see media-management.css).
     return `
       <li class="media-row media-row--${status}">
         <span class="row-status">${STATUS_LABELS[status] || escapeHtml(status)}</span>
@@ -429,168 +433,230 @@ async function runScanAction(button, busyLabel, action) {
   }
 }
 
-// ── Media thumbnails (#38) ─────────────────────────────────────────────
+// ── Batch lists: Media Thumbnails (#38) and Apple Formats ───────────────
 
-// Up to 10 at a time: making thumbnails is heavy work for the server (a Pi on Staging).
-// The selected photos go one per request, so each request is short and every row can
-// show its own progress. Stop lets the current one finish and skips the rest.
-const THUMBS_MAX = 10;
-const thumbsSelected = new Set();   // media ids, in the order they were checked
-const thumbsProgress = new Map();   // id → { state: 'queued'|'running'|'done'|'error', message }
-let thumbsRunning = false;
-let thumbsStopRequested = false;
-let thumbsShown = PAGE_SIZE;
+// Both tabs work the same way: tick up to 10 files (the rest disable; "Select 10" tops up),
+// press the button, and they're done one at a time, each row showing its progress. Up to
+// 10 because the work is heavy for the server (a Pi on Staging); one at a time so each
+// request is short and every row can show its own result. Stop lets the current one finish
+// and skips the rest, which stay selected. A row this visit worked on stays listed with
+// its ✅/⚠️ until that tab's Refresh.
+const BATCH_MAX = 10;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-const THUMB_STATE_LABELS = {
-  queued:  '⏳ Waiting',
-  running: '⏳ Generating…',
-  done:    '✅ Done',
-  error:   '⚠️ Failed',
-};
+function makeBatchTab(cfg) {
+  const $ = suffix => document.getElementById(cfg.key + suffix);
+  const ui = { list: $('List'), status: $('Status'), select: $('SelectBtn'), clear: $('ClearBtn'),
+               run: $('RunBtn'), stop: $('StopBtn'), refresh: $('RefreshBtn') };
+  const selected = new Set();   // media ids, in the order they were checked
+  const progress = new Map();   // id → { state: 'queued'|'running'|'done'|'error'|'waiting', message }
+  let running = false, stopRequested = false, shownCount = PAGE_SIZE;
 
-function setThumbsStatus(msg, isError = false) {
-  el.thumbsStatus.textContent = msg;
-  el.thumbsStatus.classList.toggle('status--error', isError);
-}
+  function setBatchStatus(msg, isError = false) {
+    ui.status.textContent = msg;
+    ui.status.classList.toggle('status--error', isError);
+  }
 
-// Photos that need thumbnails, plus any this visit has worked on (so a finished row stays
-// on screen with its ✅ until the next Refresh), newest first like the Uploads tab.
-function thumbsCandidates() {
-  return allMedia.filter(m => needsThumbnails(m) || thumbsProgress.has(m.id));
-}
+  const candidates = () => allMedia.filter(m => cfg.needs(m) || progress.has(m.id));
 
-function renderThumbs() {
-  const items = thumbsCandidates();
-  // Drop selections that are no longer listed (deleted, or done by an earlier run)
-  for (const id of thumbsSelected) if (!items.some(m => m.id === id && needsThumbnails(m))) thumbsSelected.delete(id);
+  function render() {
+    const items = candidates();
+    // Drop selections that are no longer listed (deleted, or done by an earlier run)
+    for (const id of selected) if (!items.some(m => m.id === id && cfg.needs(m))) selected.delete(id);
 
-  if (!items.length) {
-    el.thumbsList.innerHTML = '<li class="media-empty">Every photo has its thumbnails 🎉</li>';
-  } else {
-    const full = thumbsSelected.size >= THUMBS_MAX;
-    el.thumbsList.innerHTML = items.slice(0, thumbsShown).map(m => {
-      const progress = thumbsProgress.get(m.id);
-      const checked = thumbsSelected.has(m.id);
-      const canPick = needsThumbnails(m) && !thumbsRunning && (checked || !full);
-      const state = progress ? progress.state : m.thumbnailStatus === 'failed' ? 'error' : null;
-      const message = progress ? progress.message : m.thumbnailError;
-      const isVideo = m.mediaType === 'Video';
-      const label = escapeHtml(m.originalFileName || m.blobPath || `${isVideo ? 'Video' : 'Photo'} #${m.id}`);
-      const catchUrl = `./catch-details.html?catchNumber=${encodeURIComponent(m.catchNumber || '')}`;
-      // A photo previews itself; a video only once it has a poster frame (an <img> can't show a video)
-      const previewUrl = m.thumbnailUrl || (isVideo ? '' : m.readUrl);
-      const preview = /^https:\/\//.test(previewUrl || '')
-        ? `<img class="thumbs-preview" src="${escapeHtml(encodeURI(previewUrl))}" alt="" loading="lazy">`
-        : `<span class="thumbs-preview thumbs-preview--none" aria-hidden="true">${isVideo ? '🎬' : '📷'}</span>`;
-      return `
-      <li class="media-row thumbs-row${state ? ` thumbs-row--${state}` : ''}" data-id="${m.id}">
-        <label class="thumbs-pick">
-          <input type="checkbox" data-id="${m.id}"${checked ? ' checked' : ''}${canPick ? '' : ' disabled'}>
-          <span class="visually-hidden">Select ${label}</span>
-        </label>
-        ${preview}
-        <div class="row-body">
-          <div class="row-file">${label}</div>
-          <div class="row-meta">
-            <a class="row-catch" href="${catchUrl}">${escapeHtml(m.catchNumber || 'Unknown catch')}</a>
-            · ${formatSize(m.fileSizeInBytes)} · ${escapeHtml(formatDateTime(m.uploadedAt))}
+    if (!items.length) {
+      ui.list.innerHTML = `<li class="media-empty">${cfg.emptyText}</li>`;
+    } else {
+      const full = selected.size >= BATCH_MAX;
+      ui.list.innerHTML = items.slice(0, shownCount).map(m => {
+        const p = progress.get(m.id);
+        const checked = selected.has(m.id);
+        const canPick = cfg.needs(m) && !running && (checked || !full);
+        const state = p ? p.state : cfg.lastFailed(m) ? 'error' : null;
+        const message = p ? p.message : cfg.lastError(m);
+        const isVideo = m.mediaType === 'Video';
+        const label = escapeHtml(m.originalFileName || m.blobPath || `${isVideo ? 'Video' : 'Photo'} #${m.id}`);
+        const catchUrl = `./catch-details.html?catchNumber=${encodeURIComponent(m.catchNumber || '')}`;
+        // A preview only from a file an <img> can show: a thumbnail, or a photo browsers can
+        // read (not a video, not a HEIC)
+        const previewUrl = m.thumbnailUrl || (cfg.previewOriginal(m) ? m.readUrl : '');
+        const preview = /^https:\/\//.test(previewUrl || '')
+          ? `<img class="thumbs-preview" src="${escapeHtml(encodeURI(previewUrl))}" alt="" loading="lazy">`
+          : `<span class="thumbs-preview thumbs-preview--none" aria-hidden="true">${isVideo ? '🎬' : '📷'}</span>`;
+        return `
+        <li class="media-row thumbs-row${state ? ` thumbs-row--${state}` : ''}" data-id="${m.id}">
+          <label class="thumbs-pick">
+            <input type="checkbox" data-id="${m.id}"${checked ? ' checked' : ''}${canPick ? '' : ' disabled'}>
+            <span class="visually-hidden">Select ${label}</span>
+          </label>
+          ${preview}
+          <div class="row-body">
+            <div class="row-file">${label}</div>
+            <div class="row-meta">
+              <a class="row-catch" href="${catchUrl}">${escapeHtml(m.catchNumber || 'Unknown catch')}</a>
+              · ${formatSize(m.fileSizeInBytes)} · ${escapeHtml(formatDateTime(m.uploadedAt))}
+            </div>
+            ${state ? `<div class="thumbs-state">${cfg.stateLabels[state]}</div>` : ''}
+            ${message && ['error', 'waiting'].includes(state) ? `<div class="row-error">${escapeHtml(message)}</div>` : ''}
           </div>
-          ${state ? `<div class="thumbs-state">${THUMB_STATE_LABELS[state]}</div>` : ''}
-          ${message && state === 'error' ? `<div class="row-error">${escapeHtml(message)}</div>` : ''}
-        </div>
-      </li>`;
-    }).join('') + (items.length > thumbsShown
-      ? `<li class="media-empty"><button class="secondary-button" id="thumbsMoreBtn">Show more</button></li>` : '');
-  }
-
-  const n = thumbsSelected.size;
-  el.thumbsRunBtn.disabled = thumbsRunning || n === 0;
-  el.thumbsRunBtn.textContent = n ? `🖼️ Generate Thumbnails (${n})` : '🖼️ Generate Thumbnails';
-  el.thumbsSelectBtn.disabled = thumbsRunning || !items.some(needsThumbnails);
-  el.thumbsClearBtn.disabled = thumbsRunning || n === 0;
-  el.thumbsStopBtn.classList.toggle('hidden', !thumbsRunning);
-  el.thumbsStopBtn.disabled = thumbsStopRequested;
-  el.thumbsStopBtn.textContent = thumbsStopRequested ? 'Stopping after this one…' : '⏹️ Stop';
-}
-
-el.thumbsList.addEventListener('change', e => {
-  const box = e.target.closest('input[type="checkbox"]');
-  if (!box) return;
-  const id = Number(box.dataset.id);
-  if (box.checked && thumbsSelected.size < THUMBS_MAX) thumbsSelected.add(id);
-  else thumbsSelected.delete(id);
-  renderThumbs();
-});
-
-el.thumbsList.addEventListener('click', e => {
-  if (e.target.id !== 'thumbsMoreBtn') return;
-  thumbsShown += PAGE_SIZE;
-  renderThumbs();
-});
-
-// "Select 10": tops the selection up to 10 with the next photos in the list
-el.thumbsSelectBtn.addEventListener('click', () => {
-  for (const m of thumbsCandidates()) {
-    if (thumbsSelected.size >= THUMBS_MAX) break;
-    if (needsThumbnails(m)) thumbsSelected.add(m.id);
-  }
-  renderThumbs();
-});
-
-el.thumbsClearBtn.addEventListener('click', () => {
-  thumbsSelected.clear();
-  renderThumbs();
-});
-
-el.thumbsStopBtn.addEventListener('click', () => {
-  thumbsStopRequested = true;
-  renderThumbs();
-});
-
-el.thumbsRunBtn.addEventListener('click', runThumbnails);
-
-async function runThumbnails() {
-  const ids = [...thumbsSelected];
-  if (!ids.length || thumbsRunning) return;
-  thumbsRunning = true;
-  thumbsStopRequested = false;
-  for (const id of ids) thumbsProgress.set(id, { state: 'queued' });
-  setThumbsStatus('');
-  renderThumbs();
-
-  let done = 0, failed = 0;
-  for (const id of ids) {
-    if (thumbsStopRequested) break;
-    thumbsProgress.set(id, { state: 'running' });
-    renderThumbs();
-    try {
-      const r = await postJson(CATCH_MEDIA_THUMBS_URL, { mediaId: id });
-      const m = allMedia.find(x => x.id === id);
-      if (m) Object.assign(m, { thumbnailUrl: r.thumbnailUrl, viewingUrl: r.viewingUrl, thumbnailStatus: 'done', thumbnailError: null });
-      thumbsProgress.set(id, { state: 'done' });
-      done++;
-    } catch (err) {
-      console.error(err);
-      thumbsProgress.set(id, { state: 'error', message: err.message });
-      failed++;
+        </li>`;
+      }).join('') + (items.length > shownCount
+        ? `<li class="media-empty"><button class="secondary-button" data-more="${cfg.key}">Show more</button></li>` : '');
     }
-    thumbsSelected.delete(id);
-    renderSummary();
-    renderThumbs();
+
+    const n = selected.size;
+    ui.run.disabled = running || n === 0;
+    ui.run.textContent = n ? `${cfg.runLabel} (${n})` : cfg.runLabel;
+    ui.select.disabled = running || !items.some(cfg.needs);
+    ui.clear.disabled = running || n === 0;
+    ui.stop.classList.toggle('hidden', !running);
+    ui.stop.disabled = stopRequested;
+    ui.stop.textContent = stopRequested ? 'Stopping after this one…' : '⏹️ Stop';
   }
 
-  // Anything skipped by Stop goes back to plain "needs thumbnails", still selected
-  const skipped = ids.filter(id => thumbsProgress.get(id)?.state === 'queued');
-  skipped.forEach(id => thumbsProgress.delete(id));
-  thumbsRunning = false;
-  thumbsStopRequested = false;
-  setThumbsStatus([
-    done ? `${done} done` : '',
-    failed ? `${failed} failed` : '',
-    skipped.length ? `${skipped.length} skipped (stopped)` : '',
-  ].filter(Boolean).join(', ') + '.', failed > 0);
-  renderThumbs();
+  ui.list.addEventListener('change', e => {
+    const box = e.target.closest('input[type="checkbox"]');
+    if (!box) return;
+    const id = Number(box.dataset.id);
+    if (box.checked && selected.size < BATCH_MAX) selected.add(id);
+    else selected.delete(id);
+    render();
+  });
+
+  ui.list.addEventListener('click', e => {
+    if (e.target.dataset.more !== cfg.key) return;
+    shownCount += PAGE_SIZE;
+    render();
+  });
+
+  ui.select.addEventListener('click', () => {
+    for (const m of candidates()) {
+      if (selected.size >= BATCH_MAX) break;
+      if (cfg.needs(m)) selected.add(m.id);
+    }
+    render();
+  });
+
+  ui.clear.addEventListener('click', () => { selected.clear(); render(); });
+  ui.stop.addEventListener('click', () => { stopRequested = true; render(); });
+
+  // Refresh also clears this visit's ✅/⚠️ rows (not during a run)
+  ui.refresh.addEventListener('click', () => {
+    if (running) return;
+    progress.clear();
+    setBatchStatus('');
+    loadMedia({ keepState: true });
+  });
+
+  ui.run.addEventListener('click', async () => {
+    const ids = [...selected];
+    if (!ids.length || running) return;
+    running = true;
+    stopRequested = false;
+    for (const id of ids) progress.set(id, { state: 'queued' });
+    setBatchStatus('');
+    render();
+
+    const counts = { done: 0, error: 0, waiting: 0 };
+    for (const id of ids) {
+      if (stopRequested) break;
+      progress.set(id, { state: 'running' });
+      render();
+      let result;
+      try {
+        result = (await cfg.runOne(id)) || { state: 'done' };
+      } catch (err) {
+        console.error(err);
+        result = { state: 'error', message: err.message };
+      }
+      progress.set(id, result);
+      counts[result.state]++;
+      selected.delete(id);
+      renderSummary();
+      render();
+    }
+
+    // Anything skipped by Stop goes back to plain "needs doing", still selected
+    const skipped = ids.filter(id => progress.get(id)?.state === 'queued');
+    skipped.forEach(id => progress.delete(id));
+    running = false;
+    stopRequested = false;
+    setBatchStatus([
+      counts.done ? `${counts.done} ${cfg.doneWord}` : '',
+      counts.error ? `${counts.error} failed` : '',
+      counts.waiting ? `${counts.waiting} still converting` : '',
+      skipped.length ? `${skipped.length} skipped (stopped)` : '',
+    ].filter(Boolean).join(', ') + '.', counts.error > 0);
+    render();
+  });
+
+  return { render };
 }
+
+// Media Thumbnails (#38): photos and videos without their copies, or whose last try failed
+const thumbsTab = makeBatchTab({
+  key: 'thumbs',
+  needs: needsThumbnails,
+  lastFailed: m => m.thumbnailStatus === 'failed',
+  lastError: m => m.thumbnailError,
+  previewOriginal: m => m.mediaType !== 'Video',
+  runLabel: '🖼️ Generate Thumbnails',
+  doneWord: 'done',
+  emptyText: 'Every photo has its thumbnails 🎉',
+  stateLabels: { queued: '⏳ Waiting', running: '⏳ Generating…', done: '✅ Done', error: '⚠️ Failed' },
+  async runOne(id) {
+    const r = await postJson(CATCH_MEDIA_THUMBS_URL, { mediaId: id });
+    const m = allMedia.find(x => x.id === id);
+    if (m) Object.assign(m, { thumbnailUrl: r.thumbnailUrl, viewingUrl: r.viewingUrl, thumbnailStatus: 'done', thumbnailError: null });
+  },
+});
+
+// Apple Formats: complete files still stored as HEIC/HEIF or MOV, from before uploads were
+// converted. Convert starts the same conversion as an upload (through Retry, which accepts
+// these), then checks the record every few seconds until it's complete or failed: a video
+// can take minutes, too long for one request to wait. After 15 minutes it moves on.
+const APPLE_TYPES = ['image/heic', 'image/heif', 'video/quicktime'];
+const APPLE_POLL_MS = 5000;
+const APPLE_WAIT_MS = 15 * 60 * 1000;
+const needsConverting = m => mediaStatus(m) === 'complete' && APPLE_TYPES.includes(m.contentType);
+
+async function fetchMediaRow(m) {
+  const url = `${CATCH_MEDIA_GET_URL}?catchNumber=${encodeURIComponent(m.catchNumber || '')}`;
+  const res = await fetch(url, { headers: { 'X-API-Key': API_KEY } });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  return (Array.isArray(data) ? data : data.media || []).find(x => x && x.id === m.id) || null;
+}
+
+const appleTab = makeBatchTab({
+  key: 'apple',
+  needs: needsConverting,
+  lastFailed: () => false,
+  lastError: () => null,
+  previewOriginal: () => false, // browsers can't all show HEIC or MOV
+  runLabel: '🍎 Convert',
+  doneWord: 'converted',
+  emptyText: 'Nothing left in an Apple format 🎉',
+  stateLabels: { queued: '⏳ Waiting', running: '⏳ Converting…', done: '✅ Converted',
+                 error: '⚠️ Failed', waiting: '⏳ Still converting' },
+  async runOne(id) {
+    const m = allMedia.find(x => x.id === id);
+    if (!m) throw new Error('This file is no longer listed');
+    await postJson(CATCH_MEDIA_RETRY_URL, { mediaId: id });
+    const started = Date.now();
+    while (Date.now() - started < APPLE_WAIT_MS) {
+      await sleep(APPLE_POLL_MS);
+      let row;
+      try { row = await fetchMediaRow(m); } catch { continue; } // couldn't check: try again
+      if (!row) throw new Error('This file was deleted while converting');
+      Object.assign(m, row);
+      const st = mediaStatus(row);
+      if (st === 'complete') return { state: 'done' };
+      if (st === 'failed' || st === 'stuck') throw new Error(row.errorMessage || "Couldn't convert");
+    }
+    return { state: 'waiting', message: 'Taking a while: Uploads shows how it ends.' };
+  },
+});
 
 // ── Load ───────────────────────────────────────────────────────────────
 
@@ -613,7 +679,8 @@ async function loadMedia({ keepState = false } = {}) {
     renderSummary();
     renderCatchFilter();
     renderList();
-    renderThumbs();
+    thumbsTab.render();
+    appleTab.render();
     showState('listState');
   } catch (err) {
     if (loadId !== latestLoad) return;
@@ -643,12 +710,5 @@ async function init() {
 
 el.retryLoadBtn.addEventListener('click', () => loadMedia());
 el.refreshBtn.addEventListener('click', () => { setStatus(''); loadMedia({ keepState: true }); });
-// The thumbnails tab's Refresh also clears this visit's ✅/⚠️ rows (not during a run)
-el.thumbsRefreshBtn.addEventListener('click', () => {
-  if (thumbsRunning) return;
-  thumbsProgress.clear();
-  setThumbsStatus('');
-  loadMedia({ keepState: true });
-});
 
 init();

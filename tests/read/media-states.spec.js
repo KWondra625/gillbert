@@ -700,7 +700,7 @@ test.describe('upload page large files', () => {
   });
 });
 
-// The storage check runs by itself when Media Activity opens. Tests that care about its
+// The storage check runs by itself when Media Management opens. Tests that care about its
 // result add their own answer (Playwright tries the newest route first).
 const cleanScan = { success: true, scannedAt: new Date().toISOString(), fileCount: 1, rowCount: 1, orphanFiles: [], missingFiles: [] };
 
@@ -710,7 +710,7 @@ test.describe('media activity page', () => {
   });
 
   test('turns away a visitor who isn\'t admin', async ({ page }) => {
-    await page.goto('media-activity.html');
+    await page.goto('media-management.html');
     await expect(page.locator('#errorMsg')).toHaveText("You don't have permission to access this page.");
   });
 
@@ -723,7 +723,7 @@ test.describe('media activity page', () => {
       mediaItem(13, { uploadedAt: '2026-10-04T12:00:00Z', status: 'submitted', displayStatus: 'submitted' }),
     ] };
     await mockMediaList(page, state);
-    await page.goto('media-activity.html');
+    await page.goto('media-management.html');
 
     const rows = page.locator('#mediaList .media-row');
     await expect(rows).toHaveCount(4);
@@ -748,7 +748,7 @@ test.describe('media activity page', () => {
       mediaItem(32, { catchNumber: 'Catch 26-010', status: 'failed', displayStatus: 'failed' }),
     ] };
     await mockMediaList(page, state);
-    await page.goto('media-activity.html');
+    await page.goto('media-management.html');
 
     const rows = page.locator('#mediaList .media-row');
     await expect(rows).toHaveCount(3);
@@ -776,7 +776,7 @@ test.describe('media activity page', () => {
       state.items = [mediaItem(41)];
       return route.fulfill({ json: { success: true } });
     });
-    await page.goto('media-activity.html');
+    await page.goto('media-management.html');
     const rows = page.locator('#mediaList .media-row');
     await expect(rows).toHaveCount(2);
 
@@ -803,7 +803,7 @@ test.describe('media activity page', () => {
       state.items = [];
       return route.fulfill({ json: { success: true } });
     });
-    await page.goto('media-activity.html');
+    await page.goto('media-management.html');
 
     const del = page.locator('.row-action[data-action="delete"]');
     await del.click();
@@ -826,7 +826,7 @@ test.describe('media activity page', () => {
       committed = route.request().postDataJSON();
       return route.fulfill({ json: { success: true, files: [{ id: 31, status: 'submitted' }] } });
     });
-    await page.goto('media-activity.html');
+    await page.goto('media-management.html');
 
     // Ran by itself; the tab heading and tile show the result
     await expect(page.locator('#storageTabCount')).toHaveText('(1)');
@@ -868,7 +868,7 @@ test.describe('media activity page', () => {
                                        lastModified: 'Mon, 26 Oct 2026 19:02:16 GMT', anglerId: 13 }],
         missingFiles: [{ container: 'angler-media', anglerId: 7, blobPath: 'anglers/7/ZYXWVUTS98.jpg' }] } });
     });
-    await page.goto('media-activity.html');
+    await page.goto('media-management.html');
     await page.locator('#storageTab').click();
 
     const row = page.locator('#scanResult .media-row').first();
@@ -894,7 +894,7 @@ test.describe('media activity page', () => {
       { blobPath: 'catches/Catch-26-001/ABCDEFGH12-thumb.jpg', sizeBytes: 2048, lastModified: old, catchNumber: 'Catch 26-001' },
       { blobPath: 'catches/Catch-26-001/ABCDEFGH12-view.jpg', sizeBytes: 4096, lastModified: old, catchNumber: 'Catch 26-001' },
       { blobPath: 'catches/Catch-26-001/ZYXWVUTS98.jpg', sizeBytes: 8192, lastModified: old, catchNumber: 'Catch 26-001' }] } }));
-    await page.goto('media-activity.html');
+    await page.goto('media-management.html');
     await page.locator('#storageTab').click();
 
     const rows = page.locator('#scanResult .media-row');
@@ -919,7 +919,7 @@ test.describe('media activity page', () => {
       { blobPath: 'catches/Catch-26-001/OLDSCAN001.jpg', lastModified: old, catchNumber: 'Catch 26-001' }, // a scan without links
       { blobPath: 'catches/Catch-26-001/BADLINK001.jpg', contentType: 'image/jpeg', readUrl: 'javascript:alert(1)', lastModified: old, catchNumber: 'Catch 26-001' },
     ] } }));
-    await page.goto('media-activity.html');
+    await page.goto('media-management.html');
     await page.locator('#storageTab').click();
 
     const rows = page.locator('#scanResult .media-row');
@@ -951,7 +951,7 @@ test.describe('media activity page', () => {
         { blobPath: 'catches/Catch-26-001/NEWNEWNEW1.mov', sizeBytes: 4096, lastModified: new Date().toUTCString(), catchNumber: 'Catch 26-001' },
       ] } });
     });
-    await page.goto('media-activity.html');
+    await page.goto('media-management.html');
 
     // The list shows straight away, on the Uploads tab; the storage tile catches up
     await expect(page.locator('#mediaList .media-row')).toHaveCount(1);
@@ -979,7 +979,7 @@ test.describe('media activity page', () => {
       mediaItem(51, { status: 'failed', displayStatus: 'failed' }),
       mediaItem(52, { status: 'processing', displayStatus: 'processing' }),
     ] });
-    await page.goto('media-activity.html');
+    await page.goto('media-management.html');
     const rows = page.locator('#mediaList .media-row');
     await expect(rows).toHaveCount(3);
     await expect(page.locator('#mediaList .row-by')).toHaveText('by Kent S');
@@ -1311,7 +1311,7 @@ test.describe('media thumbnails', () => {
     });
   });
 
-  test.describe('Media Activity tab', () => {
+  test.describe('Media Management: Media Thumbnails tab', () => {
     test.beforeEach(async ({ page }) => {
       await page.route(url => url.pathname.endsWith('/catch-media/admin'), route => route.fulfill({ json: cleanScan }));
       await unlockAdmin(page);
@@ -1329,7 +1329,7 @@ test.describe('media thumbnails', () => {
 
     test('lists photos without thumbnails and caps the selection at 10', async ({ page }) => {
       await mockMediaList(page, { items: listWithMissing() });
-      await page.goto('media-activity.html');
+      await page.goto('media-management.html');
 
       await expect(page.locator('#statThumbs')).toHaveText('12');
       await page.locator('#statThumbsTile').click();
@@ -1361,7 +1361,7 @@ test.describe('media thumbnails', () => {
         mediaItem(501, { mediaType: 'Video', contentType: 'video/mp4', readUrl: `${FAKE_STORAGE}/501.mp4`,
           thumbnailUrl: `${FAKE_STORAGE}/501-thumb.jpg`, thumbnailStatus: 'done' }),
         mediaItem(502, { thumbnailStatus: 'missing' })] });
-      await page.goto('media-activity.html');
+      await page.goto('media-management.html');
       await page.locator('#thumbsTab').click();
 
       const rows = page.locator('#thumbsList .thumbs-row');
@@ -1392,7 +1392,7 @@ test.describe('media thumbnails', () => {
           return route.fulfill({ json: { success: true, mediaId,
             thumbnailUrl: `${FAKE_STORAGE}/${mediaId}-thumb.jpg`, viewingUrl: `${FAKE_STORAGE}/${mediaId}-view.jpg` } });
         });
-        await page.goto('media-activity.html');
+        await page.goto('media-management.html');
         await page.locator('#thumbsTab').click();
   
         for (const id of [111, 110, 109]) await page.locator(`#thumbsList input[data-id="${id}"]`).check();
@@ -1423,7 +1423,7 @@ test.describe('media thumbnails', () => {
         if (calls.length === 1) await new Promise(r => { release = r; });
         return route.fulfill({ json: { success: true, mediaId, thumbnailUrl: `${FAKE_STORAGE}/t.jpg`, viewingUrl: `${FAKE_STORAGE}/v.jpg` } });
       });
-      await page.goto('media-activity.html');
+      await page.goto('media-management.html');
       await page.locator('#thumbsTab').click();
       await page.locator('#thumbsSelectBtn').click();
       await page.locator('#thumbsRunBtn').click();
@@ -1443,3 +1443,69 @@ test.describe('media thumbnails', () => {
   });
 });
 
+
+// Media Management, Apple Formats tab: complete files still stored as HEIC/MOV (from before
+// uploads were converted), converted one at a time through Retry, then watched until done.
+test.describe('Media Management: Apple Formats tab', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.route(url => url.pathname.endsWith('/catch-media/admin'), route => route.fulfill({ json: cleanScan }));
+    await unlockAdmin(page);
+  });
+
+  const mov = (id, extra = {}) => mediaItem(id, { mediaType: 'Video', contentType: 'video/quicktime',
+    blobPath: `catches/x/${id}.mov`, readUrl: `${FAKE_STORAGE}/${id}.mov`, originalFileName: `IMG_${id}.MOV`, ...extra });
+
+  test('lists only complete HEIC and MOV files, and its tile jumps to it', async ({ page }) => {
+    await mockMediaList(page, { items: [
+      mov(1), mediaItem(2, { contentType: 'image/heic', blobPath: 'catches/x/2.heic', originalFileName: 'IMG_2.HEIC' }),
+      mov(3, { status: 'submitted', displayStatus: 'submitted' }),           // already converting: not listed
+      mediaItem(4, { mediaType: 'Video', contentType: 'video/mp4' }),        // already universal
+      mediaItem(5) ] });
+    await page.goto('media-management.html');
+
+    await expect(page.locator('#statApple')).toHaveText('2');
+    await page.locator('#statAppleTile').click();
+    await expect(page.locator('#applePanel')).toBeVisible();
+    await expect(page.locator('#appleTabCount')).toHaveText('(2)');
+    const rows = page.locator('#appleList .thumbs-row');
+    await expect(rows).toHaveCount(2);
+    await expect(page.locator('#appleList')).toContainText('IMG_1.MOV');
+    await expect(page.locator('#appleList')).toContainText('IMG_2.HEIC');
+    // Never an <img> of a HEIC or MOV: a placeholder instead
+    await expect(page.locator('#appleList img')).toHaveCount(0);
+    await expect(page.locator('#appleList .thumbs-row[data-id="1"] .thumbs-preview--none')).toHaveText('🎬');
+    await expect(page.locator('#appleRunBtn')).toBeDisabled();
+    await page.locator('#appleSelectBtn').click();
+    await expect(page.locator('#appleRunBtn')).toHaveText('🍎 Convert (2)');
+  });
+
+  test.describe('with one file failing', () => {
+    test.use({ allowConsoleErrors: true }); // the failed one is logged
+
+    test('converts the selected files one at a time and shows how each one ends', async ({ page }) => {
+      test.setTimeout(60_000); // the page checks a converting file every 5 s
+      const state = { items: [mov(1), mov(2)] };
+      await mockMediaList(page, state);
+      const retried = [];
+      await page.route(url => url.pathname.endsWith('/catch-media/retry'), route => {
+        const id = route.request().postDataJSON().mediaId;
+        retried.push(id);
+        // The server's side, as the page will see it on its next check: 1 converts, 2 fails
+        state.items = state.items.map(m => m.id !== id ? m : id === 1
+          ? { ...m, contentType: 'video/mp4', blobPath: 'catches/x/1.mp4', readUrl: `${FAKE_STORAGE}/1.mp4`, originalFileName: 'IMG_1.mp4' }
+          : { ...m, status: 'failed', displayStatus: 'failed', errorMessage: 'ffmpeg failed (exit 1)' });
+        return route.fulfill({ json: { success: true, mediaId: id, status: 'submitted' } });
+      });
+      await page.goto('media-management.html');
+      await page.locator('#appleTab').click();
+      await page.locator('#appleSelectBtn').click();
+      await page.locator('#appleRunBtn').click();
+
+      await expect(page.locator('#appleStatus')).toHaveText('1 converted, 1 failed.', { timeout: 30_000 });
+      expect(retried.sort()).toEqual([1, 2]);
+      await expect(page.locator('#appleList .thumbs-row[data-id="1"]')).toContainText('✅ Converted');
+      await expect(page.locator('#appleList .thumbs-row[data-id="2"]')).toContainText('ffmpeg failed (exit 1)');
+      await expect(page.locator('#statApple')).toHaveText('0'); // neither is a complete Apple file any more
+    });
+  });
+});

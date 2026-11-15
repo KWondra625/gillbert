@@ -51,7 +51,7 @@ const PAGES = [
   ['edit-body-of-water', 'edit-body-of-water.html?id=1'],
   ['me', 'me.html'],
   ['under-the-hood', 'under-the-hood.html'],
-  ['media-activity', 'media-activity.html'],
+  ['media-management', 'media-management.html'],
   ['whats-new', 'whats-new.html'],
   ['features-functionality', 'features-functionality.html'],
   ['notifications', 'notifications.html'],

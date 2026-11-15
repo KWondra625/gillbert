@@ -12,7 +12,7 @@ test.beforeAll(async () => {
 });
 
 // Every catch's media in one call (catch-media/get with no catch number returns all
-// of it, like Media Activity), shared by the video tests. One lookup per catch took
+// of it, like Media Management), shared by the video tests. One lookup per catch took
 // ~28 s for 91 catches, and ~40 s with two workers at once: most of a 45 s test.
 let allMediaPromise;
 function allCatchMedia() {

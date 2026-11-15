@@ -353,14 +353,14 @@ test.describe('when things go wrong', () => {
     expect(Buffer.from(await res.arrayBuffer()).equals(big), 'stored bytes match the original').toBe(true);
   });
 
-  test('Media Activity: Retry runs a failed file again, and Delete removes it and its file', async ({ page }) => {
+  test('Media Management: Retry runs a failed file again, and Delete removes it and its file', async ({ page }) => {
     test.setTimeout(CONVERSION_TIMEOUT + 90_000);
     const failed = (await mediaFor(target.catchNumber))
       .find(m => m.originalFileName === 'broken.heic' && m.displayStatus === 'failed');
     test.skip(!failed, 'needs the failed broken.heic from the test above');
 
     await unlockAdmin(page);
-    await page.goto('media-activity.html');
+    await page.goto('media-management.html');
     await page.locator('#catchFilter').selectOption(target.catchNumber);
     await page.locator(`.row-action[data-action="retry"][data-id="${failed.id}"]`).click();
     await expect(page.locator('#status')).toContainText('Retry started.');
@@ -397,7 +397,7 @@ test('Storage Check: a file with no record can be previewed from the page, then 
 
   try {
     await unlockAdmin(page);
-    await page.goto('media-activity.html');
+    await page.goto('media-management.html');
     await page.locator('#storageTab').click();
     const row = page.locator('#scanResult .media-row', { hasText: slot.blobPath });
     await expect(row).toHaveCount(1, { timeout: 30_000 });
