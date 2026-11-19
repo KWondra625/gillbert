@@ -3,7 +3,7 @@
 // a commit only accepts the exact path shape the slot step issues, for that catch, with
 // the public link set by the server. Both servers have these checks since 2026-11-04.
 const { test, expect } = require('../support/fixtures');
-const { getCatchMedia } = require('../support/staging-api');
+const { getCatchMedia, config } = require('../support/staging-api');
 const { requireStagingWrites, ensureTestCatch, apiPost, RUN_ID } = require('../support/test-data');
 
 requireStagingWrites();
@@ -30,6 +30,16 @@ test('upload slots: refused for unknown file types and malformed catch numbers',
     expect(await rejected(apiPost('catch-media/get-sas', { catchNumber, files: [file('a.jpg', 'image/jpeg')] })), catchNumber)
       .toBe('rejected');
   }
+});
+
+test('upload slots: a refusal is a 400 reply with its reason (not an n8n error run)', async () => {
+  const res = await fetch(config.API_BASE + 'catch-media/get-sas', {
+    method: 'POST',
+    headers: { 'X-API-Key': config.API_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ catchNumber: target.catchNumber, files: [file('a.exe', '')] }),
+  });
+  expect(res.status).toBe(400);
+  expect(await res.json()).toEqual({ success: false, error: 'Unsupported file type: a.exe' });
 });
 
 test('commit: refused for a path the slot step would never issue', async () => {
