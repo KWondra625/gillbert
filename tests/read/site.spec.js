@@ -13,7 +13,7 @@ test.describe('home', () => {
     }
   });
 
-  test('the Admin section stays hidden until the PIN is entered', async ({ page }) => {
+  test('the Admin tray stays hidden until the PIN is entered', async ({ page }) => {
     await page.goto('index.html');
     await expect(page.locator('#adminSection')).toBeHidden();
 
@@ -29,8 +29,41 @@ test.describe('home', () => {
     const pin = await page.evaluate(() => ADMIN_PIN);
     await page.locator('#adminPinInput').fill(pin);
     await page.locator('#adminPinSubmit').click();
-    await expect(page.locator('#adminSection')).toBeVisible();
     await expect(page.locator('#adminUnlockToast')).toBeVisible();
+    // The admin links live in the shack (tackle box in open water); they show once it's opened
+    await page.locator('#shackOpen').click();
+    await expect(page.locator('#adminSection')).toBeVisible();
+  });
+});
+
+test.describe('top bar', () => {
+  // A page with no admin.js of its own before the bar (What's New) and a form page
+  for (const path of ['whats-new.html', 'log-catch.html']) {
+    test(`${path}: Gillbert goes home and the shack opens and closes`, async ({ page }) => {
+      await page.goto(path);
+      await expect(page.locator('.topbar-brand')).toHaveAttribute('href', './index.html');
+      await expect(page.locator('#topbarBack')).toBeHidden(); // its way back is Home
+      await expect(page.locator('#shack')).toBeHidden();
+      await page.locator('#shackOpen').click();
+      await expect(page.locator('#shack')).toBeVisible();
+      await expect(page.locator('#adminSection')).toBeHidden();
+      await page.locator('#shackClose').click();
+      await expect(page.locator('#shack')).toBeHidden();
+    });
+  }
+
+  test('the shack shows the admin tray on any page once admin is unlocked', async ({ page }) => {
+    await unlockAdmin(page);
+    await page.goto('whats-new.html');
+    await page.locator('#shackOpen').click();
+    await expect(page.locator('#adminSection')).toBeVisible();
+    await expect(page.locator('#adminSection a[href="./settings.html"]')).toBeVisible();
+  });
+
+  test('a form page under a listing links back to it under the bar', async ({ page }) => {
+    await page.goto('create-angler.html');
+    await expect(page.locator('#topbarBack')).toHaveAttribute('href', './anglers-listing.html');
+    await expect(page.locator('#topbarBack')).toHaveText('‹ Anglers');
   });
 });
 
@@ -91,7 +124,7 @@ test.describe('Fish of Fame', () => {
     await page.goto('fish-of-fame.html');
     await page.locator('#topCatchesList .rank-row').first().click();
     await expect(page).toHaveURL(/catch-details\.html\?catchNumber=/);
-    await expect(page.locator('.detail-card-header h2')).toBeVisible();
+    await expect(page.locator('#catchTitle')).toBeVisible();
   });
 
   test('the group pills switch which anglers count', async ({ page }) => {

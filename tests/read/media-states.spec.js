@@ -256,7 +256,8 @@ test.describe('catch page media states', () => {
       await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`);
       await expect(page.locator('.media-tile--photo')).toHaveCount(2);
 
-      await page.locator('#manageMediaBtn').click(); // Manage Media shows the delete buttons
+      await page.locator('#moreBtn').click();
+      await page.locator('#manageMediaBtn').click(); // Manage Media (under More) shows the delete buttons
       await page.locator('.media-delete-btn[data-media-id="8"]').click();
       await page.locator('#deleteMediaConfirm').click();
       await expect(page.locator('#status')).toContainText("Couldn't refresh the media");
@@ -350,6 +351,51 @@ test.describe('upload page results', () => {
     await expect(page.locator('#successFiles .file-row--convertFailed')).toHaveCount(1);
     await expect(page.locator('#successFiles .file-row--convertFailed')).toContainText("Couldn't convert");
     await expect(page.locator('#successMsg')).toContainText("1 file couldn't be converted");
+  });
+
+  test('a quick conversion shows ✅ Done before the countdown hands off', async ({ page }) => {
+    const calls = await mockUploadFlow(page);
+    let checks = 0;
+    // The HEIC (record 1) has converted by the first check
+    await page.route(url => url.pathname.endsWith('/catch-media/get'), route => {
+      checks++;
+      return route.fulfill({ json: [mediaItem(1, { status: 'complete', displayStatus: 'complete' })] });
+    });
+    await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    await page.locator('#files').setInputFiles(path.join(MEDIA, 'photo.heic'));
+    await page.locator('#uploadBtn').click();
+    await expect(page.locator('#successState')).toBeVisible();
+
+    const row = page.locator('#successFiles .file-row');
+    await expect(row).toContainText('✅ Done', { timeout: 6_000 });
+    // ...while the 10 s countdown is still running
+    await expect(page.locator('#successRedirect')).toBeVisible();
+    expect(Number(await page.locator('#countdown').textContent())).toBeGreaterThan(3);
+    expect(checks).toBeGreaterThan(0);
+    expect(calls.commits).toEqual(['photo.heic']);
+    await page.locator('#stayHereBtn').click();
+  });
+
+  test('watching starts while the rest of the batch is still uploading', async ({ page }) => {
+    await mockUploadFlow(page);
+    let firstCheckAt = null;
+    let lastPutAt = null;
+    // The video's upload is slow; the HEIC is recorded long before it finishes
+    await page.route(`${FAKE_STORAGE}/put/**`, async route => {
+      if (route.request().url().includes('video.mp4')) await new Promise(r => setTimeout(r, 6_000));
+      lastPutAt = Date.now();
+      return route.fallback();
+    });
+    await page.route(url => url.pathname.endsWith('/catch-media/get'), route => {
+      firstCheckAt = firstCheckAt || Date.now();
+      return route.fulfill({ json: [] });
+    });
+    await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    await page.locator('#files').setInputFiles(['photo.heic', 'video.mp4'].map(f => path.join(MEDIA, f)));
+    await page.locator('#uploadBtn').click();
+    await expect(page.locator('#successState')).toBeVisible({ timeout: 20_000 });
+    expect(firstCheckAt, 'a conversion check ran before the video finished uploading').toBeLessThan(lastPutAt);
+    await page.locator('#stayHereBtn').click();
   });
 
   test('Go to Catch and Stay Here are full-width with space between them', async ({ page }) => {
@@ -466,6 +512,16 @@ test.describe('upload page results', () => {
 
     await page.evaluate(() => window.__lock.resolve()); // the lock finally arrives
     await expect.poll(() => page.evaluate(() => window.__lock.released)).toBe(true);
+  });
+
+  test('a refused upload slot fails the file and logs the server\'s reason', async ({ page }) => {
+    await page.route(url => url.pathname.endsWith('/catch-media/get-sas'), route => route.fulfill({
+      status: 400, json: { success: false, message: 'Unsupported file type: photo.jpg' } }));
+    await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    await page.locator('#files').setInputFiles(path.join(MEDIA, 'photo.jpg'));
+    await page.locator('#uploadBtn').click();
+    await expect(page.locator('#fileList .file-row').first()).toContainText('❌ Failed');
+    await expect(page.locator('#log')).toContainText('Upload slot refused: Unsupported file type: photo.jpg', { useInnerText: false });
   });
 
   test('the way back to the catch keeps where you came from (?from=)', async ({ page }) => {
@@ -654,17 +710,17 @@ test.describe('upload page large files', () => {
   });
 });
 
-// The storage check runs by itself when Media Activity opens. Tests that care about its
+// The storage check runs by itself when the Media page opens. Tests that care about its
 // result add their own answer (Playwright tries the newest route first).
 const cleanScan = { success: true, scannedAt: new Date().toISOString(), fileCount: 1, rowCount: 1, orphanFiles: [], missingFiles: [] };
 
-test.describe('media activity page', () => {
+test.describe('media page', () => {
   test.beforeEach(async ({ page }) => {
     await page.route(url => url.pathname.endsWith('/catch-media/admin'), route => route.fulfill({ json: cleanScan }));
   });
 
   test('turns away a visitor who isn\'t admin', async ({ page }) => {
-    await page.goto('media-activity.html');
+    await page.goto('media.html');
     await expect(page.locator('#errorMsg')).toHaveText("You don't have permission to access this page.");
   });
 
@@ -677,16 +733,17 @@ test.describe('media activity page', () => {
       mediaItem(13, { uploadedAt: '2026-10-04T12:00:00Z', status: 'submitted', displayStatus: 'submitted' }),
     ] };
     await mockMediaList(page, state);
-    await page.goto('media-activity.html');
+    await page.goto('media.html');
 
     const rows = page.locator('#mediaList .media-row');
     await expect(rows).toHaveCount(4);
     await expect(rows.nth(0)).toContainText('file-13.jpg');
     await expect(rows.nth(3)).toContainText('file-10.jpg');
-    await expect(page.locator('#statAttention')).toHaveText('2');
-    await expect(page.locator('#statAttentionTile')).toHaveClass(/stat-tile--alert/);
-    await expect(page.locator('#statConverting')).toHaveText('1');
+    await expect(page.locator('#attentionCount')).toHaveText('(2)');
+    await expect(page.locator('#convertingCount')).toHaveText('(1)');
     await expect(page.locator('#uploadsTabCount')).toHaveText('(4)');
+    // Red while any need attention
+    await expect(page.locator('#uploadsTabCount')).toHaveClass(/tab-count--alert/);
 
     await page.locator('.filter-chip[data-filter="attention"]').click();
     await expect(rows).toHaveCount(2);
@@ -702,7 +759,7 @@ test.describe('media activity page', () => {
       mediaItem(32, { catchNumber: 'Catch 26-010', status: 'failed', displayStatus: 'failed' }),
     ] };
     await mockMediaList(page, state);
-    await page.goto('media-activity.html');
+    await page.goto('media.html');
 
     const rows = page.locator('#mediaList .media-row');
     await expect(rows).toHaveCount(3);
@@ -730,7 +787,7 @@ test.describe('media activity page', () => {
       state.items = [mediaItem(41)];
       return route.fulfill({ json: { success: true } });
     });
-    await page.goto('media-activity.html');
+    await page.goto('media.html');
     const rows = page.locator('#mediaList .media-row');
     await expect(rows).toHaveCount(2);
 
@@ -757,7 +814,7 @@ test.describe('media activity page', () => {
       state.items = [];
       return route.fulfill({ json: { success: true } });
     });
-    await page.goto('media-activity.html');
+    await page.goto('media.html');
 
     const del = page.locator('.row-action[data-action="delete"]');
     await del.click();
@@ -780,15 +837,27 @@ test.describe('media activity page', () => {
       committed = route.request().postDataJSON();
       return route.fulfill({ json: { success: true, files: [{ id: 31, status: 'submitted' }] } });
     });
-    await page.goto('media-activity.html');
+    await page.goto('media.html');
 
-    // Ran by itself; the tab heading and tile show the result
+    // Ran by itself; the tab heading shows the result
     await expect(page.locator('#storageTabCount')).toHaveText('(1)');
-    await expect(page.locator('#statStorage')).toHaveText('1 issue');
+    await expect(page.locator('#storageTabCount')).toHaveClass(/tab-count--alert/);
     await page.locator('#storageTab').click();
     await expect(page.locator('#scanResult')).toContainText('Files with no record (1)');
     const attach = page.locator('#scanResult .row-action[data-action="attach"]');
     await attach.click();
+    // Armed, it asks for a second tap in the accent blue (a primary action), not delete red.
+    // The blue follows the season (open water / hard water), so read it from the page's theme.
+    await expect(attach).toHaveText(/Tap again to attach/);
+    const accent = await page.evaluate(() => {
+      const probe = document.createElement('span');
+      probe.style.backgroundColor = 'var(--gb-accent-600)';
+      document.body.appendChild(probe);
+      const c = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      return c;
+    });
+    await expect(attach).toHaveCSS('background-color', accent);
     await attach.click();
     await expect.poll(() => committed).toEqual({
       catchNumber: 'Catch 26-001',
@@ -810,7 +879,7 @@ test.describe('media activity page', () => {
                                        lastModified: 'Mon, 26 Oct 2026 19:02:16 GMT', anglerId: 13 }],
         missingFiles: [{ container: 'angler-media', anglerId: 7, blobPath: 'anglers/7/ZYXWVUTS98.jpg' }] } });
     });
-    await page.goto('media-activity.html');
+    await page.goto('media.html');
     await page.locator('#storageTab').click();
 
     const row = page.locator('#scanResult .media-row').first();
@@ -820,11 +889,66 @@ test.describe('media activity page', () => {
 
     const del = row.locator('[data-action="delete-orphan"]');
     await del.click();
+    await expect(del).toHaveCSS('background-color', 'rgb(180, 35, 24)'); // a delete stays red
     await del.click();
     await expect.poll(() => deleted).toEqual({ action: 'delete-orphan', container: 'angler-media', blobPath: 'anglers/13/ABCDEFGH12.jpg' });
     await expect(page.locator('#scanResult')).toContainText('Files with no record (0)');
     // Still one record with no file
-    await expect(page.locator('#statStorage')).toHaveText('1 issue');
+    await expect(page.locator('#storageTabCount')).toHaveText('(1)');
+  });
+
+  test('a leftover thumbnail copy can be deleted but not attached (it would show the photo twice)', async ({ page }) => {
+    await unlockAdmin(page);
+    await mockMediaList(page, { items: [mediaItem(30)] });
+    const old = 'Tue, 27 Oct 2026 01:00:00 GMT';
+    await page.route(url => url.pathname.endsWith('/catch-media/admin'), route => route.fulfill({ json: { ...cleanScan, orphanFiles: [
+      { blobPath: 'catches/Catch-26-001/ABCDEFGH12-thumb.jpg', sizeBytes: 2048, lastModified: old, catchNumber: 'Catch 26-001' },
+      { blobPath: 'catches/Catch-26-001/ABCDEFGH12-view.jpg', sizeBytes: 4096, lastModified: old, catchNumber: 'Catch 26-001' },
+      { blobPath: 'catches/Catch-26-001/ZYXWVUTS98.jpg', sizeBytes: 8192, lastModified: old, catchNumber: 'Catch 26-001' }] } }));
+    await page.goto('media.html');
+    await page.locator('#storageTab').click();
+
+    const rows = page.locator('#scanResult .media-row');
+    await expect(rows).toHaveCount(3);
+    for (const i of [0, 1]) {
+      await expect(rows.nth(i)).toContainText('Catch 26-001 thumbnail copy');
+      await expect(rows.nth(i).locator('[data-action="attach"]')).toHaveCount(0);
+      await expect(rows.nth(i).locator('[data-action="delete-orphan"]')).toHaveCount(1);
+    }
+    // An ordinary file with no record can still be attached
+    await expect(rows.nth(2).locator('[data-action="attach"]')).toHaveCount(1);
+  });
+
+  test('files with no record can be previewed and opened, when the scan gives a link', async ({ page }) => {
+    await unlockAdmin(page);
+    await mockMediaList(page, { items: [mediaItem(30)] });
+    const old = 'Tue, 27 Oct 2026 01:00:00 GMT';
+    await page.route(url => url.pathname.endsWith('/catch-media/admin'), route => route.fulfill({ json: { ...cleanScan, orphanFiles: [
+      { blobPath: 'catches/Catch-26-001/PHOTO00001.jpg', contentType: 'image/jpeg', readUrl: `${FAKE_STORAGE}/orphan/PHOTO00001.jpg`, lastModified: old, catchNumber: 'Catch 26-001' },
+      { blobPath: 'catches/Catch-26-001/VIDEO00001.mp4', contentType: 'video/mp4', readUrl: `${FAKE_STORAGE}/orphan/VIDEO00001.mp4`, lastModified: old, catchNumber: 'Catch 26-001' },
+      { blobPath: 'catches/Catch-26-001/HEIC000001.heic', contentType: 'image/heic', readUrl: `${FAKE_STORAGE}/orphan/HEIC000001.heic`, lastModified: old, catchNumber: 'Catch 26-001' },
+      { blobPath: 'catches/Catch-26-001/OLDSCAN001.jpg', lastModified: old, catchNumber: 'Catch 26-001' }, // a scan without links
+      { blobPath: 'catches/Catch-26-001/BADLINK001.jpg', contentType: 'image/jpeg', readUrl: 'javascript:alert(1)', lastModified: old, catchNumber: 'Catch 26-001' },
+    ] } }));
+    await page.goto('media.html');
+    await page.locator('#storageTab').click();
+
+    const rows = page.locator('#scanResult .media-row');
+    await expect(rows).toHaveCount(5);
+    // Photo: thumbnail + link, both opening the file in a new tab
+    await expect(rows.nth(0).locator('.orphan-thumb img')).toHaveAttribute('src', `${FAKE_STORAGE}/orphan/PHOTO00001.jpg`);
+    await expect(rows.nth(0).locator('.orphan-open')).toHaveAttribute('href', `${FAKE_STORAGE}/orphan/PHOTO00001.jpg`);
+    await expect(rows.nth(0).locator('.orphan-open')).toHaveAttribute('target', '_blank');
+    // One link per file for keyboards and screen readers, named after the file
+    await expect(rows.nth(0).locator('.orphan-thumb')).toHaveAttribute('tabindex', '-1');
+    await expect(rows.nth(0).locator('.orphan-open')).toHaveAccessibleName(/PHOTO00001\.jpg \(opens in a new tab\)/);
+    // MP4: a first frame; HEIC: a link only (browsers can't show it)
+    await expect(rows.nth(1).locator('.orphan-thumb video')).toHaveAttribute('src', /VIDEO00001\.mp4#t=0\.1$/);
+    await expect(rows.nth(2).locator('.orphan-thumb')).toHaveCount(0);
+    await expect(rows.nth(2).locator('.orphan-open')).toHaveText('👁️ Open file ↗');
+    // No link from the scan, or a link that isn't https: nothing to click
+    await expect(rows.nth(3).locator('.orphan-preview')).toHaveCount(0);
+    await expect(rows.nth(4).locator('.orphan-preview')).toHaveCount(0);
   });
 
   test('the storage check runs on load, and a file from the last hour isn\'t counted as a problem yet', async ({ page }) => {
@@ -838,16 +962,16 @@ test.describe('media activity page', () => {
         { blobPath: 'catches/Catch-26-001/NEWNEWNEW1.mov', sizeBytes: 4096, lastModified: new Date().toUTCString(), catchNumber: 'Catch 26-001' },
       ] } });
     });
-    await page.goto('media-activity.html');
+    await page.goto('media.html');
 
-    // The list shows straight away, on the Uploads tab; the storage tile catches up
+    // The list shows straight away, on the Upload History tab; the storage count catches up
     await expect(page.locator('#mediaList .media-row')).toHaveCount(1);
-    await expect(page.locator('#statStorage')).toHaveText('All clear ✅');
     await expect(page.locator('#storageTabCount')).toHaveText('✅');
+    await expect(page.locator('#storageTabCount')).not.toHaveClass(/tab-count--alert/);
     await expect(page.locator('#uploadsPanel')).toBeVisible();
     expect(scans).toBe(1);
 
-    await page.locator('#statStorageTile').click();
+    await page.locator('#storageTab').click();
     await expect(page.locator('#storagePanel')).toBeVisible();
     await expect(page.locator('#uploadsPanel')).toBeHidden();
     const row = page.locator('#scanResult .media-row');
@@ -859,27 +983,29 @@ test.describe('media activity page', () => {
     await expect(page.locator('#scanBtn')).toHaveText('🔍 Scan Again');
   });
 
-  test('the summary tiles jump to their filter, and the uploader\'s name is set apart', async ({ page }) => {
+  test('four tabs and no summary tiles; the chips filter, and the uploader\'s name is set apart', async ({ page }) => {
     await unlockAdmin(page);
     await mockMediaList(page, { items: [
       mediaItem(50, { uploadedByAnglerName: 'Kent S' }),
       mediaItem(51, { status: 'failed', displayStatus: 'failed' }),
       mediaItem(52, { status: 'processing', displayStatus: 'processing' }),
     ] });
-    await page.goto('media-activity.html');
+    await page.goto('media.html');
     const rows = page.locator('#mediaList .media-row');
     await expect(rows).toHaveCount(3);
     await expect(page.locator('#mediaList .row-by')).toHaveText('by Kent S');
+    await expect(page).toHaveTitle('Media · Gillbert');
+    await expect(page.locator('h1')).toHaveText('Media');
+    await expect(page.locator('.tab')).toHaveText([/Upload History/, /Thumbnail Generation/, /Apple Formats/, /Storage Check/]);
+    await expect(page.locator('.stat-tile, .stat-strip')).toHaveCount(0);
 
-    await page.locator('#storageTab').click();
-    await page.locator('#statAttentionTile').click();
-    await expect(page.locator('#uploadsPanel')).toBeVisible();
+    await page.locator('.filter-chip[data-filter="attention"]').click();
     await expect(rows).toHaveCount(1);
     await expect(page.locator('.filter-chip[data-filter="attention"]')).toHaveClass(/filter-chip--active/);
-    await page.locator('#statConvertingTile').click();
+    await page.locator('.filter-chip[data-filter="converting"]').click();
     await expect(rows).toHaveCount(1);
     await expect(rows).toContainText('Processing');
-    await page.locator('.stat-tile[data-goto="all"]').click();
+    await page.locator('.filter-chip[data-filter="all"]').click();
     await expect(rows).toHaveCount(3);
   });
 });
@@ -891,7 +1017,7 @@ test.describe('media badges', () => {
       { ...first, catchMediaCount: 2, catchMediaProcessingCount: 3 },
     ] }));
     await page.goto('catches-listing.html');
-    const badges = page.locator('#catchesContainer .catch-card').first().locator('.card-button');
+    const badges = page.locator('#catchesContainer .catch-card').first().locator('.catch-card-foot');
     await expect(badges).toContainText('📷 2');
     await expect(badges.locator('.badge-media--converting')).toHaveText('⏳ 3');
   });
@@ -902,7 +1028,7 @@ test.describe('media badges', () => {
       { ...first, catchMediaCount: 1, catchMediaProcessingCount: 1 },
     ] }));
     await page.goto('catches-listing.html');
-    const badges = page.locator('#catchesContainer .catch-card').first().locator('.card-button .badge-media');
+    const badges = page.locator('#catchesContainer .catch-card').first().locator('.catch-card-foot .badge-media');
     await expect(badges).toHaveText(['📷', '⏳']);
   });
 
@@ -922,7 +1048,7 @@ test.describe('media badges', () => {
     await page.clock.install();
     await mockCounts(page, [first], state);
     await page.goto('catches-listing.html');
-    const badges = page.locator('#catchesContainer .catch-card').first().locator('.card-button .badge-media');
+    const badges = page.locator('#catchesContainer .catch-card').first().locator('.catch-card-foot .badge-media');
     await expect(badges).toHaveText(['📷', '⏳ 2']);
 
     state.media = 3; state.converting = 0; // both finished
@@ -939,7 +1065,7 @@ test.describe('media badges', () => {
     const state = { media: 1, converting: 0, requests: 0 };
     await mockCounts(page, [first], state);
     await page.goto('catches-listing.html');
-    const badges = page.locator('#catchesContainer .catch-card').first().locator('.card-button .badge-media');
+    const badges = page.locator('#catchesContainer .catch-card').first().locator('.catch-card-foot .badge-media');
     await expect(badges).toHaveText(['📷']);
 
     // What the browser fires when it restores the page from its back/forward cache
@@ -961,7 +1087,7 @@ test.describe('media badges', () => {
     await expect(badges).toHaveText(['📷 2', '⏳ 2']);
   });
 
-  test("each card shows its angler's photo in the header and 📷 / ⏳ inside View Details (#27)", async ({ page }) => {
+  test("each card shows its angler's photo (or initials) on top and 📷 / ⏳ at the bottom", async ({ page }) => {
     const [first] = await getCatches();
     const lookups = await getLookups();
     await page.route(url => url.pathname.endsWith('/get-lookup-data'), route => route.fulfill({ json: [{ ...lookups,
@@ -972,21 +1098,24 @@ test.describe('media badges', () => {
     await page.route(url => url.pathname.endsWith('/get-catches'), route => route.fulfill({ json: [
       { ...first, catchNumber: 'Catch 99-001', anglerId: 901, anglerName: 'With Photo', catchMediaCount: 3, catchMediaProcessingCount: 1,
         createdAt: new Date().toISOString() },
-      { ...first, catchNumber: 'Catch 99-002', anglerId: 902, anglerName: 'No Photo', catchMediaCount: 0, catchMediaProcessingCount: 0 },
+      // An old date of its own: copying Staging's newest catch would make it New on a day one was added
+      { ...first, catchNumber: 'Catch 99-002', anglerId: 902, anglerName: 'No Photo', catchMediaCount: 0, catchMediaProcessingCount: 0,
+        createdAt: '2026-01-01T12:00:00Z' },
     ] }));
     await page.goto('catches-listing.html');
 
     const cards = page.locator('#catchesContainer .catch-card');
     await expect(cards).toHaveCount(2);
-    await expect(cards.nth(0).locator('.catch-angler-photo')).toHaveAttribute('src', `${FAKE_STORAGE}/face.jpg`);
-    await expect(cards.nth(1).locator('.catch-angler-photo'), 'no empty circle without a photo').toHaveCount(0);
-    // Badges ride inside the View Details button; the header keeps only 🆕
-    await expect(cards.nth(0).locator('.card-button .badge-media')).toHaveText(['📷 3', '⏳']);
-    await expect(cards.nth(0).locator('.catch-badges .badge-media')).toHaveCount(0);
-    await expect(cards.nth(0).locator('.catch-badges')).toContainText('🆕');
-    // Headers line up whether or not there's a photo
-    const h = await Promise.all([0, 1].map(i => cards.nth(i).locator('.catch-card-header').evaluate(e => e.offsetHeight)));
-    expect(Math.abs(h[0] - h[1]), `header heights ${h.join(' vs ')}`).toBeLessThanOrEqual(1);
+    await expect(cards.nth(0).locator('img.catch-avatar')).toHaveAttribute('src', `${FAKE_STORAGE}/face.jpg`);
+    // No photo: their initials instead, never an empty circle
+    await expect(cards.nth(1).locator('img.catch-avatar')).toHaveCount(0);
+    await expect(cards.nth(1).locator('span.catch-avatar')).toHaveText('NP');
+    await expect(cards.nth(0).locator('.catch-card-foot .badge-media')).toHaveText(['📷 3', '⏳']);
+    await expect(cards.nth(0).locator('.catch-card-foot .badge-new')).toBeVisible();
+    await expect(cards.nth(1).locator('.badge-new')).toHaveCount(0);
+    // The top rows line up whether or not there's a photo
+    const h = await Promise.all([0, 1].map(i => cards.nth(i).locator('.catch-card-top').evaluate(e => e.offsetHeight)));
+    expect(Math.abs(h[0] - h[1]), `top heights ${h.join(' vs ')}`).toBeLessThanOrEqual(1);
   });
 
   test('Fish of Fame shows the same 📷 and ⏳ counts', async ({ page }) => {
@@ -1007,7 +1136,7 @@ test.describe('upload page catch card', () => {
       const at = (daysAgo, h, m) => { const d = new Date(Date.now() - daysAgo * 86400000); d.setHours(h, m, 0, 0); return d.toISOString(); };
       return { withTime: at(40, 12, 27), dateOnly: at(40, 0, 0) };
     });
-    const when = page.locator('.catch-card-row:has(.catch-card-label:text("Caught When")) .catch-card-value');
+    const when = page.locator('#catchCard .catch-card-when');
     for (const [kind, caughtWhen] of Object.entries(dates)) {
       await page.unroute(url => url.pathname.endsWith('/get-catches')).catch(() => {});
       await page.route(url => url.pathname.endsWith('/get-catches'), route => route.fulfill({ json: [{ ...first, caughtWhen }] }));
@@ -1053,7 +1182,9 @@ test.describe('profile photo HEIC', () => {
 // the photo's full resolution, so profile photos stay small. This guards that: a cropperjs
 // upgrade (#29) that changed it would quietly start saving multi-megabyte profile photos.
 test.describe('profile photo size', () => {
-  test('a crop from a big photo is saved small (at most 800 px on its long side)', async ({ page }) => {
+  // Answers the photo endpoints in the browser and measures the uploaded crop; then picks a
+  // made-up photo of the given size and confirms the crop box as it opens (80% of the photo).
+  async function cropAndMeasure(page, photoW, photoH) {
     await unlockAdmin(page);
     await page.route(url => url.pathname.endsWith('/anglers/get-photo-sas'), route => route.fulfill({ json: {
       uploadUrl: `${FAKE_STORAGE}/put/crop.jpg?sig=x`, readUrl: `${FAKE_STORAGE}/crop.jpg`,
@@ -1078,26 +1209,392 @@ test.describe('profile photo size', () => {
     await page.goto('edit-angler.html?id=1');
     await expect(page.locator('#anglerForm')).toBeVisible();
 
-    // A 4000 x 3000 photo, made in the page (a phone camera's size)
-    await page.evaluate(async () => {
+    await page.evaluate(async ([W, H]) => {
       const c = document.createElement('canvas');
-      c.width = 4000; c.height = 3000;
+      c.width = W; c.height = H;
       const g = c.getContext('2d');
-      g.fillStyle = '#2a6'; g.fillRect(0, 0, 4000, 3000);
-      g.fillStyle = '#fff'; g.fillRect(1000, 750, 2000, 1500);
+      g.fillStyle = '#2a6'; g.fillRect(0, 0, W, H);
+      g.fillStyle = '#fff'; g.fillRect(W / 4, H / 4, W / 2, H / 2);
       const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.9));
       const dt = new DataTransfer();
-      dt.items.add(new File([blob], 'big.jpg', { type: 'image/jpeg' }));
+      dt.items.add(new File([blob], 'photo.jpg', { type: 'image/jpeg' }));
       const input = document.getElementById('profilePhotoInput');
       input.files = dt.files;
       input.dispatchEvent(new Event('change', { bubbles: true }));
-    });
+    }, [photoW, photoH]);
     await expect(page.locator('#cropModal')).toHaveClass(/open/);
     await page.locator('#cropConfirmBtn').click();
     await expect.poll(() => page.evaluate(() => window.__uploadedSize || null)).not.toBeNull();
-    const { w, h } = await page.evaluate(() => window.__uploadedSize);
-    expect(Math.max(w, h), `saved crop is ${w}x${h}`).toBeLessThanOrEqual(800);
-    expect(Math.min(w, h)).toBeGreaterThan(100);
+    return page.evaluate(() => window.__uploadedSize);
+  }
+
+  test('a crop from a phone photo is saved at 512 px square (#38: sharp, still small)', async ({ page }) => {
+    const { w, h } = await cropAndMeasure(page, 4000, 3000); // a phone camera's size
+    expect(`${w}x${h}`).toBe('512x512');
+  });
+
+  test('a crop from a small photo is saved at its own size, never stretched', async ({ page }) => {
+    const { w, h } = await cropAndMeasure(page, 300, 300);
+    expect(w, `saved crop is ${w}x${h}`).toBe(h);
+    expect(w).toBeLessThanOrEqual(300);
+    expect(w).toBeGreaterThan(100);
   });
 });
 
+// Media thumbnails (#38): the pages use the small copies when a photo has them, and Media
+// Activity can make them for photos that don't. All answered in the browser.
+test.describe('media thumbnails', () => {
+  const withThumbs = (id, extra = {}) => mediaItem(id, {
+    thumbnailUrl: `${FAKE_STORAGE}/${id}-thumb.jpg`, viewingUrl: `${FAKE_STORAGE}/${id}-view.jpg`,
+    thumbnailStatus: 'done', ...extra });
+
+  test('catch page tiles use the thumbnail and the lightbox the viewing copy, else the original', async ({ page }) => {
+    const state = { items: [withThumbs(1), mediaItem(2, { thumbnailStatus: 'missing' })] };
+    await mockMediaList(page, state);
+    await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+
+    await expect(page.locator('.media-tile--photo')).toHaveCount(2);
+    const srcs = await page.$$eval('.media-tile-photo', imgs => imgs.map(i => i.getAttribute('src')));
+    expect(srcs.sort()).toEqual([`${FAKE_STORAGE}/1-thumb.jpg`, `${FAKE_STORAGE}/2.jpg`]);
+    // The blurred backdrop uses the same small file, not the original
+    await expect(page.locator('[data-media-id="1"] .media-tile-backdrop')).toHaveAttribute('src', `${FAKE_STORAGE}/1-thumb.jpg`);
+
+    await page.locator('.media-tile[data-media-id="1"]').click();
+    await expect(page.locator('#lightboxImg')).toHaveAttribute('src', `${FAKE_STORAGE}/1-view.jpg`);
+    await page.locator('#lightboxClose').click();
+    await page.locator('.media-tile[data-media-id="2"]').click();
+    await expect(page.locator('#lightboxImg')).toHaveAttribute('src', `${FAKE_STORAGE}/2.jpg`);
+  });
+
+  test('Download original links to the full-size original, which storage marks to save; not shown for videos', async ({ page, context }) => {
+    const state = { items: [withThumbs(1, { originalFileName: 'IMG_1234.jpg' }),
+      mediaItem(2, { mediaType: 'Video', contentType: 'video/mp4', readUrl: `${FAKE_STORAGE}/2.mp4` })] };
+    await mockMediaList(page, state);
+    await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+
+    await page.locator('.media-tile[data-media-id="1"]').click();
+    const link = page.locator('#lightboxDownload');
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute('href', `${FAKE_STORAGE}/1.jpg`); // the original, not a copy
+    await expect(link).toHaveAttribute('target', '_blank'); // an original not marked yet opens in a tab
+    // Clicking opens a new tab straight away; the catch page stays as it was. (The save itself
+    // is the browser's own handling of a "save as" file, checked for real on Staging.)
+    await Promise.all([context.waitForEvent('page'), link.click()]);
+    await expect(page.locator('#lightbox')).toBeVisible();
+
+    await page.locator('#lightboxNext').click();
+    await expect(page.locator('#lightboxVideo')).toBeVisible();
+    await expect(link).toBeHidden();
+  });
+
+  test('a video with a poster frame shows it on its tile and loads no video until tapped', async ({ page }) => {
+    const video = (id, extra) => mediaItem(id, { mediaType: 'Video', contentType: 'video/mp4', readUrl: `${FAKE_STORAGE}/${id}.mp4`, ...extra });
+    const state = { items: [video(1, { thumbnailUrl: `${FAKE_STORAGE}/1-thumb.jpg`, thumbnailStatus: 'done' }), video(2, { thumbnailStatus: 'missing' })] };
+    await mockMediaList(page, state);
+    const videoRequests = [];
+    page.on('request', r => { if (r.url().includes('.mp4')) videoRequests.push(r.url()); });
+    await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+
+    const withPoster = page.locator('.media-tile--video[data-media-id="1"]');
+    await expect(withPoster.locator('.media-tile-poster')).toHaveAttribute('src', `${FAKE_STORAGE}/1-thumb.jpg`);
+    await expect(withPoster.locator('video')).toHaveCount(0);
+    // A video without one still previews its first frame, as before
+    // (#t=0.1 is dropped again when the fake file won't play; see addPreviewFallback)
+    await expect(page.locator('.media-tile--video[data-media-id="2"] video')).toHaveAttribute('src', /\/2\.mp4(#t=0\.1)?$/);
+    expect(videoRequests.some(u => u.includes('/1.mp4'))).toBe(false);
+
+    await withPoster.click();
+    await expect(page.locator('#lightboxVideo')).toHaveAttribute('src', `${FAKE_STORAGE}/1.mp4`);
+    await expect(page.locator('#lightboxVideo')).toHaveAttribute('poster', `${FAKE_STORAGE}/1-thumb.jpg`);
+    await page.locator('#lightboxNext').click();
+    await expect(page.locator('#lightboxVideo')).not.toHaveAttribute('poster', /./);
+  });
+
+  test.describe('when a poster frame is missing from storage', () => {
+    test.use({ allowConsoleErrors: true }); // the browser logs the missing image
+
+    test('the video tile falls back to the start of the video', async ({ page }) => {
+      await mockMediaList(page, { items: [mediaItem(1, { mediaType: 'Video', contentType: 'video/mp4',
+        readUrl: `${FAKE_STORAGE}/1.mp4`, thumbnailUrl: `${FAKE_STORAGE}/1-thumb.jpg`, thumbnailStatus: 'done' })] });
+      await page.route(`${FAKE_STORAGE}/1-thumb.jpg`, route => route.fulfill({ status: 404, body: '' }));
+      await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+      const tile = page.locator('.media-tile--video[data-media-id="1"]');
+      await expect(tile.locator('video')).toHaveAttribute('src', /\/1\.mp4(#t=0\.1)?$/);
+      await expect(tile.locator('img')).toHaveCount(0);
+    });
+  });
+
+  test.describe('Media page: Thumbnail Generation tab', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.route(url => url.pathname.endsWith('/catch-media/admin'), route => route.fulfill({ json: cleanScan }));
+      await unlockAdmin(page);
+    });
+
+    // 12 photos needing thumbnails (11 missing, 1 failed), plus two that don't belong in the list
+    function listWithMissing() {
+      const items = [];
+      for (let i = 1; i <= 11; i++) items.push(mediaItem(100 + i, { thumbnailStatus: 'missing', uploadedAt: `2026-10-${String(i).padStart(2, '0')}T12:00:00Z` }));
+      items.push(mediaItem(200, { thumbnailStatus: 'failed', thumbnailError: 'magick failed (exit 1)', uploadedAt: '2026-10-20T12:00:00Z' }));
+      items.push(withThumbs(300));
+      items.push(mediaItem(400, { mediaType: 'Video', contentType: 'video/mp4', thumbnailStatus: null }));
+      return items;
+    }
+
+    test('lists photos without thumbnails and caps the selection at 10', async ({ page }) => {
+      await mockMediaList(page, { items: listWithMissing() });
+      await page.goto('media.html');
+
+      await expect(page.locator('#thumbsTabCount')).toHaveText('(12)');
+      await page.locator('#thumbsTab').click();
+      await expect(page.locator('#thumbsPanel')).toBeVisible();
+      const rows = page.locator('#thumbsList .thumbs-row');
+      await expect(rows).toHaveCount(12);
+      // Newest first; the failed one shows why
+      await expect(rows.first()).toContainText('file-200.jpg');
+      await expect(rows.first()).toContainText('magick failed (exit 1)');
+      await expect(page.locator('#thumbsRunBtn')).toBeDisabled();
+
+      await page.locator('#thumbsSelectBtn').click();
+      await expect(page.locator('#thumbsList input:checked')).toHaveCount(10);
+      await expect(page.locator('#thumbsList input:not(:checked)')).toHaveCount(2);
+      for (const box of await page.locator('#thumbsList input:not(:checked)').all()) await expect(box).toBeDisabled();
+      await expect(page.locator('#thumbsRunBtn')).toHaveText('🖼️ Generate Thumbnails (10)');
+
+      // Unchecking one frees a slot (by id: the list re-renders after each change)
+      const firstId = await page.locator('#thumbsList input:checked').first().getAttribute('data-id');
+      await page.locator(`#thumbsList input[data-id="${firstId}"]`).uncheck();
+      await expect(page.locator('#thumbsList input:enabled')).toHaveCount(12);
+      await page.locator('#thumbsClearBtn').click();
+      await expect(page.locator('#thumbsList input:checked')).toHaveCount(0);
+    });
+
+    test('lists videos without a poster frame too, with a placeholder instead of a preview', async ({ page }) => {
+      await mockMediaList(page, { items: [
+        mediaItem(500, { mediaType: 'Video', contentType: 'video/mp4', readUrl: `${FAKE_STORAGE}/500.mp4`, originalFileName: 'clip.mp4', thumbnailStatus: 'missing' }),
+        mediaItem(501, { mediaType: 'Video', contentType: 'video/mp4', readUrl: `${FAKE_STORAGE}/501.mp4`,
+          thumbnailUrl: `${FAKE_STORAGE}/501-thumb.jpg`, thumbnailStatus: 'done' }),
+        mediaItem(502, { thumbnailStatus: 'missing' })] });
+      await page.goto('media.html');
+      await page.locator('#thumbsTab').click();
+
+      const rows = page.locator('#thumbsList .thumbs-row');
+      await expect(rows).toHaveCount(2); // the video that has its poster isn't listed
+      const videoRow = page.locator('#thumbsList .thumbs-row[data-id="500"]');
+      await expect(videoRow).toContainText('clip.mp4');
+      await expect(videoRow.locator('.thumbs-preview--none')).toHaveText('🎬');
+      await expect(videoRow.locator('img')).toHaveCount(0); // never an <img> of a video file
+      await expect(page.locator('#thumbsList .thumbs-row[data-id="502"] img.thumbs-preview')).toHaveAttribute('src', `${FAKE_STORAGE}/502.jpg`);
+      await videoRow.locator('input').check();
+      await expect(page.locator('#thumbsRunBtn')).toBeEnabled();
+    });
+
+    test.describe('with one photo failing', () => {
+      test.use({ allowConsoleErrors: true }); // the page logs the failed photo
+
+      test('generates the selected photos one at a time and shows each result', async ({ page }) => {
+        await mockMediaList(page, { items: listWithMissing() });
+        const calls = [];
+        let inFlight = 0, maxInFlight = 0;
+        await page.route(url => url.pathname.endsWith('/catch-media/thumbnails'), async route => {
+          const { mediaId } = route.request().postDataJSON();
+          calls.push(mediaId);
+          inFlight++; maxInFlight = Math.max(maxInFlight, inFlight);
+          await new Promise(r => setTimeout(r, 150));
+          inFlight--;
+          if (mediaId === 110) return route.fulfill({ status: 500, json: { success: false, message: 'Could not read the photo' } });
+          return route.fulfill({ json: { success: true, mediaId,
+            thumbnailUrl: `${FAKE_STORAGE}/${mediaId}-thumb.jpg`, viewingUrl: `${FAKE_STORAGE}/${mediaId}-view.jpg` } });
+        });
+        await page.goto('media.html');
+        await page.locator('#thumbsTab').click();
+  
+        for (const id of [111, 110, 109]) await page.locator(`#thumbsList input[data-id="${id}"]`).check();
+        await page.locator('#thumbsRunBtn').click();
+  
+        await expect(page.locator('#thumbsStatus')).toHaveText('2 done, 1 failed.');
+        expect(calls).toEqual([111, 110, 109]);   // in the order they were checked
+        expect(maxInFlight).toBe(1);               // never two at once
+        await expect(page.locator('.thumbs-row[data-id="111"]')).toContainText('✅ Done');
+        await expect(page.locator('.thumbs-row[data-id="110"]')).toContainText('Could not read the photo');
+        await expect(page.locator('.thumbs-row[data-id="110"] input')).toBeEnabled();   // can try again
+        await expect(page.locator('.thumbs-row[data-id="111"] input')).toBeDisabled();
+        await expect(page.locator('#thumbsTabCount')).toHaveText('(10)');
+  
+        // Refresh forgets this visit's results and shows the list as the server has it
+        await page.locator('#thumbsRefreshBtn').click();
+        await expect(page.locator('.thumbs-row[data-id="111"]')).not.toContainText('✅ Done');
+      });
+    });
+
+    test('Stop finishes the current photo and skips the rest', async ({ page }) => {
+      await mockMediaList(page, { items: listWithMissing() });
+      const calls = [];
+      let release;
+      await page.route(url => url.pathname.endsWith('/catch-media/thumbnails'), async route => {
+        const { mediaId } = route.request().postDataJSON();
+        calls.push(mediaId);
+        if (calls.length === 1) await new Promise(r => { release = r; });
+        return route.fulfill({ json: { success: true, mediaId, thumbnailUrl: `${FAKE_STORAGE}/t.jpg`, viewingUrl: `${FAKE_STORAGE}/v.jpg` } });
+      });
+      await page.goto('media.html');
+      await page.locator('#thumbsTab').click();
+      await page.locator('#thumbsSelectBtn').click();
+      await page.locator('#thumbsRunBtn').click();
+
+      await expect.poll(() => calls.length).toBe(1);
+      await expect(page.locator('#thumbsStopBtn')).toBeVisible();
+      await page.locator('#thumbsStopBtn').click();
+      await expect(page.locator('#thumbsStopBtn')).toHaveText('Stopping after this one…');
+      release();
+
+      await expect(page.locator('#thumbsStatus')).toHaveText('1 done, 9 skipped (stopped).');
+      expect(calls).toHaveLength(1);
+      await expect(page.locator('#thumbsStopBtn')).toBeHidden();
+      // The skipped ones are still selected, ready to run again
+      await expect(page.locator('#thumbsList input:checked')).toHaveCount(9);
+    });
+  });
+});
+
+
+// Media page, Apple Formats tab: complete files still stored as HEIC/MOV (from before
+// uploads were converted), converted one at a time through Retry, then watched until done.
+test.describe('Media page: Apple Formats tab', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.route(url => url.pathname.endsWith('/catch-media/admin'), route => route.fulfill({ json: cleanScan }));
+    await unlockAdmin(page);
+  });
+
+  const mov = (id, extra = {}) => mediaItem(id, { mediaType: 'Video', contentType: 'video/quicktime',
+    blobPath: `catches/x/${id}.mov`, readUrl: `${FAKE_STORAGE}/${id}.mov`, originalFileName: `IMG_${id}.MOV`, ...extra });
+
+  test('lists only complete HEIC and MOV files, and its tile jumps to it', async ({ page }) => {
+    await mockMediaList(page, { items: [
+      mov(1), mediaItem(2, { contentType: 'image/heic', blobPath: 'catches/x/2.heic', originalFileName: 'IMG_2.HEIC' }),
+      mov(3, { status: 'submitted', displayStatus: 'submitted' }),           // already converting: not listed
+      mediaItem(4, { mediaType: 'Video', contentType: 'video/mp4' }),        // already universal
+      mediaItem(5) ] });
+    await page.goto('media.html');
+
+    await expect(page.locator('#appleTabCount')).toHaveText('(2)');
+    await page.locator('#appleTab').click();
+    await expect(page.locator('#appleTabCount')).toHaveText('(2)');
+    const rows = page.locator('#appleList .thumbs-row');
+    await expect(rows).toHaveCount(2);
+    await expect(page.locator('#appleList')).toContainText('IMG_1.MOV');
+    await expect(page.locator('#appleList')).toContainText('IMG_2.HEIC');
+    // Never an <img> of a HEIC or MOV: a placeholder instead
+    await expect(page.locator('#appleList img')).toHaveCount(0);
+    await expect(page.locator('#appleList .thumbs-row[data-id="1"] .thumbs-preview--none')).toHaveText('🎬');
+    await expect(page.locator('#appleRunBtn')).toBeDisabled();
+    await page.locator('#appleSelectBtn').click();
+    await expect(page.locator('#appleRunBtn')).toHaveText('🍎 Convert (2)');
+  });
+
+  test.describe('with one file failing', () => {
+    test.use({ allowConsoleErrors: true }); // the failed one is logged
+
+    test('converts the selected files one at a time and shows how each one ends', async ({ page }) => {
+      test.setTimeout(60_000); // the page checks a converting file every 5 s
+      const state = { items: [mov(1), mov(2)] };
+      await mockMediaList(page, state);
+      const retried = [];
+      await page.route(url => url.pathname.endsWith('/catch-media/retry'), route => {
+        const id = route.request().postDataJSON().mediaId;
+        retried.push(id);
+        // The server's side, as the page will see it on its next check: 1 converts, 2 fails
+        state.items = state.items.map(m => m.id !== id ? m : id === 1
+          ? { ...m, contentType: 'video/mp4', blobPath: 'catches/x/1.mp4', readUrl: `${FAKE_STORAGE}/1.mp4`, originalFileName: 'IMG_1.mp4' }
+          : { ...m, status: 'failed', displayStatus: 'failed', errorMessage: 'ffmpeg failed (exit 1)' });
+        return route.fulfill({ json: { success: true, mediaId: id, status: 'submitted' } });
+      });
+      await page.goto('media.html');
+      await page.locator('#appleTab').click();
+      await page.locator('#appleSelectBtn').click();
+      await page.locator('#appleRunBtn').click();
+
+      await expect(page.locator('#appleStatus')).toHaveText('1 converted, 1 failed.', { timeout: 30_000 });
+      expect(retried.sort()).toEqual([1, 2]);
+      await expect(page.locator('#appleList .thumbs-row[data-id="1"]')).toContainText('✅ Converted');
+      await expect(page.locator('#appleList .thumbs-row[data-id="2"]')).toContainText('ffmpeg failed (exit 1)');
+      await expect(page.locator('#appleTabCount')).toHaveText('(0)'); // neither is a complete Apple file any more
+    });
+  });
+});
+
+// Code review follow-ups (2026-11-14)
+test.describe('media fallbacks and batch locking', () => {
+  test.use({ allowConsoleErrors: true }); // the missing copies are logged
+
+  test('a thumbnail or viewing copy that will not load falls back to the original', async ({ page }) => {
+    await mockMediaList(page, { items: [mediaItem(1, { thumbnailUrl: `${FAKE_STORAGE}/1-thumb.jpg`,
+      viewingUrl: `${FAKE_STORAGE}/1-view.jpg`, thumbnailStatus: 'done' })] });
+    await page.route(/1-(thumb|view)\.jpg$/, route => route.fulfill({ status: 404, body: '' }));
+    await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    const tile = page.locator('.media-tile--photo[data-media-id="1"]');
+    await expect(tile.locator('.media-tile-photo')).toHaveAttribute('src', `${FAKE_STORAGE}/1.jpg`);
+    await expect(tile.locator('.media-tile-backdrop')).toHaveAttribute('src', `${FAKE_STORAGE}/1.jpg`);
+    await expect(page.locator('.media-tile-broken')).toHaveCount(0);
+    await tile.click();
+    await expect(page.locator('#lightboxImg')).toHaveAttribute('src', `${FAKE_STORAGE}/1.jpg`);
+  });
+
+  test('a photo whose original will not load still shows as unavailable', async ({ page }) => {
+    await mockMediaList(page, { items: [mediaItem(1)] });
+    await page.route(`${FAKE_STORAGE}/1.jpg`, route => route.fulfill({ status: 404, body: '' }));
+    await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    await expect(page.locator('.media-tile-broken')).toHaveCount(1);
+  });
+
+  test('Apple Formats keeps waiting while the record still shows the Apple file', async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.route(url => url.pathname.endsWith('/catch-media/admin'), route => route.fulfill({ json: cleanScan }));
+    await unlockAdmin(page);
+    const old = mediaItem(1, { mediaType: 'Video', contentType: 'video/quicktime', blobPath: 'catches/x/1.mov', readUrl: `${FAKE_STORAGE}/1.mov` });
+    const state = { items: [old] };
+    await mockMediaList(page, state);
+    let checks = 0, retried = false;
+    // Checks after the retry: the first still sees the old complete MOV, the second the MP4
+    await page.route(url => url.pathname.endsWith('/catch-media/get') && url.searchParams.get('catchNumber'), route => {
+      if (retried && ++checks >= 2) state.items = [{ ...old, contentType: 'video/mp4', blobPath: 'catches/x/1.mp4' }];
+      return route.fulfill({ json: state.items });
+    });
+    await page.route(url => url.pathname.endsWith('/catch-media/retry'), route => {
+      retried = true;
+      return route.fulfill({ json: { success: true, mediaId: 1, status: 'submitted' } });
+    });
+    await page.goto('media.html');
+    await page.locator('#appleTab').click();
+    await page.locator('#appleSelectBtn').click();
+    await page.locator('#appleRunBtn').click();
+    await expect(page.locator('#appleStatus')).toHaveText('1 converted.', { timeout: 30_000 });
+    expect(checks).toBeGreaterThanOrEqual(2);
+  });
+
+  test('one batch at a time: while thumbnails run, Convert is locked', async ({ page }) => {
+    await page.route(url => url.pathname.endsWith('/catch-media/admin'), route => route.fulfill({ json: cleanScan }));
+    await unlockAdmin(page);
+    await mockMediaList(page, { items: [mediaItem(1, { thumbnailStatus: 'missing' }),
+      mediaItem(2, { mediaType: 'Video', contentType: 'video/quicktime', blobPath: 'catches/x/2.mov', readUrl: `${FAKE_STORAGE}/2.mov` })] });
+    let release;
+    const held = new Promise(r => { release = r; });
+    await page.route(url => url.pathname.endsWith('/catch-media/thumbnails'), async route => {
+      await held;
+      return route.fulfill({ json: { success: true, mediaId: 1, thumbnailUrl: `${FAKE_STORAGE}/1-thumb.jpg`, viewingUrl: `${FAKE_STORAGE}/1-view.jpg` } });
+    });
+    await page.goto('media.html');
+    await page.locator('#appleTab').click();
+    await page.locator('#appleSelectBtn').click();
+    await expect(page.locator('#appleRunBtn')).toBeEnabled();
+    await page.locator('#thumbsTab').click();
+    await page.locator('#thumbsSelectBtn').click();
+    await page.locator('#thumbsRunBtn').click();
+    await page.locator('#appleTab').click();
+    await expect(page.locator('#appleRunBtn')).toBeDisabled();
+    release();
+    await page.locator('#thumbsTab').click();
+    await expect(page.locator('#thumbsStatus')).toHaveText('1 done.');
+    await page.locator('#appleTab').click();
+    await expect(page.locator('#appleRunBtn')).toBeEnabled();
+  });
+});

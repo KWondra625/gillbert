@@ -5,9 +5,23 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Upload Media · Gillbert</title>
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/theme.css" />
+  <link rel="stylesheet" href="./assets/base.css" />
+  <link rel="stylesheet" href="./assets/topbar.css" />
+  <script src="./assets/settings.js"></script>
+  <script src="./assets/season.js"></script>
   <link rel="stylesheet" href="./assets/media-upload.css" />
 </head>
-<body>
+<body class="layout-card">
+  <header class="topbar" id="topbar"></header>
+  <script src="./assets/topbar.js"></script>
+  <div class="page-head">
+    <span class="page-head-tile" aria-hidden="true">📁</span>
+    <div>
+      <p class="page-head-label">Catches</p>
+      <h1>Upload Media</h1>
+    </div>
+  </div>
   <div class="container">
     <!-- Error: no catchNumber in URL -->
     <div id="noCatchState" class="no-catch-state hidden">
@@ -15,15 +29,11 @@
       <h2 class="no-catch-title">No Catch Selected</h2>
       <p class="no-catch-msg">To upload media, start by finding the catch you'd like to add photos or videos to, then tap Upload Media from there.</p>
       <a href="./catches-listing.html" class="primary-button">📋 Browse All Catches</a>
-      <a href="./index.html" class="back-button">← Back to Home</a>
     </div>
 
     <!-- Upload form state -->
     <div id="uploadState">
-      <div class="header">
-        <h1>📁 Upload Media</h1>
-        <p>Add photos and videos to your catch</p>
-      </div>
+      <p class="page-intro">Add photos and videos to your catch.</p>
 
       <div id="catchCard" class="catch-card">
         <p class="catch-card-loading">Loading catch details…</p>
@@ -73,6 +83,7 @@
   <script src="./assets/config.js"></script>
   <script src="./assets/admin.js"></script>
   <script src="./assets/date-format.js"></script>
+  <script src="./assets/avatar.js"></script>
   <script src="./assets/media-upload.js"></script>
 </body>
 </html>

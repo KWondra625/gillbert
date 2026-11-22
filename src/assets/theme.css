@@ -1,0 +1,133 @@
+/* Gillbert's shared colors and a few shared shapes. Every page loads this first.
+ *
+ * Pages refer to these names (var(--gb-…)) instead of writing colors out, so a whole new
+ * look is just a different set of values. Two looks change with the season:
+ *   Open water (April–October): the values on :root, Gillbert's classic blue.
+ *   Hard water (November–March): the overrides under [data-water="hard"]; season.js sets
+ *   that attribute on <html> before the page draws.
+ * A future skin would be one more block like the hard-water one.
+ *
+ * Status colors (danger, success, warning) are deliberately the same in every look.
+ */
+
+:root {
+  /* Sky: the page background */
+  --gb-sky-1: #4FACFE;
+  --gb-sky-2: #00F2FE;
+  --gb-page-bg: linear-gradient(135deg, var(--gb-sky-1) 0%, var(--gb-sky-2) 100%);
+  --gb-on-sky: #ffffff;              /* text and icons drawn straight on the sky */
+  /* A soft dark halo behind white text on the sky, so it holds its edges where the
+     gradient turns pale (bottom of long pages) */
+  --gb-on-sky-shadow: 0 1px 2px rgba(0, 35, 70, 0.45), 0 0 8px rgba(0, 35, 70, 0.18);
+
+  /* Accent: links, highlights, buttons */
+  --gb-accent: #4FACFE;
+  --gb-accent-strong: #1f7fd1;       /* filled buttons that need stronger contrast */
+  --gb-accent-soft: #f0f8ff;         /* tinted backgrounds */
+  --gb-accent-border: #d0eaff;
+  /* the rest of the blue family the pages use, lightest to darkest */
+  --gb-accent-25: #f9fbff;
+  --gb-accent-75: #e8f4ff;
+  --gb-accent-100: #e0f0ff;
+  --gb-accent-150: #e3eefc;
+  --gb-accent-600: #1f7fd6;
+  --gb-accent-700: #1a75d1;
+
+  /* Signal: the tip-up flag orange. Used sparingly: the flag, the ticker label, the box latch */
+  --gb-signal: #f57c1f;
+  --gb-signal-dark: #d4630f;
+
+  /* Surfaces and lines */
+  --gb-surface: #ffffff;
+  --gb-surface-soft: #f9f9f9;
+  --gb-line: #e0e0e0;
+  --gb-line-soft: #f0f0f0;
+  --gb-line-strong: #cccccc;
+
+  /* Text */
+  --gb-ink: #1a1a1a;
+  --gb-ink-2: #333333;
+  --gb-ink-3: #555555;
+  --gb-muted: #666666;
+  --gb-faint: #888888;
+  --gb-faint-2: #999999;
+  --gb-faintest: #aaaaaa;
+
+  /* Ticker strip */
+  --gb-ticker-bg: #0d2a44;
+  --gb-ticker-ink: #ffffff;
+
+  /* The tackle box (open water): green plastic, orange latch, tan trays */
+  --gb-box-bg: #2f6b47;
+  --gb-box-ink: #ffffff;
+  --gb-box-lid: #f28c28;
+  --gb-box-sheet: #24563a;
+  --gb-box-sheet-head: #24563a;
+  --gb-box-sheet-ink: #ffffff;
+  --gb-box-tray: #f4efe2;
+  --gb-box-tray-ink: #26301f;
+  --gb-box-tray-edge: #e2d8bf;
+  --gb-box-tray-hover: #ebe3cf;
+  --gb-box-admin: #ffe9c9;
+  --gb-box-admin-edge: #f2c98c;
+
+  /* Status: the same in every look */
+  --gb-danger: #e74c3c;
+  --gb-danger-strong: #c0392b;
+  --gb-danger-bg: #fff0f0;
+  --gb-danger-bg-2: #fff8f8;
+  --gb-danger-border: #ffcccc;
+
+  /* Buttons: one primary (solid) and one secondary (soft) style, on every page */
+  --gb-btn-primary-bg: var(--gb-accent-strong);
+  --gb-btn-primary-ink: #ffffff;
+  --gb-btn-secondary-bg: var(--gb-accent-soft);
+  --gb-btn-secondary-ink: var(--gb-accent-strong);
+
+  /* Shapes */
+  --gb-radius-button: 12px;
+  --gb-radius-card: 16px;
+  --gb-radius-control: 10px;
+  --gb-shadow-card: 0 8px 24px rgba(0, 0, 0, 0.15);
+  /* An angler's photo circle: a white gap, a thin ring in the soft accent, a soft shadow.
+     The same wherever a photo shows big (Catch Details, Anglers, Edit Angler, My Profile). */
+  --gb-photo-ring: 0 0 0 3px var(--gb-surface), 0 0 0 5px var(--gb-accent-border), 0 3px 10px rgba(0, 0, 0, 0.18);
+}
+
+/* Hard water. Filled in as each part of the site moves onto the shared colors. */
+:root[data-water="hard"] {
+  --gb-sky-1: #5f93cf;
+  --gb-sky-2: #bfe7f6;
+
+  /* A cooler steel blue for links and buttons, to sit with the winter sky */
+  --gb-accent: #3d8bd4;
+  --gb-accent-soft: #eef5fb;
+  --gb-accent-border: #cfe2f1;
+  --gb-accent-25: #f7fafd;
+  --gb-accent-75: #e9f2fa;
+  --gb-accent-100: #e3eef8;
+  --gb-accent-150: #e1ebf5;
+  --gb-accent-600: #2f78c2;
+  --gb-accent-700: #2a6db3;
+
+  /* The ice shack: frosted white and icy blue */
+  --gb-box-bg: #e9f4fb;
+  --gb-box-ink: #1f4a6e;
+  --gb-box-lid: #8fc6ea;
+  --gb-box-sheet: linear-gradient(#f4fafe, #e1eff8);
+  --gb-box-sheet-head: #f4fafe;
+  --gb-box-sheet-ink: #17324a;
+  --gb-box-tray: #ffffff;
+  --gb-box-tray-ink: #17324a;
+  --gb-box-tray-edge: #cfe4f2;
+  --gb-box-tray-hover: #eef6fc;
+  --gb-box-admin: #fff4e0;
+  --gb-box-admin-edge: #f5d7a4;
+}
+
+/* Seasonal swaps: one of each pair shows, decided by <html data-water> (season.js) */
+.hard-only { display: none; }
+[data-water="hard"] .hard-only { display: inline; }
+[data-water="hard"] .open-only { display: none; }
+[data-water="hard"] svg.hard-only { display: block; }
+

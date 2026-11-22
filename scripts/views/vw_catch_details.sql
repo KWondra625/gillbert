@@ -1,5 +1,19 @@
 -- Drop + create (not REPLACE): servers have drifted in column order, which REPLACE can't change.
--- Nothing depends on this view; run inside a transaction so readers never see it missing.
+-- Nothing depends on this view. One transaction, so readers never see it missing.
+-- Dropping a view also drops its grants: this script notes who can read the view (and the
+-- media view, in case this view is brand new) before the drop, and grants them read access
+-- again at the end. Without that, every page that lists catches fails with "permission
+-- denied" (production, 2026-11-04 release, ~4 minutes).
+BEGIN;
+
+-- Who reads these views today (the app's database user, and any other reader role)
+CREATE TEMP TABLE keep_view_readers ON COMMIT DROP AS
+    SELECT DISTINCT grantee FROM information_schema.role_table_grants
+    WHERE table_schema = current_schema()
+      AND table_name IN ('vw_catch_details', 'vw_catch_media_details')
+      AND privilege_type = 'SELECT'
+      AND grantee NOT IN ('postgres', 'PUBLIC', current_user);
+
 DROP VIEW IF EXISTS vw_catch_details;
 CREATE VIEW vw_catch_details AS
     SELECT 
@@ -9,7 +23,7 @@ CREATE VIEW vw_catch_details AS
         c.record_source AS record_source,
         
         a.id AS angler_id,
-        a.name AS angler_name,
+        a.display_name AS angler_name,
         
         fs.id AS fish_species_id,
         COALESCE(fs.display_name_override, fs.name) AS fish_species_name,
@@ -27,7 +41,7 @@ CREATE VIEW vw_catch_details AS
         c.notes AS notes,
 
         -- Headline (without date/time)
-        a.name || '''s '
+        a.display_name || '''s '
         || CASE WHEN c.length_in_inches > 0 THEN c.length_in_inches::TEXT || 'in ' ELSE '' END
         || COALESCE(fs.display_name_override, fs.name)
         || CASE WHEN bow.name IS NOT NULL THEN ' caught on ' || bow.name ELSE '' END
@@ -35,7 +49,7 @@ CREATE VIEW vw_catch_details AS
         || '.' AS headline,
 
         -- Full Summary (with date/time)
-        a.name || '''s '
+        a.display_name || '''s '
         || CASE WHEN c.length_in_inches > 0 THEN c.length_in_inches::TEXT || 'in ' ELSE '' END
         || COALESCE(fs.display_name_override, fs.name)
         || CASE WHEN bow.name IS NOT NULL THEN ' caught on ' || bow.name ELSE '' END
@@ -52,10 +66,10 @@ CREATE VIEW vw_catch_details AS
         END AS isUpdatedAfterVerification,
 
         c.created_by_angler_id AS created_by_angler_id,
-        a2.name as created_by_angler_name,
+        a2.display_name as created_by_angler_name,
         c.created_at AS created_at,
         c.updated_by_angler_id AS updated_by_angler_id,
-        a3.name as updated_by_angler_name,
+        a3.display_name as updated_by_angler_name,
         c.updated_at AS updated_at,
 
         -- Viewable media only; files still converting are counted separately below.
@@ -85,3 +99,18 @@ CREATE VIEW vw_catch_details AS
         INNER JOIN bodies_of_water bow ON c.body_of_water_id = bow.id
     WHERE c.status = 'Active'
     ORDER BY c.caught_when DESC;
+
+-- Give every reader noted above its read access back
+DO $$
+DECLARE r record;
+BEGIN
+  FOR r IN SELECT grantee FROM keep_view_readers LOOP
+    EXECUTE format('GRANT SELECT ON vw_catch_details TO %I', r.grantee);
+    RAISE NOTICE 'vw_catch_details: SELECT granted to %', r.grantee;
+  END LOOP;
+  IF NOT FOUND THEN
+    RAISE WARNING 'vw_catch_details: no reader roles found, nobody but the owner can read the view: check grants before the site uses it';
+  END IF;
+END $$;
+
+COMMIT;

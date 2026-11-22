@@ -12,7 +12,7 @@ process.env.E2E_RUN_ID ||= String(Date.now()).slice(-6);
 
 module.exports = defineConfig({
   testDir: '.',
-  testMatch: ['read/**/*.spec.js', 'write/**/*.spec.js', 'delete/**/*.spec.js'],
+  testMatch: ['read/**/*.spec.js', 'write/**/*.spec.js', 'delete/**/*.spec.js', 'visual/**/*.spec.js'],
   timeout: 45_000,
   expect: { timeout: 15_000 },
   fullyParallel: true,
@@ -29,7 +29,7 @@ module.exports = defineConfig({
   projects: [
     { name: 'desktop-chrome', use: { ...devices['Desktop Chrome'] } },
     { name: 'android-chrome', use: { ...devices['Pixel 7'] }, testMatch: 'read/**/*.spec.js' },
-    { name: 'iphone-safari', use: { ...devices['iPhone 14'] }, testMatch: 'read/**/*.spec.js' },
+    { name: 'iphone-safari', use: { ...devices['iPhone 14'] }, testMatch: ['read/**/*.spec.js', 'visual/**/*.spec.js'] },
   ],
   webServer: {
     command: 'node support/static-server.js',

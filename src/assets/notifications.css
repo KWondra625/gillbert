@@ -1,0 +1,196 @@
+
+/* Header */
+/* Step cards: same card look as Features & Functionality, numbered */
+.step-card {
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 16px;
+  padding: 20px 20px 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-top: 5px solid var(--gb-accent);
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--gb-accent);
+  color: white;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.step-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.step-card p {
+  margin: 0 0 10px 0;
+}
+
+.step-card p:last-child {
+  margin-bottom: 0;
+}
+
+/* Official store badges, both 44px tall as seen (Apple's minimum is 40px; clear space >= 1/4 height) */
+.store-links {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 4px 0;
+}
+
+.store-badge {
+  display: inline-flex;
+  line-height: 0;
+}
+
+.badge-apple {
+  height: 44px;
+  width: auto;
+}
+
+/* Google's PNG is 646x250 with the badge (564x168) centred in a 41px transparent margin.
+   Scaled so the badge itself is 44px tall, then the margin is cancelled so the two line up. */
+.badge-google {
+  height: 65.5px;
+  width: auto;
+  margin: -10.7px;
+}
+
+.primary-button {
+  margin-bottom: 12px;
+}
+
+/* Manual fallback */
+.manual-steps summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.manual-steps ol {
+  margin: 10px 0 0 0;
+  padding-left: 20px;
+}
+
+.manual-steps li {
+  margin-bottom: 8px;
+}
+
+.copyable {
+  background: #f1f5f9;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 13px;
+  word-break: break-all;
+}
+
+.copy-button {
+  margin-left: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: white;
+  color: #1e293b;
+  cursor: pointer;
+}
+
+/* Back Button */
+@media (max-width: 480px) {
+  .step-title {
+    font-size: 18px;
+  }
+}
+
+/* Bottom-sheet modal: same pattern as the other pages' ri-modal (Admin Access, Catch Details) */
+.ri-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 900;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.ri-modal.open {
+  display: flex;
+}
+
+.ri-modal-sheet {
+  width: 100%;
+  max-width: 700px;
+  background: white;
+  border-radius: 16px 16px 0 0;
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.22s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.ri-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--gb-line-soft);
+}
+
+.ri-modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.ri-modal-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  line-height: 1;
+  color: var(--gb-faintest);
+  cursor: pointer;
+  padding: 0;
+}
+
+.ri-modal-close:hover {
+  color: var(--gb-ink-3);
+}
+
+.ri-modal-body {
+  padding: 12px 20px 8px;
+}
+
+/* The Apple easter egg */
+.apple-roast {
+  margin: 0 0 10px 0;
+  font-size: 15px;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.apple-modal-actions {
+  margin-top: 16px;
+}
+

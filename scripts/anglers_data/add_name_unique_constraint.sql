@@ -1,3 +1,5 @@
+-- HISTORICAL: already ran, written before #19 renamed anglers.name to anglers.display_name
+-- (2026-11). Don't re-run as is: it uses the old column name.
 -- One-time: add a UNIQUE constraint on anglers.name. Duplicate names weren't
 -- a real risk while names were bare first names shared with Catch Chat's
 -- aliases, but now that display names are disambiguated ("First L.", see

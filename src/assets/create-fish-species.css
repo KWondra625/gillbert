@@ -1,49 +1,5 @@
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  padding: 16px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding-top: max(24px, env(safe-area-inset-top));
-  padding-bottom: max(24px, env(safe-area-inset-bottom));
-}
-
-.container {
-  width: 100%;
-  max-width: 500px;
-  background: white;
-  border-radius: 16px;
-  padding: 32px 24px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-  margin: auto;
-}
 
 /* ── Header ──────────────────────────────────────────────────────── */
-
-.header {
-  text-align: center;
-  margin-bottom: 28px;
-}
-
-.header h1 {
-  margin: 0 0 8px 0;
-  font-size: 28px;
-  font-weight: 700;
-  color: #1a1a1a;
-}
-
-.header p {
-  margin: 0;
-  font-size: 14px;
-  color: #666;
-}
 
 /* ── Field groups ────────────────────────────────────────────────── */
 
@@ -56,7 +12,7 @@ label {
   margin-bottom: 6px;
   font-weight: 600;
   font-size: 14px;
-  color: #1a1a1a;
+  color: var(--gb-ink);
 }
 
 .required-mark {
@@ -67,13 +23,13 @@ label {
 .optional-mark {
   font-weight: 400;
   font-size: 12px;
-  color: #aaa;
+  color: var(--gb-faintest);
 }
 
 .field-hint {
   margin: 6px 0 0 0;
   font-size: 12px;
-  color: #999;
+  color: var(--gb-faint-2);
 }
 
 /* ── Inputs, textarea ──────────────────────────────────────────────── */
@@ -83,11 +39,11 @@ textarea {
   width: 100%;
   padding: 12px 14px;
   font-size: 16px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--gb-line);
   border-radius: 8px;
-  background: #f9f9f9;
+  background: var(--gb-surface-soft);
   font-family: inherit;
-  color: #1a1a1a;
+  color: var(--gb-ink);
   transition: border-color 0.2s, background 0.2s;
   -webkit-appearance: none;
   appearance: none;
@@ -95,14 +51,14 @@ textarea {
 
 input[type="text"]:hover,
 textarea:hover {
-  border-color: #4FACFE;
+  border-color: var(--gb-accent);
   background: white;
 }
 
 input[type="text"]:focus,
 textarea:focus {
   outline: none;
-  border-color: #4FACFE;
+  border-color: var(--gb-accent);
   background: white;
   box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
 }
@@ -125,21 +81,21 @@ textarea {
   padding: 12px 14px;
   font-size: 15px;
   font-weight: 600;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--gb-line);
   border-radius: 8px;
-  background: #f9f9f9;
-  color: #666;
+  background: var(--gb-surface-soft);
+  color: var(--gb-muted);
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s, color 0.2s;
   font-family: inherit;
 }
 
 .status-pill:hover {
-  border-color: #4FACFE;
+  border-color: var(--gb-accent);
 }
 
 .status-pill.selected {
-  background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
+  background: var(--gb-page-bg);
   border-color: transparent;
   color: white;
 }
@@ -185,94 +141,10 @@ textarea {
 }
 
 .primary-button {
-  display: block;
-  width: 100%;
-  padding: 16px;
   margin-top: 12px;
-  font-size: 16px;
-  font-weight: 700;
-  border: none;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
-  color: white;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(79, 172, 254, 0.3);
-  transition: transform 0.2s, box-shadow 0.2s;
-  text-align: center;
-  text-decoration: none;
-  font-family: inherit;
-}
-
-.primary-button:active {
-  transform: scale(0.98);
-  box-shadow: 0 2px 8px rgba(79, 172, 254, 0.2);
-}
-
-.primary-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.back-button {
-  display: block;
-  width: 100%;
-  padding: 14px 12px;
-  margin-top: 12px;
-  font-size: 15px;
-  font-weight: 700;
-  border-radius: 10px;
-  background: #f0f8ff;
-  color: #4FACFE;
-  text-decoration: none;
-  text-align: center;
-  border: 2px solid #d0eaff;
-  transition: background 0.2s, transform 0.2s;
-}
-
-.back-button:active {
-  transform: scale(0.98);
-  background: #e0f0ff;
 }
 
 /* ── Loading indicator ───────────────────────────────────────────── */
-
-.loading-indicator {
-  text-align: center;
-  padding: 32px 20px;
-  background: #f0f8ff;
-  border-radius: 8px;
-  border: 2px solid #4FACFE;
-  margin-bottom: 16px;
-}
-
-.fishing-animation {
-  font-size: 48px;
-  margin-bottom: 12px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.bobber {
-  display: inline-block;
-  margin-left: 8px;
-  font-size: 24px;
-  animation: bobbing 2s ease-in-out infinite;
-}
-
-@keyframes bobbing {
-  0%, 100% { transform: translateY(0px);   opacity: 0.6; }
-  50%       { transform: translateY(-12px); opacity: 1;   }
-}
-
-.loading-indicator p {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 500;
-  color: #4FACFE;
-}
 
 /* ── Error card ───────────────────────────────────────────────────── */
 
@@ -292,13 +164,10 @@ textarea {
 
 .error-card p {
   font-size: 14px;
-  color: #666;
+  color: var(--gb-muted);
   margin: 0 0 16px 0;
   line-height: 1.5;
 }
 
 /* ── Utility ─────────────────────────────────────────────────────── */
 
-.hidden {
-  display: none !important;
-}

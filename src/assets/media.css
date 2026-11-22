@@ -1,0 +1,703 @@
+
+.topbar,
+.topbar-back,
+.page-head,
+.container {
+  max-width: 1040px;
+}
+
+/* ── Header ──────────────────────────────────────────────────────── */
+
+/* ── Info cards ──────────────────────────────────────────────────── */
+
+.info-card {
+  margin-bottom: 16px;
+  padding: 16px;
+  background: var(--gb-accent-25);
+  border: 1px solid var(--gb-accent-150);
+  border-radius: 10px;
+}
+
+.info-card h2 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--gb-ink);
+}
+
+.info-card dl {
+  margin: 0;
+}
+
+.info-row {
+  display: flex;
+  gap: 12px;
+  padding: 7px 0;
+  border-top: 1px solid #edf2f9;
+  font-size: 14px;
+}
+
+.info-row:first-child {
+  border-top: none;
+}
+
+.info-row dt {
+  flex: 0 0 120px;
+  color: #777;
+}
+
+.info-row dd {
+  flex: 1;
+  margin: 0;
+  min-width: 0;
+  color: var(--gb-ink);
+  overflow-wrap: anywhere;
+}
+
+.info-row code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+}
+
+.info-row a {
+  color: var(--gb-accent-600);
+}
+
+.muted {
+  color: var(--gb-faintest);
+}
+
+.info-card pre {
+  margin: 0;
+  padding: 12px;
+  background: #f7f7f7;
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--gb-ink-3);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────── */
+
+.primary-button {
+  margin-top: 12px;
+}
+
+/* ── Loading indicator ───────────────────────────────────────────── */
+
+@keyframes bobbing {
+  0%, 100% { transform: translateY(0px);   opacity: 0.6; }
+  50%      { transform: translateY(-10px); opacity: 1; }
+}
+
+/* ── Error card ───────────────────────────────────────────────────── */
+
+.error-card {
+  text-align: center;
+  padding: 24px 16px;
+  background: #fff8f8;
+  border-radius: 8px;
+  border: 2px solid #fcc;
+  margin-bottom: 16px;
+}
+
+.error-card .error-icon {
+  font-size: 40px;
+  margin: 0 0 12px 0;
+}
+
+.error-card p {
+  font-size: 14px;
+  color: var(--gb-muted);
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+/* ── Tabs ────────────────────────────────────────────────────────── */
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid var(--gb-accent-150);
+}
+
+.tab {
+  margin-bottom: -2px;
+  padding: 10px 16px;
+  border: none;
+  border-bottom: 3px solid transparent;
+  background: none;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: #777;
+  cursor: pointer;
+}
+
+.tab--active {
+  color: var(--gb-accent-600);
+  border-bottom-color: var(--gb-accent);
+}
+
+.tab-count {
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.tab-count--alert {
+  color: #b42318;
+  opacity: 1;
+}
+
+.chip-count {
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+/* ── Toolbar: status chips, catch filter, Refresh ──────────────────── */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.toolbar .filter-chips,
+.toolbar .catch-filter {
+  margin: 0;
+}
+
+.toolbar-spacer {
+  flex: 1;
+}
+
+.catch-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gb-ink-3);
+}
+
+.catch-filter select {
+  min-width: 150px;
+  max-width: 260px;
+  padding: 8px 10px;
+  border: 1px solid var(--gb-accent-border);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.filter-chip {
+  padding: 8px 12px;
+  border: 1px solid var(--gb-accent-border);
+  border-radius: 999px;
+  background: var(--gb-accent-soft);
+  color: var(--gb-accent-600);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.filter-chip--active {
+  background: var(--gb-accent);
+  border-color: var(--gb-accent);
+  color: white;
+}
+
+.status {
+  min-height: 0;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #1e7a45;
+}
+
+.status:empty {
+  display: none;
+}
+
+.status--error {
+  color: #b42318;
+}
+
+/* ── Upload rows ─────────────────────────────────────────────────── */
+
+.media-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.media-row {
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  background: var(--gb-accent-25);
+  border: 1px solid var(--gb-accent-150);
+  border-left: 4px solid #2e9e5b;
+  font-size: 14px;
+}
+
+.media-row--submitted,
+.media-row--processing {
+  border-left-color: #e0a100;
+}
+
+.media-row--failed,
+.media-row--stuck {
+  border-left-color: #d92d20;
+  background: #fff4f3;
+  border-color: #fcd4d0;
+}
+
+.row-main {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-bottom: 4px;
+}
+
+.row-catch {
+  font-weight: 700;
+  color: var(--gb-accent-600);
+  text-decoration: none;
+}
+
+.row-status {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.row-file {
+  color: var(--gb-ink);
+  overflow-wrap: anywhere;
+}
+
+.row-meta {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #777;
+}
+
+.row-error {
+  margin-top: 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: white;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: #a93226;
+  overflow-wrap: anywhere;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.row-action {
+  padding: 8px 12px;
+  border: 1px solid var(--gb-accent-border);
+  border-radius: 8px;
+  background: white;
+  color: var(--gb-accent-600);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.row-action--danger {
+  color: #b42318;
+  border-color: #fcd4d0;
+}
+
+/* "Tap again to …": blue like a primary button (e.g. Attach); red only for a delete */
+.row-action--armed {
+  background: var(--gb-accent-600);
+  border-color: var(--gb-accent-600);
+  color: white;
+}
+
+.row-action--danger.row-action--armed {
+  background: #b42318;
+  border-color: #b42318;
+}
+
+.row-action:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.media-empty {
+  padding: 20px;
+  text-align: center;
+  color: var(--gb-faint);
+  font-size: 14px;
+}
+
+.secondary-button {
+  margin-top: 8px;
+}
+
+/* ── Wide screens: each upload is one table-like row ──────────────── */
+
+/* Shared columns for the headings and every row */
+.media-head,
+#mediaList .media-row {
+  display: grid;
+  grid-template-columns: 118px 112px minmax(0, 1fr) 84px 76px 150px 190px;
+  grid-template-areas: "status catch file type size when actions";
+  column-gap: 12px;
+  align-items: start;
+}
+
+.media-head {
+  padding: 8px 14px 8px 18px;
+  border-bottom: 1px solid var(--gb-accent-150);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--gb-faint);
+}
+
+#mediaList .media-row {
+  margin-bottom: 0;
+  border-radius: 0;
+  border-width: 0 0 1px 4px;
+  border-bottom-color: #eef3fa;
+  background: white;
+}
+
+#mediaList .media-row--failed,
+#mediaList .media-row--stuck {
+  background: #fff4f3;
+  border-left-color: #d92d20;
+}
+
+#mediaList .row-status { grid-area: status; }
+#mediaList .row-catch  { grid-area: catch; }
+#mediaList .row-body   { grid-area: file; min-width: 0; }
+#mediaList .row-actions {
+  grid-area: actions;
+  justify-content: flex-end;
+  margin-top: 0;
+}
+
+/* The details become their own columns */
+#mediaList .row-meta {
+  display: contents;
+}
+
+#mediaList .meta-type { grid-area: type; }
+#mediaList .meta-size { grid-area: size; }
+#mediaList .meta-when { grid-area: when; }
+
+#mediaList .row-meta > span {
+  font-size: 14px;
+  color: var(--gb-ink-3);
+}
+
+#mediaList .meta-when .row-by {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+}
+
+#mediaList .media-empty {
+  display: block;
+}
+
+/* The uploader's name stands out a little from the rest of the details */
+.row-by {
+  font-weight: 600;
+  color: var(--gb-ink-2);
+}
+
+/* ── Storage check ───────────────────────────────────────────────── */
+
+.scan-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.scan-head .card-intro {
+  flex: 1;
+  margin: 0;
+}
+
+.scan-head .secondary-button {
+  width: auto;
+  margin: 0;
+  padding: 10px 18px;
+  white-space: nowrap;
+}
+
+.card-intro {
+  font-size: 13px;
+  color: var(--gb-muted);
+  line-height: 1.5;
+}
+
+.scan-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.scan-result h3 {
+  margin: 16px 0 8px 0;
+  font-size: 14px;
+  color: var(--gb-ink);
+}
+
+.scan-summary {
+  margin: 12px 0 0 0;
+  font-size: 13px;
+  color: var(--gb-ink-3);
+}
+
+/* A look at a file with no record before deciding what to do with it */
+.orphan-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.orphan-thumb {
+  display: block;
+  flex: 0 0 auto;
+  line-height: 0;
+}
+
+.orphan-thumb img,
+.orphan-thumb video {
+  width: 96px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--gb-accent-150);
+  background: #eef3fa;
+}
+
+.orphan-open {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gb-accent-600);
+  text-decoration: none;
+}
+
+.media-row--recent {
+  border-left-color: #e0a100;
+  background: #fffbea;
+  border-color: #f4e3a6;
+}
+
+/* ── Media thumbnails tab (#38) ──────────────────────────────────── */
+
+/* Checkbox, preview, then the file and its details; rows needing thumbnails are amber */
+.thumbs-row {
+  display: grid;
+  grid-template-columns: auto 64px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  border-left-color: #e0a100;
+}
+
+.thumbs-row--running,
+.thumbs-row--waiting,
+.thumbs-row--queued {
+  border-left-color: var(--gb-accent-600);
+}
+
+.thumbs-row--done {
+  border-left-color: #2e9e5b;
+}
+
+.thumbs-row--error {
+  border-left-color: #d92d20;
+  background: #fff4f3;
+  border-color: #fcd4d0;
+}
+
+.thumbs-pick {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+}
+
+.thumbs-pick input {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.thumbs-pick input:disabled {
+  cursor: not-allowed;
+}
+
+.thumbs-preview {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--gb-accent-150);
+}
+
+.thumbs-preview--none {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+}
+
+.thumbs-state {
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.thumbs-toolbar {
+  flex-wrap: wrap;
+}
+
+#thumbsPanel .card-intro {
+  margin-bottom: 12px;
+}
+
+/* ── Phones ──────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  /* Four equal tabs; a long label wraps to a second line instead of running off-screen */
+  .tab {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 8px 4px;
+    font-size: 13px;
+    line-height: 1.3;
+    text-align: center;
+  }
+
+  .tab-count {
+    white-space: nowrap;
+  }
+
+  .media-head {
+    display: none;
+  }
+
+  /* Back to cards: catch + status, then the file, the details on one line, any error, actions */
+  #mediaList .media-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "catch status"
+      "file file"
+      "meta meta"
+      "actions actions";
+    row-gap: 4px;
+    margin-bottom: 8px;
+    border-radius: 10px;
+    border-width: 1px 1px 1px 4px;
+    border-color: var(--gb-accent-150);
+    background: var(--gb-accent-25);
+  }
+
+  #mediaList .media-row--submitted,
+  #mediaList .media-row--processing {
+    border-left-color: #e0a100;
+  }
+
+  #mediaList .media-row--complete {
+    border-left-color: #2e9e5b;
+  }
+
+  #mediaList .media-row--failed,
+  #mediaList .media-row--stuck {
+    background: #fff4f3;
+    border-color: #fcd4d0;
+    border-left-color: #d92d20;
+  }
+
+  #mediaList .row-meta {
+    grid-area: meta;
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  #mediaList .row-meta > span {
+    font-size: 12px;
+    color: #777;
+  }
+
+  #mediaList .meta-when { order: 1; }
+  #mediaList .meta-type { order: 2; }
+  #mediaList .meta-size { order: 3; }
+
+  #mediaList .meta-type::before,
+  #mediaList .meta-size::before {
+    content: "\00a0·\00a0";
+  }
+
+  #mediaList .meta-when .row-by {
+    display: inline;
+    font-size: 12px;
+  }
+
+  #mediaList .row-actions {
+    justify-content: flex-start;
+    margin-top: 6px;
+  }
+
+  .toolbar-spacer {
+    display: none;
+  }
+
+  .scan-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .scan-head .secondary-button {
+    width: 100%;
+  }
+
+  .scan-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Utility ─────────────────────────────────────────────────────── */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

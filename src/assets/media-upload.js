@@ -27,19 +27,24 @@ function rejectReason(file) {
   return null;
 }
 
-// Fired immediately so it's resolved (or in flight) by the time the user hits Upload.
-// Multiple files in one upload are always attributed to the same person.
-const uploadedByAnglerIdPromise = (async () => {
+// The anglers list, fetched once: for who's uploading, and for the catch card's angler photo.
+const anglersPromise = (async () => {
   try {
     const res = await fetch(LOOKUP_URL, { headers: { 'X-API-Key': API_KEY } });
-    if (!res.ok) return null;
+    if (!res.ok) return [];
     const raw = await res.json();
     const data = Array.isArray(raw) ? raw[0] : raw;
-    return await resolveMyAnglerId(data.anglers || []);
+    return data.anglers || [];
   } catch {
-    return null;
+    return [];
   }
 })();
+
+// Fired immediately so it's resolved (or in flight) by the time the user hits Upload.
+// Multiple files in one upload are always attributed to the same person.
+const uploadedByAnglerIdPromise = anglersPromise
+  .then(anglers => resolveMyAnglerId(anglers))
+  .catch(() => null);
 
 const el = {
   noCatchState:     document.getElementById('noCatchState'),
@@ -117,7 +122,7 @@ async function loadCatchDetails(catchNumber) {
     if (!res.ok) throw new Error(`GET failed: ${res.status}`);
     const data = await res.json();
     const catchData = Array.isArray(data) ? data[0] : data;
-    renderCatchCard(catchNumber, catchData);
+    renderCatchCard(catchNumber, catchData, await anglersPromise);
     document.title = `Upload to ${catchNumber} · Gillbert`;
   } catch (err) {
     console.error(err);
@@ -125,26 +130,30 @@ async function loadCatchDetails(catchNumber) {
   }
 }
 
-function renderCatchCard(catchNumber, data) {
+// A smaller copy of the summary at the top of Catch Details: the angler's photo, the fish,
+// "Caught by … on …" and the date, so the catch looks the same on both pages.
+function renderCatchCard(catchNumber, data, anglers = []) {
   if (!data) {
     el.catchCard.innerHTML = `<div class="catch-card-id">${escapeHtml(catchNumber)}</div>`;
     return;
   }
 
-  const rows = [
-    data.anglerName      && ['Angler',       data.anglerName],
-    data.fishSpeciesName && ['Species',       data.fishSpeciesName],
-    data.bodyOfWaterName && ['Body of Water', data.bodyOfWaterName],
-    data.caughtWhen      && ['Caught When',   formatCaughtWhen(data.caughtWhen)],
-  ].filter(Boolean);
+  const angler = anglers.find(a => a.id === data.anglerId);
+  const avatar = GillbertAvatar.html({ id: data.anglerId, profilePhotoReadUrl: angler && angler.profilePhotoReadUrl },
+    data.anglerName, 'catch-card-avatar');
+  const species = data.fishSpeciesName || 'Fish';
+  const fish = data.length != null && data.length !== '' ? `${data.length}" ${species}` : species;
 
   el.catchCard.innerHTML = `
     <div class="catch-card-id">${escapeHtml(catchNumber)}</div>
-    ${rows.map(([label, value]) => `
-      <div class="catch-card-row">
-        <span class="catch-card-label">${label}</span>
-        <span class="catch-card-value">${escapeHtml(String(value))}</span>
-      </div>`).join('')}`;
+    <div class="catch-card-summary">
+      ${avatar}
+      <div class="catch-card-main">
+        <div class="catch-card-fish">${escapeHtml(fish)}</div>
+        <div class="catch-card-who">Caught by <b>${escapeHtml(data.anglerName || 'Unknown angler')}</b>${data.bodyOfWaterName ? ` on <b>${escapeHtml(data.bodyOfWaterName)}</b>` : ''}</div>
+        ${data.caughtWhen ? `<div class="catch-card-when">${escapeHtml(formatCaughtWhen(data.caughtWhen))}</div>` : ''}
+      </div>
+    </div>`;
 }
 
 // --- Upload ------------------------------------------------------------------
@@ -158,7 +167,11 @@ async function getSasUrls(catchNumber, files) {
       files: files.map(f => ({ name: f.name, size: f.size, type: getContentType(f) })),
     }),
   });
-  if (!res.ok) throw new Error(`SAS request failed: ${res.status} ${await res.text()}`);
+  if (!res.ok) {
+    // A refused request (unknown file type, bad catch number...) answers 400 with its reason
+    const reason = await res.json().then(d => d.message, () => null);
+    throw new Error(reason ? `Upload slot refused: ${reason}` : `Upload slot request failed (${res.status})`);
+  }
   return res.json();
 }
 
@@ -379,10 +392,14 @@ function startSuccessCountdown(catchNumber) {
   }, 1000);
 }
 
-// While the page stays open, re-check converting files every 10 s and flip their rows to
-// ✅ Done (or ⚠️) as they finish, like the catch page does. Gives up after 10 minutes; the
-// catch page and Media Activity have the final word after that. One loop at a time: a
-// retry that adds converting files joins the loop already running.
+// While the page stays open, re-check converting files and flip their rows to ✅ Done (or ⚠️)
+// as they finish, like the catch page does. Watching starts as soon as a file is recorded as
+// converting (not after the whole batch): the loop's first check is after 2 s (a photo often
+// converts in a few seconds, well before the 10 s hand-off), then every 10 s. Gives up after 10 minutes; the
+// catch page and the Media page have the final word after that. One loop at a time: files
+// that start converting later (another in the batch, or a retry) join the loop already running,
+// at its next 10 s check.
+const CONVERT_FIRST_CHECK_MS = 2 * 1000;
 const CONVERT_POLL_MS = 10 * 1000;
 const CONVERT_POLL_LIMIT_MS = 10 * 60 * 1000;
 let watchingConversions = false;
@@ -421,7 +438,7 @@ function watchConversions(catchNumber) {
     }
     setTimeout(check, CONVERT_POLL_MS);
   };
-  setTimeout(check, CONVERT_POLL_MS);
+  setTimeout(check, CONVERT_FIRST_CHECK_MS);
 }
 
 el.stayHereBtn.addEventListener('click', () => {
@@ -469,7 +486,10 @@ async function processJobs(catchNumber, jobs) {
         return;
       }
       setStage(job, recorded.status === 'complete' ? 'complete' : 'converting');
-      if (recorded.status !== 'complete') log(`⏳ ${job.file.name} is converting so everyone can see it.`);
+      if (recorded.status !== 'complete') {
+        log(`⏳ ${job.file.name} is converting so everyone can see it.`);
+        watchConversions(catchNumber); // while the rest of the batch is still uploading
+      }
     } catch (err) {
       console.error(err);
       // Retry asks for a new link rather than sending the refused one again

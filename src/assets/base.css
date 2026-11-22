@@ -1,0 +1,251 @@
+/* Shared base styles for the content pages: the box-sizing reset, the loading fish, a few
+ * helpers, and the two page layouts (at the bottom). Loaded after theme.css and before each
+ * page's own stylesheet. The home page, Settings and My Profile have their own layouts. */
+
+* {
+  box-sizing: border-box;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* A back button a page has hidden (e.g. the way back is Home: the top bar covers it) */
+.back-button[hidden] {
+  display: none;
+}
+
+.fishing-animation {
+  font-size: 48px;
+  margin-bottom: 12px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bobber {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 24px;
+  animation: bobbing 2s ease-in-out infinite;
+}
+
+.loading-indicator.visible {
+  display: block;
+}
+
+@keyframes bobbing {
+  0%, 100% { transform: translateY(0px);   opacity: 0.6; }
+  50%       { transform: translateY(-12px); opacity: 1;   }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(24px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────────
+ * One primary style (solid, the main action) and one secondary style (soft, everything
+ * else), the same as the home page's buttons. Colours and corner come from theme.css.
+ * Full width by default; add .button-small for a compact inline button. A page's own
+ * rule for the same class (spacing, width) comes later and wins. */
+
+.primary-button,
+.secondary-button {
+  border: 0;
+  border-radius: var(--gb-radius-button);
+  cursor: pointer;
+  display: block;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 14px 16px;
+  text-align: center;
+  text-decoration: none;
+  transition: transform 0.15s;
+  width: 100%;
+}
+
+.primary-button {
+  background: var(--gb-btn-primary-bg);
+  color: var(--gb-btn-primary-ink);
+}
+
+.secondary-button {
+  background: var(--gb-btn-secondary-bg);
+  color: var(--gb-btn-secondary-ink);
+}
+
+.primary-button:active,
+.secondary-button:active {
+  transform: scale(0.98);
+}
+
+.primary-button:disabled,
+.secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
+/* Raised: a secondary button with a white face and a soft shadow, for "Add …" actions
+   that sit on a tinted background (the sky, a heading strip) */
+.secondary-button.button-raised {
+  background: var(--gb-surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Tertiary: the quietest action, plain accent text with no box (e.g. "More", "Record info") */
+.tertiary-button {
+  padding: 8px 6px;
+  border: 0;
+  background: none;
+  color: var(--gb-accent-strong);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.tertiary-button:active {
+  opacity: 0.7;
+}
+
+.tertiary-button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.button-small {
+  align-items: center;
+  display: inline-flex;
+  font-size: 13px;
+  gap: 6px;
+  justify-content: center;
+  padding: 8px 14px;
+  width: auto;
+}
+
+/* ── Page layouts ────────────────────────────────────────────────────────────
+ * layout-card: one white card in the middle (forms and tools).
+ * layout-open: cards straight on the sky (browsing and reading).
+ * Each page's <body> names its layout. :where() keeps these weak, so a page's own
+ * rules (and its phone-size tweaks) still win where a page needs something different. */
+
+body:where(.layout-card) {
+  align-items: center;
+  background: var(--gb-page-bg);
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  justify-content: flex-start;
+  margin: 0;
+  min-height: 100vh;
+  padding: 16px;
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  padding-top: max(24px, env(safe-area-inset-top));
+}
+
+:where(.layout-card) .container {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  margin: 0 auto;   /* straight under the page heading, not centred in the screen */
+  max-width: 500px;
+  padding: 32px 24px;
+  width: 100%;
+}
+
+   :where(.layout-card) .back-button {
+  background: var(--gb-btn-secondary-bg);
+  border: 0;
+  border-radius: var(--gb-radius-button);
+  color: var(--gb-btn-secondary-ink);
+  cursor: pointer;
+  font-family: inherit;
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  margin-top: 12px;
+  padding: 14px 12px;
+  text-align: center;
+  text-decoration: none;
+  transition: background 0.2s, transform 0.2s;
+  width: 100%;
+}
+
+:where(.layout-card) .back-button:active {
+  background: var(--gb-accent-100);
+  transform: scale(0.98);
+}
+
+:where(.layout-card) .loading-indicator {
+  background: var(--gb-accent-soft);
+  border: 2px solid var(--gb-accent);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  padding: 32px 20px;
+  text-align: center;
+}
+
+:where(.layout-card) .loading-indicator p {
+  color: var(--gb-accent);
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+}
+
+body:where(.layout-open) {
+  background: var(--gb-page-bg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  margin: 0;
+  min-height: 100vh;
+  padding: 16px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  padding-top: max(16px, env(safe-area-inset-top));
+}
+
+:where(.layout-open) .container {
+  margin: 0 auto;
+  max-width: 700px;
+  width: 100%;
+}
+
+   :where(.layout-open) .back-button {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-sizing: border-box;
+  color: var(--gb-accent);
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 32px;
+  padding: 16px 12px;
+  text-align: center;
+  text-decoration: none;
+  transition: box-shadow 0.2s, transform 0.2s;
+  width: 100%;
+}
+
+:where(.layout-open) .back-button:active {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transform: scale(0.98);
+}
+
+:where(.layout-open) .loading-indicator {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  margin-bottom: 16px;
+  padding: 32px 20px;
+  text-align: center;
+}
+
+:where(.layout-open) .loading-indicator p {
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+}

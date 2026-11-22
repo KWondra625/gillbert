@@ -29,7 +29,6 @@ const el = {
   filterSummary: document.getElementById('filterSummary'),
   filterSummaryText: document.getElementById('filterSummaryText'),
   filterClearAll: document.getElementById('filterClearAll'),
-  topBackLink: document.getElementById('topBackLink'),
   bottomBackLink: document.getElementById('bottomBackLink'),
 };
 
@@ -171,10 +170,8 @@ function renderPage({ keepScroll = false } = {}) {
     return;
   }
 
-  // Render cards
-  el.catchesContainer.innerHTML = pageCatches
-    .map(c => renderCatchCard(c))
-    .join("");
+  // Render the cards in their day groups
+  el.catchesContainer.innerHTML = renderCatchGroups(pageCatches, startIndex);
 
   // Update pagination
   el.pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
@@ -188,26 +185,73 @@ function renderPage({ keepScroll = false } = {}) {
   if (!keepScroll) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// formatDateLabel/hasExplicitTime come from date-format.js (shared with
-// catch-details.js — see that file for why this is extracted rather than
-// duplicated).
+// hasExplicitTime comes from date-format.js (shared with catch-details.js).
 
-function getRelativeTime(dateStr) {
-  const diffMs = Date.now() - new Date(dateStr).getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
-  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
-  if (diffHours < 48) {
-    const time = new Date(dateStr).toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-    return `Yesterday at ${time}`;
-  }
-  const days = Math.floor(diffHours / 24);
-  return `${days} days ago`;
+// ── Day groups ──────────────────────────────────────────────────────────────
+// Catches arrive newest-caught first, so neighbours share a group: Today, Yesterday,
+// This week (the 5 days before that), then one group per month ("October", with the
+// year once it isn't this year's). Each card then shows only what its heading doesn't.
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August',
+  'September', 'October', 'November', 'December'];
+
+function startOfDay(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
-function renderCatchCard(catchData) {
+function catchGroup(caughtWhen, now = new Date()) {
+  if (!caughtWhen) return { key: 'unknown', label: 'Date unknown', recent: false };
+  const d = new Date(caughtWhen);
+  if (Number.isNaN(d.getTime())) return { key: 'unknown', label: 'Date unknown', recent: false };
+  const daysAgo = Math.round((startOfDay(now) - startOfDay(d)) / (24 * 60 * 60 * 1000));
+  if (daysAgo <= 0) return { key: 'today', label: 'Today', recent: true };
+  if (daysAgo === 1) return { key: 'yesterday', label: 'Yesterday', recent: true };
+  if (daysAgo < 7) return { key: 'week', label: 'This week', recent: false };
+  const month = MONTH_NAMES[d.getMonth()];
+  const label = d.getFullYear() === now.getFullYear() ? month : `${month} ${d.getFullYear()}`;
+  return { key: `${d.getFullYear()}-${d.getMonth()}`, label, recent: false };
+}
+
+// The card's own "when": the time for Today and Yesterday ("12:37 PM", nothing when no
+// time was given), the date for older groups ("Oct 28")
+function cardWhen(caughtWhen, group) {
+  if (!caughtWhen || group.key === 'unknown') return '';
+  const d = new Date(caughtWhen);
+  if (group.recent) {
+    return hasExplicitTime(d) ? d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '';
+  }
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+// A group can run across pages: its heading counts all of its catches (not just this page's),
+// and a group carried over from the page before says "continued".
+function renderCatchGroups(pageCatches, startIndex) {
+  const totals = {};
+  for (const c of filteredCatches) {
+    const key = catchGroup(c.caughtWhen).key;
+    totals[key] = (totals[key] || 0) + 1;
+  }
+  const before = startIndex > 0 ? catchGroup(filteredCatches[startIndex - 1].caughtWhen).key : null;
+
+  const groups = [];
+  for (const c of pageCatches) {
+    const group = catchGroup(c.caughtWhen);
+    let last = groups[groups.length - 1];
+    if (!last || last.group.key !== group.key) groups.push(last = { group, items: [] });
+    last.items.push(c);
+  }
+  return groups.map(({ group, items }, i) => {
+    const total = totals[group.key] || items.length;
+    const continued = i === 0 && group.key === before;
+    return `
+    <section class="catch-group">
+      <h2 class="catch-group-head"><span>${escapeHtml(group.label)}${continued ? ', continued' : ''}</span><small>${total} catch${total === 1 ? '' : 'es'}</small></h2>
+      <div class="catches-grid">${items.map(c => renderCatchCard(c, group)).join('')}</div>
+    </section>`;
+  }).join('');
+}
+
+// ── One catch: who and when on top, the fish in the middle, its extras at the bottom ──
+function renderCatchCard(catchData, group) {
   const {
     catchNumber = "Unknown",
     anglerName = "Unknown",
@@ -221,71 +265,30 @@ function renderCatchCard(catchData) {
     verifiedAt = null,
     anglerId = null,
   } = catchData;
-  const anglerPhotoUrl = anglerId != null ? photoByAnglerId[anglerId] : null;
 
-  const now = Date.now();
-  const isRecentCatch = caughtWhen && (now - new Date(caughtWhen).getTime()) < 72 * 60 * 60 * 1000;
-  const isRecentlyAdded = createdAt && (now - new Date(createdAt).getTime()) < 24 * 60 * 60 * 1000;
-
-  // No explicit time (see date-format.js) means skip both the relative-time
-  // and absolute-with-time treatments and just show the date.
-  const caughtWhenHasTime = caughtWhen && hasExplicitTime(new Date(caughtWhen));
-
-  // Compact so it fits on one line: "Oct 24 at 12:27 PM", with the year only for older
-  // catches ("Jun 24, 2025 at 1:15 PM"); see formatShortDate in date-format.js.
-  const caughtWhenDisplay = caughtWhen
-    ? !caughtWhenHasTime
-      ? formatShortDateLabel(new Date(caughtWhen))
-      : isRecentCatch
-        ? getRelativeTime(caughtWhen)
-        : `${formatShortDateLabel(new Date(caughtWhen))} at ${new Date(caughtWhen).toLocaleTimeString('en-US', {
-            hour: 'numeric', minute: '2-digit', hour12: true })}`
-    : 'Unknown';
+  const isRecentlyAdded = createdAt && (Date.now() - new Date(createdAt).getTime()) < 24 * 60 * 60 * 1000;
+  const when = cardWhen(caughtWhen, group);
+  const fish = length != null && length !== '' ? `${Number(length)}" ${fishSpeciesName}` : fishSpeciesName;
+  const avatar = GillbertAvatar.html({ id: anglerId, profilePhotoReadUrl: anglerId != null ? photoByAnglerId[anglerId] : null },
+    anglerName, 'catch-avatar');
 
   return `
-    <div class="catch-card">
-      <div class="catch-card-header">
-        <div class="catch-header-row">
-          ${anglerPhotoUrl ? `<img class="catch-angler-photo" src="${escapeHtml(anglerPhotoUrl)}" alt="" title="${escapeHtml(anglerName)}" loading="lazy" />` : ''}
-          <h2 class="catch-id">${escapeHtml(catchNumber)}</h2>
-          <div class="catch-badges">
-            ${isRecentlyAdded ? '<span class="badge-new" title="Added within the last 24 hours">🆕</span>' : ''}
-          </div>
-        </div>
+    <a class="catch-card" href="./catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}&from=list">
+      <div class="catch-card-top">
+        ${avatar}
+        <b class="catch-angler">${escapeHtml(anglerName)}</b>
+        ${when ? `<span class="catch-when">· ${escapeHtml(when)}</span>` : ''}
       </div>
-      <div class="catch-card-body">
-        <div class="catch-field">
-          <span class="field-label">👤 Angler:</span>
-          <span class="field-value">${escapeHtml(anglerName)}</span>
-        </div>
-        <div class="catch-field">
-          <span class="field-label">🐟 Species:</span>
-          <span class="field-value">${escapeHtml(fishSpeciesName)}</span>
-        </div>
-        ${bodyOfWaterName ? `
-        <div class="catch-field">
-          <span class="field-label">💧 Water:</span>
-          <span class="field-value">${escapeHtml(bodyOfWaterName)}</span>
-        </div>` : ''}
-        ${length != null && length !== '' ? `
-        <div class="catch-field">
-          <span class="field-label">📏 Length:</span>
-          <span class="field-value">${escapeHtml(String(length))}"</span>
-        </div>` : ''}
-        <div class="catch-field">
-          <span class="field-label">📅 When:</span>
-          <span class="field-value${isRecentCatch ? ' field-value--fresh' : ''}">${escapeHtml(caughtWhenDisplay)}</span>
-        </div>
-        ${!verifiedAt ? '<div class="catch-pending-row"><span class="badge-pending" title="Not yet reviewed">⏳ Pending Review</span></div>' : ''}
+      <div class="catch-what">${escapeHtml(fish)}${bodyOfWaterName ? ` <span>on ${escapeHtml(bodyOfWaterName)}</span>` : ''}</div>
+      <div class="catch-card-foot">
+        ${catchMediaCount > 0 ? `<span class="badge-media" title="${catchMediaCount} attachment${catchMediaCount === 1 ? '' : 's'}">📷${catchMediaCount > 1 ? ` ${catchMediaCount}` : ''}</span>` : ''}
+        ${catchMediaProcessingCount > 0 ? `<span class="badge-media badge-media--converting" title="${catchMediaProcessingCount} still converting">⏳${catchMediaProcessingCount > 1 ? ` ${catchMediaProcessingCount}` : ''}</span>` : ''}
+        ${isRecentlyAdded ? '<span class="badge-new" title="Added within the last 24 hours">New</span>' : ''}
+        ${!verifiedAt ? '<span class="badge-pending" title="Not yet reviewed">Pending review</span>' : ''}
+        <span class="catch-id">${escapeHtml(catchNumber)}</span>
+        <em aria-hidden="true">›</em>
       </div>
-      <div class="catch-card-footer">
-        <a href="./catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}&from=list" class="card-button">
-          <span>🔍 View Details</span>
-          ${catchMediaCount > 0 ? `<span class="badge-media" title="${catchMediaCount} attachment${catchMediaCount === 1 ? '' : 's'}">📷${catchMediaCount > 1 ? ` ${catchMediaCount}` : ''}</span>` : ''}
-          ${catchMediaProcessingCount > 0 ? `<span class="badge-media badge-media--converting" title="${catchMediaProcessingCount} still converting">⏳${catchMediaProcessingCount > 1 ? ` ${catchMediaProcessingCount}` : ''}</span>` : ''}
-        </a>
-      </div>
-    </div>
+    </a>
   `;
 }
 
@@ -430,6 +433,9 @@ function applyFilters() {
     if (activeFilters.pendingOnly && c.verifiedAt) return false;
     return true;
   });
+  // The server sorts newest-caught first with no-date catches on top; put those last instead
+  const hasDate = c => c.caughtWhen && !Number.isNaN(new Date(c.caughtWhen).getTime());
+  filteredCatches = [...filteredCatches.filter(hasDate), ...filteredCatches.filter(c => !hasDate(c))];
   currentPage = 1;
   sessionStorage.setItem('gillbert_filters', JSON.stringify(activeFilters));
   updateFilterUI();
@@ -542,10 +548,9 @@ function setupBackNavigation() {
   const href = returnTo?.href || './index.html';
   const label = returnTo?.label || 'Home';
 
-  el.topBackLink.href = href;
-  el.topBackLink.textContent = `← ${label}`;
-  el.topBackLink.setAttribute('aria-label', `Go back to ${label}`);
-
+  // Home needs no link: the top bar's wordmark goes home
+  GillbertTopbar.setBack(href, label);
+  el.bottomBackLink.hidden = !returnTo?.href;
   el.bottomBackLink.href = href;
   el.bottomBackLink.textContent = `← Back to ${label}`;
 }

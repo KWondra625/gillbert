@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Media · Gillbert</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/theme.css" />
+  <link rel="stylesheet" href="./assets/base.css" />
+  <link rel="stylesheet" href="./assets/topbar.css" />
+  <script src="./assets/settings.js"></script>
+  <script src="./assets/season.js"></script>
+  <link rel="stylesheet" href="./assets/media.css" />
+</head>
+<body class="layout-card">
+  <!-- Admin-only: linked from the home page's Admin section. -->
+  <header class="topbar" id="topbar"></header>
+  <script src="./assets/topbar.js"></script>
+  <div class="page-head">
+    <span class="page-head-tile" aria-hidden="true">🗂️</span>
+    <div>
+      <p class="page-head-label">Admin</p>
+      <h1>Media</h1>
+    </div>
+  </div>
+  <div class="container">
+    <p class="page-intro">Every photo and video upload, their thumbnails, older Apple-format files to convert, and a check that storage matches the records.</p>
+
+    <!-- ── Loading state ────────────────────────────────────────────── -->
+    <div id="loadingState">
+      <div class="loading-indicator">
+        <div class="fishing-animation">🎣<span class="bobber">●</span></div>
+        <p>Counting the catch photos…</p>
+      </div>
+    </div>
+
+    <!-- ── Error state ──────────────────────────────────────────────── -->
+    <div id="errorState" class="hidden">
+      <div class="error-card">
+        <p class="error-icon">⚠️</p>
+        <p id="errorMsg">Unable to load media.</p>
+        <button id="retryLoadBtn" class="primary-button">🔄 Try Again</button>
+      </div>
+    </div>
+
+    <div id="listState" class="hidden">
+      <div class="tabs" role="tablist">
+        <button class="tab tab--active" role="tab" id="uploadsTab" data-tab="uploads" aria-selected="true" aria-controls="uploadsPanel">📋 Upload History <span class="tab-count" id="uploadsTabCount"></span></button>
+        <button class="tab" role="tab" id="thumbsTab" data-tab="thumbnails" aria-selected="false" aria-controls="thumbsPanel">🖼️ Thumbnail Generation <span class="tab-count" id="thumbsTabCount"></span></button>
+        <button class="tab" role="tab" id="appleTab" data-tab="apple" aria-selected="false" aria-controls="applePanel">🍎 Apple Formats <span class="tab-count" id="appleTabCount"></span></button>
+        <button class="tab" role="tab" id="storageTab" data-tab="storage" aria-selected="false" aria-controls="storagePanel">🧹 Storage Check <span class="tab-count" id="storageTabCount">…</span></button>
+      </div>
+
+      <!-- ── Uploads ────────────────────────────────────────────────── -->
+      <section id="uploadsPanel" role="tabpanel" aria-labelledby="uploadsTab">
+        <div class="toolbar">
+          <div class="filter-chips" role="group" aria-label="Filter uploads">
+            <button class="filter-chip filter-chip--active" data-filter="all">All</button>
+            <button class="filter-chip" data-filter="attention">⚠️ Needs attention <span class="chip-count" id="attentionCount"></span></button>
+            <button class="filter-chip" data-filter="converting">⏳ Converting <span class="chip-count" id="convertingCount"></span></button>
+          </div>
+          <label class="catch-filter">
+            <span>Catch</span>
+            <select id="catchFilter">
+              <option value="">All catches</option>
+            </select>
+          </label>
+          <span class="toolbar-spacer"></span>
+          <button id="refreshBtn" class="secondary-button button-small">🔄 Refresh</button>
+        </div>
+
+        <div id="status" class="status" role="status"></div>
+        <!-- Column headings for the wide-screen layout; phones show each upload as a card -->
+        <div class="media-head" aria-hidden="true">
+          <span>Status</span><span>Catch</span><span>File</span><span>Type</span><span>Size</span><span>Uploaded</span><span></span>
+        </div>
+        <ul id="mediaList" class="media-list"></ul>
+        <button id="showMoreBtn" class="secondary-button hidden">Show more</button>
+      </section>
+
+      <!-- ── Media thumbnails ───────────────────────────────────────── -->
+      <section id="thumbsPanel" class="hidden" role="tabpanel" aria-labelledby="thumbsTab">
+        <p class="card-intro">Photos get a small thumbnail (tiles) and a mid-size copy (full-screen view) when they're uploaded, and videos a poster frame (tiles); until then pages load the full-size file. These don't have them yet, or making them failed. Check up to 10 and press Generate Thumbnails: they're made one at a time. Safe to stop, and to run again.</p>
+        <div class="toolbar thumbs-toolbar">
+          <button id="thumbsSelectBtn" class="secondary-button button-small">☑️ Select 10</button>
+          <button id="thumbsClearBtn" class="secondary-button button-small">Clear</button>
+          <button id="thumbsRefreshBtn" class="secondary-button button-small">🔄 Refresh</button>
+          <span class="toolbar-spacer"></span>
+          <button id="thumbsStopBtn" class="secondary-button button-small hidden">⏹️ Stop</button>
+          <button id="thumbsRunBtn" class="primary-button button-small" disabled>🖼️ Generate Thumbnails</button>
+        </div>
+        <div id="thumbsStatus" class="status" role="status"></div>
+        <ul id="thumbsList" class="media-list thumbs-list"></ul>
+      </section>
+
+      <!-- ── Apple formats ──────────────────────────────────────────── -->
+      <section id="applePanel" class="hidden" role="tabpanel" aria-labelledby="appleTab">
+        <p class="card-intro">Photos and videos still stored in an Apple format (HEIC photos, MOV videos), from before uploads were converted automatically. Not every browser can show them. Check up to 10 and press Convert: each becomes a JPEG or MP4, like a new upload, one at a time. A video can take a few minutes. Safe to stop, and to run again.</p>
+        <div class="toolbar thumbs-toolbar">
+          <button id="appleSelectBtn" class="secondary-button button-small">☑️ Select 10</button>
+          <button id="appleClearBtn" class="secondary-button button-small">Clear</button>
+          <button id="appleRefreshBtn" class="secondary-button button-small">🔄 Refresh</button>
+          <span class="toolbar-spacer"></span>
+          <button id="appleStopBtn" class="secondary-button button-small hidden">⏹️ Stop</button>
+          <button id="appleRunBtn" class="primary-button button-small" disabled>🍎 Convert</button>
+        </div>
+        <div id="appleStatus" class="status" role="status"></div>
+        <ul id="appleList" class="media-list thumbs-list"></ul>
+      </section>
+
+      <!-- ── Storage check ──────────────────────────────────────────── -->
+      <section id="storagePanel" class="hidden" role="tabpanel" aria-labelledby="storageTab">
+        <div class="scan-head">
+          <p class="card-intro">Compares the files in storage with the records: catch media and anglers' profile photos. It runs by itself when the page opens. Catch files with no record can be attached to their catch or deleted; profile photo files nothing uses can be deleted. Nothing changes until you press a button on a file.</p>
+          <button id="scanBtn" class="secondary-button">🔍 Scan Again</button>
+        </div>
+        <div id="scanResult" class="scan-result hidden"></div>
+      </section>
+    </div>
+  </div>
+
+  <script src="./assets/config.js"></script>
+  <script src="./assets/admin.js"></script>
+  <script src="./assets/media.js"></script>
+</body>
+</html>

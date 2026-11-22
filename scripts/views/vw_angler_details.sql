@@ -1,6 +1,6 @@
 CREATE OR REPLACE VIEW vw_angler_details AS
     SELECT a.id AS id,
-            a.name AS name,
+            a.display_name AS name,
             a.status AS status,
             a.aliases AS aliases,
             a.login_emails AS login_emails,
@@ -41,7 +41,7 @@ CREATE OR REPLACE VIEW vw_angler_details AS
         ORDER BY c3.length_in_inches DESC
         LIMIT 1
     ) biggest_catch ON true
-    GROUP BY a.id, a.name, a.status, a.aliases, a.login_emails,
+    GROUP BY a.id, a.display_name, a.status, a.aliases, a.login_emails,
              last_catch.caught_when, last_catch.catch_id, last_catch.catch_number,
              biggest_catch.catch_id, biggest_catch.catch_number
     ORDER BY a.id;

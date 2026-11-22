@@ -5,21 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Gillbert - Anglers</title>
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/theme.css" />
+  <link rel="stylesheet" href="./assets/base.css" />
+  <link rel="stylesheet" href="./assets/topbar.css" />
+  <script src="./assets/settings.js"></script>
+  <script src="./assets/season.js"></script>
   <link rel="stylesheet" href="./assets/anglers-listing.css" />
-  <link rel="stylesheet" href="./assets/top-home-link.css" />
 </head>
-<body>
+<body class="layout-open">
   <div class="container">
-    <div class="top-nav">
-      <a href="./index.html" class="top-home-link" aria-label="Go back to Home">← Home</a>
+    <header class="topbar" id="topbar"></header>
+    <script src="./assets/topbar.js"></script>
+
+    <div class="page-head">
+      <span class="page-head-tile" aria-hidden="true">🎣</span>
+      <div>
+        <p class="page-head-label">Admin</p>
+        <h1>Anglers</h1>
+      </div>
     </div>
 
     <!-- ── Loading state ────────────────────────────────────────────── -->
     <div id="loadingState">
-      <div class="header">
-        <h1>🎣 Anglers</h1>
-        <p>Loading anglers…</p>
-      </div>
       <div class="loading-indicator">
         <div class="fishing-animation">🎣<span class="bobber">●</span></div>
         <p>Loading anglers…</p>
@@ -28,24 +35,15 @@
 
     <!-- ── Error state ──────────────────────────────────────────────── -->
     <div id="errorState" class="hidden">
-      <div class="header">
-        <h1>🎣 Anglers</h1>
-      </div>
       <div class="error-card">
         <p class="error-icon">⚠️</p>
         <p id="errorMsg">Unable to load anglers. Please check your connection and try again.</p>
         <button id="retryBtn" class="primary-button">🔄 Try Again</button>
       </div>
-      <a href="./index.html" class="back-button">← Back to Home</a>
     </div>
 
     <!-- ── List state ───────────────────────────────────────────────── -->
     <div id="listState" class="hidden">
-      <div class="header">
-        <h1>🎣 Anglers</h1>
-        <p>Manage angler records</p>
-      </div>
-
       <div class="controls">
         <input
           type="text"
@@ -60,7 +58,7 @@
             <button class="status-filter-btn" data-status="Active">Active</button>
             <button class="status-filter-btn" data-status="Inactive">Inactive</button>
           </div>
-          <a href="./create-angler.html" class="add-species-btn">➕ Add Angler</a>
+          <a href="./create-angler.html" class="add-species-btn secondary-button button-small button-raised">＋ Add Angler</a>
         </div>
       </div>
 
@@ -68,7 +66,6 @@
 
       <p id="emptyState" class="empty-state hidden">No anglers match your search.</p>
 
-      <a href="./index.html" class="back-button">← Back to Home</a>
     </div>
   </div>
 

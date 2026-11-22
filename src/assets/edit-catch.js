@@ -19,7 +19,7 @@ const el = {
   submittingState:  document.getElementById('submittingState'),
   errorMsg:         document.getElementById('errorMsg'),
   retryBtn:         document.getElementById('retryBtn'),
-  formSubtitle:     document.getElementById('formSubtitle'),
+  formHeading:      document.getElementById('formHeading'),
   anglerId:         document.getElementById('anglerId'),
   fishSpeciesId:    document.getElementById('fishSpeciesId'),
   bodyOfWaterId:    document.getElementById('bodyOfWaterId'),
@@ -100,7 +100,7 @@ async function loadEditCatch() {
 
     prefillForm(catchData);
 
-    el.formSubtitle.textContent = `Editing ${catchData.catchNumber}`;
+    el.formHeading.textContent = `Edit ${catchData.catchNumber}`;
     showState('formState', STATE_IDS);
   } catch (err) {
     console.error('Failed to load catch for editing:', err);

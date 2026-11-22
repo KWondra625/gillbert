@@ -1,2 +1,2 @@
-# Server config files must keep Linux line endings (CRLF breaks .env values and shell scripts on the VPS)
-infra/** text eol=lf
+# Tools that run against the servers keep Linux line endings (server config itself moved to the homelab repo)
+tools/** text eol=lf
