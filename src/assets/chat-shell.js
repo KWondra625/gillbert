@@ -210,6 +210,26 @@ function initChatShell(config) {
 
   el.sendBtn.addEventListener('click', sendMessage);
 
+  // ── Keep the newest messages in view ─────────────────────────────────────
+  // When the phone keyboard opens, the page gets shorter (100dvh, or
+  // --app-height from chat-viewport.js) and so does the thread, but its
+  // scroll position stays put, so the newest messages slide under the
+  // input. Re-pin to the bottom whenever the thread is resized, as long as
+  // the reader was already at the bottom (scrolling back through older
+  // messages isn't interrupted). Tapping into the box to reply always jumps
+  // to the newest messages.
+  let atBottom = true;
+  el.messages.addEventListener('scroll', () => {
+    atBottom = el.messages.scrollHeight - el.messages.scrollTop - el.messages.clientHeight < 40;
+  });
+  if (window.ResizeObserver) {
+    new ResizeObserver(() => { if (atBottom) scrollToBottom(); }).observe(el.messages);
+  }
+  el.input.addEventListener('focus', () => {
+    atBottom = true;
+    scrollToBottom();
+  });
+
   window.addEventListener('DOMContentLoaded', () => {
     const isDesktop = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
     if (isDesktop) el.input.focus();

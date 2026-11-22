@@ -60,7 +60,7 @@ const length  = c.length_in_inches ? `${Number(c.length_in_inches)}" ` : '';
 return [{
   json: {
     topic: 'gillbert-catches',
-    title: `🎣 ${isProd ? '' : '[Staging] '}Gillbert catch:${angler} · ${length}${species} 🐟`,
+    title: `🎣 ${isProd ? '' : '[Staging] '}Gillbert catch: ${angler} · ${length}${species} 🐟`,
     // No lake on purpose: the topic is readable by anyone who knows its name, and fishing spots stay private.
     message: `${c.catch_number} · Tap for the details`,
     click: `${site}/catch-details.html?catchNumber=${encodeURIComponent(c.catch_number)}`,
