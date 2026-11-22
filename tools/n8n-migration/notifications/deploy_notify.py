@@ -14,7 +14,7 @@ it needs catch_id from the reply. A side branch would run last and hand back the
 Notify New Catch reads the catch from vw_catch_details, builds the message, and posts it to the
 server's own ntfy container (http://ntfy:80, topic gillbert-catches) with the "Gillbert ntfy
 Publisher" header credential (create it in the n8n UI first). The tap-link opens the live site from
-production and the develop site from Staging; Staging titles start with [Staging].
+production and the develop site from Staging; Titles start with "Gillbert catch:" ([Staging] first on Staging).
 
   python -I -X utf8 notifications/deploy_notify.py                       Staging dry run (backup + plan)
   python -I -X utf8 notifications/deploy_notify.py --apply               Staging write (Kurt approved Staging work)
@@ -60,7 +60,7 @@ const length  = c.length_in_inches ? `${Number(c.length_in_inches)}" ` : '';
 return [{
   json: {
     topic: 'gillbert-catches',
-    title: `🎣 ${isProd ? '' : '[Staging] '}New catch: ${angler} · ${length}${species} 🐟`,
+    title: `🎣 ${isProd ? '' : '[Staging] '}Gillbert catch:${angler} · ${length}${species} 🐟`,
     // No lake on purpose: the topic is readable by anyone who knows its name, and fishing spots stay private.
     message: `${c.catch_number} · Tap for the details`,
     click: `${site}/catch-details.html?catchNumber=${encodeURIComponent(c.catch_number)}`,
