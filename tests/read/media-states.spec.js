@@ -516,7 +516,7 @@ test.describe('upload page results', () => {
 
   test('a refused upload slot fails the file and logs the server\'s reason', async ({ page }) => {
     await page.route(url => url.pathname.endsWith('/catch-media/get-sas'), route => route.fulfill({
-      status: 400, json: { success: false, error: 'Unsupported file type: photo.jpg' } }));
+      status: 400, json: { success: false, message: 'Unsupported file type: photo.jpg' } }));
     await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
     await page.locator('#files').setInputFiles(path.join(MEDIA, 'photo.jpg'));
     await page.locator('#uploadBtn').click();

@@ -39,7 +39,7 @@ test('upload slots: a refusal is a 400 reply with its reason (not an n8n error r
     body: JSON.stringify({ catchNumber: target.catchNumber, files: [file('a.exe', '')] }),
   });
   expect(res.status).toBe(400);
-  expect(await res.json()).toEqual({ success: false, error: 'Unsupported file type: a.exe' });
+  expect(await res.json()).toEqual({ success: false, message: 'Unsupported file type: a.exe' });
 });
 
 test('commit: refused for a path the slot step would never issue', async () => {

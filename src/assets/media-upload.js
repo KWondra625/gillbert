@@ -169,7 +169,7 @@ async function getSasUrls(catchNumber, files) {
   });
   if (!res.ok) {
     // A refused request (unknown file type, bad catch number...) answers 400 with its reason
-    const reason = await res.json().then(d => d.error, () => null);
+    const reason = await res.json().then(d => d.message, () => null);
     throw new Error(reason ? `Upload slot refused: ${reason}` : `Upload slot request failed (${res.status})`);
   }
   return res.json();
