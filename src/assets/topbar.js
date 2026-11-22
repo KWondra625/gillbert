@@ -108,7 +108,26 @@
   openBtn.addEventListener('click', () => (document.body.classList.contains('shack-open') ? close() : open()));
   closeBtn.addEventListener('click', close);
   scrim.addEventListener('click', close);
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') close();
+    if (e.key === 'Tab') keepFocusInside(e);
+  });
+
+  // While open, Tab and Shift+Tab loop through the menu instead of wandering into the page
+  // behind. Both sizes dim the page (a sheet on phones, a drop-down on wide screens), so
+  // both count as a pop-up. Hidden links (the admin tray) are skipped. Each press moves focus
+  // here rather than leaving it to the browser, since Safari's Tab skips links by default and
+  // would jump straight out of a menu that's mostly links.
+  function keepFocusInside(e) {
+    if (!document.body.classList.contains('shack-open')) return;
+    const stops = [...shack.querySelectorAll('a[href], button')].filter(x => x.getClientRects().length);
+    if (!stops.length) return;
+    e.preventDefault();
+    const at = stops.indexOf(document.activeElement);
+    const step = e.shiftKey ? -1 : 1;
+    const next = at === -1 ? (e.shiftKey ? stops.length - 1 : 0) : (at + step + stops.length) % stops.length;
+    stops[next].focus();
+  }
 
   window.GillbertTopbar = { setBack };
 })();

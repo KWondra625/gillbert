@@ -514,6 +514,16 @@ test.describe('upload page results', () => {
     await expect.poll(() => page.evaluate(() => window.__lock.released)).toBe(true);
   });
 
+  test('a refused upload slot fails the file and logs the server\'s reason', async ({ page }) => {
+    await page.route(url => url.pathname.endsWith('/catch-media/get-sas'), route => route.fulfill({
+      status: 400, json: { success: false, message: 'Unsupported file type: photo.jpg' } }));
+    await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}`);
+    await page.locator('#files').setInputFiles(path.join(MEDIA, 'photo.jpg'));
+    await page.locator('#uploadBtn').click();
+    await expect(page.locator('#fileList .file-row').first()).toContainText('❌ Failed');
+    await expect(page.locator('#log')).toContainText('Upload slot refused: Unsupported file type: photo.jpg', { useInnerText: false });
+  });
+
   test('the way back to the catch keeps where you came from (?from=)', async ({ page }) => {
     await mockUploadFlow(page);
     await page.goto(`media-upload.html?catchNumber=${encodeURIComponent(catchNumber)}&from=list`);

@@ -51,6 +51,20 @@ test.describe('the shack / tackle box', () => {
     await expect(page.locator('#shack')).toBeHidden();
   });
 
+  test('keeps Tab and Shift+Tab inside while open', async ({ page }) => {
+    await homeWith(page, [aCatch()]);
+    await page.locator('#shackOpen').click();
+    await expect(page.locator('#shackClose')).toBeFocused();
+    const inside = () => page.evaluate(() => document.getElementById('shack').contains(document.activeElement));
+    await page.keyboard.press('Shift+Tab'); // from the first stop (close) round to the last link
+    expect(await inside()).toBe(true);
+    await expect(page.getByRole('link', { name: /Features & how-to/ })).toBeFocused();
+    for (let i = 0; i < 8; i++) {
+      await page.keyboard.press('Tab');
+      expect(await inside()).toBe(true);
+    }
+  });
+
   test('is the ice shack in hard water and the tackle box in open water', async ({ page }) => {
     await homeWith(page, [aCatch()], { water: 'hard' });
     await expect(page.locator('#shackOpen')).toContainText('The shack');
