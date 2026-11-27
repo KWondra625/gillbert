@@ -3,22 +3,66 @@
 
 /* ── List ────────────────────────────────────────────────────────── */
 
-.gear-intro {
-  color: var(--gb-on-sky);
-  font-size: 14px;
-  margin: 0 0 16px 0;
-  text-shadow: var(--gb-on-sky-shadow);
+/* Search, owner pills and Add: copied from the Anglers page (anglers-listing.css) */
+.controls {
+  margin-bottom: 20px;
+}
+
+/* (.controls input… so the gear form's own text-box style further down doesn't win) */
+.controls input.search-input,
+.controls input.search-input:hover,
+.controls input.search-input:focus {
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--gb-ink-2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  outline: none;
+  margin-bottom: 12px;
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.status-filter {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.status-filter-btn {
+  padding: 8px 14px;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  font-family: inherit;   /* buttons don't take the page font on their own */
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.status-filter-btn:active {
+  transform: scale(0.96);
+}
+
+.status-filter-btn.active {
+  background: white;
+  color: var(--gb-accent-700);
+  border-color: white;
 }
 
 .gear-section {
   margin-bottom: 20px;
-}
-
-/* Same spot and button as "+ Add Angler" on the Anglers page */
-.gear-toolbar {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 12px;
 }
 
 .gear-section-head {
@@ -35,81 +79,91 @@
   text-shadow: var(--gb-on-sky-shadow);
 }
 
-.gear-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+/* Tip-up cards: the Anglers page's card grid (3 across on a laptop, 1 on a phone) */
+.gear-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
-.gear-row {
+@media (max-width: 480px) {
+  .gear-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gear-card {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 14px 16px;
-  background: var(--gb-surface);
-  border-radius: var(--gb-radius-card);
-  box-shadow: var(--gb-shadow-card);
+  padding: 16px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   color: var(--gb-ink);
   text-decoration: none;
-  transition: transform 0.15s;
+  transition: transform 0.15s, box-shadow 0.15s;
 }
 
-.gear-row:active {
-  transform: scale(0.99);
+.gear-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
 }
 
-.gear-row:focus-visible {
+.gear-card:focus-visible {
   outline: 3px solid var(--gb-accent);
   outline-offset: 2px;
 }
 
-.gear-row-flag {
+.gear-card-photo {
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   background: var(--gb-accent-soft);
+  box-shadow: var(--gb-photo-ring);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 30px;
 }
 
-.gear-row--retired .gear-row-flag {
+.gear-card--retired .gear-card-photo {
   background: var(--gb-line-soft);
   filter: grayscale(1);
 }
 
-.gear-row-body {
-  flex: 1;
+.gear-card-body {
   min-width: 0;
+  flex: 1;
 }
 
-.gear-row-name {
+.gear-card-name {
   font-size: 16px;
   font-weight: 700;
+  color: var(--gb-ink);
 }
 
-.gear-row-name,
-.gear-row-meta {
-  display: block;
-}
-
-.gear-row-meta {
-  margin-top: 2px;
-  font-size: 13px;
+.gear-card-owner {
+  font-size: 12px;
   color: var(--gb-faint-2);
+  margin-top: 2px;
+}
+
+.gear-card-meta {
+  font-size: 13px;
+  color: var(--gb-ink-2);
+  margin-top: 8px;
+}
+
+.gear-card-name,
+.gear-card-owner,
+.gear-card-meta {
+  display: block;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.gear-row-chevron {
-  color: var(--gb-faintest);
-  font-size: 20px;
 }
 
 .gear-empty {
@@ -389,41 +443,6 @@ textarea {
   font-family: inherit;
   color: var(--gb-ink);
   padding: 4px 2px;
-}
-
-.tag-suggestions {
-  margin-top: 4px;
-  background: var(--gb-surface);
-  border: 2px solid var(--gb-line);
-  border-radius: 8px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
-  max-height: 220px;
-  overflow-y: auto;
-}
-
-.tag-suggestion {
-  display: block;
-  width: 100%;
-  text-align: left;
-  background: none;
-  border: none;
-  font: inherit;
-  padding: 10px 14px;
-  font-size: 15px;
-  color: var(--gb-ink);
-  cursor: pointer;
-}
-
-.tag-suggestion:hover,
-.tag-suggestion:focus-visible {
-  background: var(--gb-accent-soft);
-  outline: none;
-}
-
-.tag-suggestion--new {
-  color: var(--gb-accent-strong);
-  font-weight: 700;
-  border-top: 1px solid var(--gb-line-soft);
 }
 
 .form-actions {

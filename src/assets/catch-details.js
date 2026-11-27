@@ -18,6 +18,8 @@ const FIELD_ORDER = [
   'fishSpeciesName',
   'length',
   'waterDepth',
+  'caughtOn',
+  'bait',
   'notes',
   'caughtWhen',
 ];
@@ -43,7 +45,8 @@ const FIELD_LABELS = {
   location:        { label: "Location",        icon: "📍" },
   weather:         { label: "Weather",         icon: "🌤️" },
   gear:            { label: "Gear Used",       icon: "🎿" },
-  bait:            { label: "Bait / Lure",     icon: "🪱" },
+  bait:            { label: "Bait",            icon: "🪱" },
+  caughtOn:        { label: "Caught on",       icon: '<img class="tipup-ico" src="./assets/tipup-icon.svg" alt="" />' },
   waterTemp:       { label: "Water Temp",      icon: "🌡️" },
   notes:           { label: "Notes",           icon: "📝" },
   createdAt:       { label: "Created",         icon: "🕓" },
@@ -143,6 +146,22 @@ function buildAttributionRow(key, dateValue, byName, extraClass = '') {
     <div class="detail-row${extraClass ? ' ' + extraClass : ''}">
       <span class="detail-label">${meta.icon} ${escapeHtml(meta.label)}</span>
       <span class="detail-value">${value}</span>
+    </div>`;
+}
+
+// The tip-up and its setup as it was when this fish was caught (not as it is now)
+function buildCaughtOnRow(c) {
+  const meta = FIELD_LABELS.caughtOn;
+  const id = Number(c.gearId);
+  const name = escapeHtml(c.name || 'Tip-up');
+  const link = Number.isInteger(id) && id > 0 ? `<a href="./gear-tipup.html?id=${id}" class="caught-on-link">${name}</a>` : name;
+  const parts = [c.line, c.leader, c.hook, (c.beads || []).join(', '), (c.flash || []).join(', ')].filter(Boolean);
+  const setup = parts.length ? escapeHtml(parts.join(' · ')) : 'Setup not entered';
+  return `
+    <div class="detail-row">
+      <span class="detail-label">${meta.icon} ${escapeHtml(meta.label)}</span>
+      <span class="detail-value">${link}${c.status === 'Retired' ? ' <span class="caught-on-retired">(retired)</span>' : ''}
+        <span class="caught-on-setup">${setup}</span></span>
     </div>`;
 }
 
@@ -369,6 +388,7 @@ function renderDetails(catchData) {
           : '';
         return buildRow(key, catchData[key], '', dnrLink);
       }
+      if (key === 'caughtOn') return buildCaughtOnRow(catchData.caughtOn);
       return buildRow(key, catchData[key]);
     })
     .join('');

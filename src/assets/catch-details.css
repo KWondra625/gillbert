@@ -1018,3 +1018,21 @@
   padding-bottom: 8px;
 }
 
+
+/* ── Caught on (gear): the tip-up, and its setup as caught ─────── */
+
+.caught-on-link {
+  font-weight: 600;
+}
+
+.caught-on-retired {
+  color: var(--gb-faint-2);
+  font-size: 13px;
+}
+
+.caught-on-setup {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--gb-ink-2);
+}

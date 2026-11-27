@@ -51,6 +51,7 @@ async function fetchLookups() {
     populateSelect(el.fishSpeciesId,  sortedSpecies);
     populateSelect(el.bodyOfWaterId,  data.bodiesOfWater || []);
     myAnglerId = await resolveMyAnglerId(data.anglers || []);
+    await CatchGear.setup({ anglerSelect: el.anglerId });
     setDefaultCatchTime();
     showState('formState', STATE_IDS);
   } catch (err) {
@@ -116,6 +117,8 @@ async function submit() {
   const notes = el.notes.value.trim();
   if (notes) payload.notes = notes;
 
+  Object.assign(payload, CatchGear.payload());
+
   try {
     const res = await fetch(SAVE_CATCH_URL, {
       method: 'POST',
@@ -179,6 +182,7 @@ function resetForm() {
   el.lengthInInches.value  = '';
   el.waterDepthInFeet.value = '';
   el.notes.value            = '';
+  CatchGear.reset();
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────

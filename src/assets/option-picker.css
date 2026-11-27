@@ -1,0 +1,37 @@
+/* The type-ahead matches under a text box (option-picker.js, tag-input.js): the gear pages
+   and the Caught on / Bait fields on Log a Catch and Edit Catch */
+
+.tag-suggestions {
+  margin-top: 4px;
+  background: var(--gb-surface);
+  border: 2px solid var(--gb-line);
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.tag-suggestion {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  font: inherit;
+  padding: 10px 14px;
+  font-size: 15px;
+  color: var(--gb-ink);
+  cursor: pointer;
+}
+
+.tag-suggestion:hover,
+.tag-suggestion:focus-visible {
+  background: var(--gb-accent-soft);
+  outline: none;
+}
+
+.tag-suggestion--new {
+  color: var(--gb-accent-strong);
+  font-weight: 700;
+  border-top: 1px solid var(--gb-line-soft);
+}

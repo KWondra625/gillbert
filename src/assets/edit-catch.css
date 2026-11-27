@@ -32,6 +32,7 @@ select,
 input[type="date"],
 input[type="time"],
 input[type="number"],
+input[type="text"],
 textarea {
   width: 100%;
   padding: 12px 14px;
@@ -58,6 +59,7 @@ select:hover,
 input[type="date"]:hover,
 input[type="time"]:hover,
 input[type="number"]:hover,
+input[type="text"]:hover,
 textarea:hover {
   border-color: var(--gb-accent);
   background: white;
@@ -67,6 +69,7 @@ select:focus,
 input[type="date"]:focus,
 input[type="time"]:focus,
 input[type="number"]:focus,
+input[type="text"]:focus,
 textarea:focus {
   outline: none;
   border-color: var(--gb-accent);
@@ -164,3 +167,12 @@ textarea {
 
 /* ── Utility ─────────────────────────────────────────────────────── */
 
+
+/* ── Caught on: the tip-up's setup under the list ───────────────── */
+
+.catch-gear-hint {
+  margin: 6px 0 0 0;
+  font-size: 13px;
+  color: var(--gb-ink-2);
+  line-height: 1.4;
+}

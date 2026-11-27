@@ -60,19 +60,37 @@ async function mockGear(page, state = {}) {
 }
 
 test.describe('Gear list', () => {
-  test('active tip-ups by name with owner and setup, then the retired ones', async ({ page }) => {
+  test('active tip-ups as cards by name, with owner and setup, then the retired ones', async ({ page }) => {
     await mockGear(page);
     await page.goto('gear.html');
-    const active = page.locator('#activeList .gear-row');
+    const active = page.locator('#activeList .gear-card');
     await expect(active).toHaveCount(2);
     await expect(page.locator('#activeCount')).toHaveText('2');
-    await expect(active.nth(0)).toContainText('KW 24-01');
-    await expect(active.nth(0)).toContainText('Kurt W · #8 Octopus · Glow');
-    await expect(active.nth(1)).toContainText('DT 22-01');
-    await expect(active.nth(1)).toContainText('No setup yet');
-    await expect(page.locator('#retiredList .gear-row')).toHaveCount(1);
+    await expect(active.nth(0).locator('.gear-card-name')).toHaveText('KW 24-01');
+    await expect(active.nth(0).locator('.gear-card-owner')).toHaveText('Kurt W');
+    await expect(active.nth(0).locator('.gear-card-meta')).toHaveText('#8 Octopus · Glow');
+    await expect(active.nth(1).locator('.gear-card-name')).toHaveText('DT 22-01');
+    await expect(active.nth(1).locator('.gear-card-meta')).toHaveText('No setup yet');
+    await expect(page.locator('#retiredList .gear-card')).toHaveCount(1);
     await expect(page.locator('#retiredList')).toContainText('Lost down the hole');
     await expect(active.nth(0)).toHaveAttribute('href', './gear-tipup.html?id=7');
+  });
+
+  test('the owner pills and the search box narrow the list', async ({ page }) => {
+    await mockGear(page);
+    await page.goto('gear.html');
+    const pills = page.locator('#ownerFilter .status-filter-btn');
+    await expect(pills).toHaveText(['All', 'Dave T', 'Kurt W']);
+    await pills.filter({ hasText: 'Dave T' }).click();
+    await expect(page.locator('#activeList .gear-card')).toHaveCount(1);
+    await expect(page.locator('#activeList')).toContainText('DT 22-01');
+    await expect(page.locator('#retiredSection')).toBeHidden();
+    await pills.filter({ hasText: 'All' }).click();
+    await page.locator('#searchInput').fill('octopus');           // matches a setup part
+    await expect(page.locator('#activeList .gear-card')).toHaveCount(1);
+    await expect(page.locator('#activeList')).toContainText('KW 24-01');
+    await page.locator('#searchInput').fill('nothing like this');
+    await expect(page.locator('#activeEmpty')).toHaveText('No tip-ups match.');
   });
 
   test('no tip-ups yet says how to start, and hides the retired section', async ({ page }) => {

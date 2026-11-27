@@ -99,6 +99,7 @@ async function loadEditCatch() {
     }
 
     prefillForm(catchData);
+    await CatchGear.setup({ anglerSelect: el.anglerId, current: { caughtOn: catchData.caughtOn, bait: catchData.bait } });
 
     el.formHeading.textContent = `Edit ${catchData.catchNumber}`;
     showState('formState', STATE_IDS);
@@ -185,6 +186,8 @@ async function submit() {
 
   const notes = el.notes.value.trim();
   payload.notes = notes === '' ? null : notes;
+
+  Object.assign(payload, CatchGear.payload());
 
   try {
     const res = await fetch(SAVE_CATCH_URL, {

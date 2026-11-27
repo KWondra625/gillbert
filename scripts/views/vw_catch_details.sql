@@ -89,7 +89,29 @@ CREATE VIEW vw_catch_details AS
         (SELECT COUNT(*) FROM catch_media cm
             WHERE cm.catch_id = c.id
               AND cm.status IN ('submitted', 'processing')
-              AND cm.status_updated_at >= CURRENT_TIMESTAMP - INTERVAL '30 minutes') AS catch_media_processing_count
+              AND cm.status_updated_at >= CURRENT_TIMESTAMP - INTERVAL '30 minutes') AS catch_media_processing_count,
+
+        -- Gear (stage 2): the tip-up and setup version it was caught on, as it was that day,
+        -- and the bait. Inline subqueries rather than a function, so the view's readers don't
+        -- also need rights on the gear tables. Needs scripts/gear/01 first.
+        c.gear_setup_id AS gear_setup_id,
+        (SELECT jsonb_build_object(
+                  'gearId', g.id,
+                  'name', g.display_name,
+                  'status', g.status,
+                  'versionNo', s.version_no,
+                  'line', (SELECT o.name FROM gear_options o WHERE o.id = s.line_option_id),
+                  'leader', (SELECT o.name FROM gear_options o WHERE o.id = s.leader_option_id),
+                  'hook', (SELECT o.name FROM gear_options o WHERE o.id = s.hook_option_id),
+                  'beads', coalesce((SELECT jsonb_agg(o.name ORDER BY lower(o.name))
+                                     FROM gear_setup_options so JOIN gear_options o ON o.id = so.option_id
+                                     WHERE so.setup_id = s.id AND o.kind = 'bead'), '[]'::jsonb),
+                  'flash', coalesce((SELECT jsonb_agg(o.name ORDER BY lower(o.name))
+                                     FROM gear_setup_options so JOIN gear_options o ON o.id = so.option_id
+                                     WHERE so.setup_id = s.id AND o.kind = 'flash'), '[]'::jsonb))
+           FROM gear_setups s JOIN gear g ON g.id = s.gear_id
+           WHERE s.id = c.gear_setup_id) AS caught_on,
+        (SELECT o.name FROM gear_options o WHERE o.id = c.bait_option_id) AS bait_name
 
     FROM catches c
         INNER JOIN anglers a ON c.angler_id = a.id

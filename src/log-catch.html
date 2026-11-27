@@ -11,6 +11,7 @@
   <script src="./assets/settings.js"></script>
   <script src="./assets/season.js"></script>
   <link rel="stylesheet" href="./assets/log-catch.css" />
+  <link rel="stylesheet" href="./assets/option-picker.css" />
 </head>
 <body class="layout-card">
   <header class="topbar" id="topbar"></header>
@@ -109,6 +110,20 @@
           <p class="field-error hidden" id="waterDepthInFeetError">Water depth must be greater than 0.</p>
         </div>
 
+        <!-- Caught on + Bait (gear): shown once the tip-up list loads -->
+        <div class="field-group hidden" id="gearGroup">
+          <label for="gearSearch"><img class="tipup-ico" src="./assets/tipup-icon.svg" alt="" /> Caught on <span class="optional-mark">(optional)</span></label>
+          <input type="text" id="gearSearch" maxlength="50" placeholder="Type a tip-up or owner, e.g. 24-02" autocomplete="off" />
+          <div class="tag-suggestions hidden" id="gearSuggestions"></div>
+          <p class="catch-gear-hint hidden" id="gearHint"></p>
+        </div>
+
+        <div class="field-group hidden" id="baitGroup">
+          <label for="bait">🪱 Bait <span class="optional-mark">(optional)</span></label>
+          <input type="text" id="bait" maxlength="100" placeholder="e.g. Shiner (medium)" autocomplete="off" />
+          <div class="tag-suggestions hidden" id="baitSuggestions"></div>
+        </div>
+
         <!-- Notes -->
         <div class="field-group">
           <label for="notes">📝 Notes <span class="optional-mark">(optional)</span></label>
@@ -141,6 +156,8 @@
   <script src="./assets/config.js"></script>
   <script src="./assets/admin.js"></script>
   <script src="./assets/form-shell.js"></script>
+  <script src="./assets/option-picker.js"></script>
+  <script src="./assets/catch-gear.js"></script>
   <script src="./assets/log-catch.js"></script>
 </body>
 </html>

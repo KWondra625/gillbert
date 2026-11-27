@@ -41,23 +41,27 @@
     </div>
 
     <div id="listState" class="hidden">
-      <p class="gear-intro">Everyone's tip-ups. Tap one to see or change its setup.</p>
-
-      <div class="gear-toolbar">
-        <a href="./gear-edit.html" class="secondary-button button-small button-raised" id="addBtn">＋ Add Tip-up</a>
+      <!-- Search, owner filter and Add: the same controls as the Anglers page -->
+      <div class="controls">
+        <input type="text" id="searchInput" class="search-input" placeholder="Search tip-ups..."
+               title="Search by name, owner, model, color or setup" autocomplete="off" />
+        <div class="filter-row">
+          <div class="status-filter" id="ownerFilter"></div>
+          <a href="./gear-edit.html" class="secondary-button button-small button-raised" id="addBtn">＋ Add Tip-up</a>
+        </div>
       </div>
 
       <section class="gear-section" aria-labelledby="activeHead">
         <h2 class="gear-section-head" id="activeHead">
           <span>Tip-ups · <span id="activeCount">0</span></span>
         </h2>
-        <ul class="gear-list" id="activeList"></ul>
+        <div class="gear-card-grid" id="activeList"></div>
         <p class="gear-empty hidden" id="activeEmpty">No tip-ups yet. Add the first one, and its setup after.</p>
       </section>
 
       <section class="gear-section hidden" id="retiredSection" aria-labelledby="retiredHead">
         <h2 class="gear-section-head" id="retiredHead"><span>Retired · <span id="retiredCount">0</span></span></h2>
-        <ul class="gear-list" id="retiredList"></ul>
+        <div class="gear-card-grid" id="retiredList"></div>
       </section>
     </div>
   </div>

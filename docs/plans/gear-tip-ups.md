@@ -96,6 +96,26 @@ The two `catches` columns are added in stage 1 but stay unused until stage 2.
 The change is additive (two optional values, null when missing), Catch Chat keeps sending
 nothing until stage 5, and it gets the full write-test run.
 
+## Stage 2 as built (2026-11-26)
+
+- **Forms:** Log a Catch and Edit Catch get "Caught on" (a type-ahead on tip-up name or owner, the
+  catch's angler's first; only existing tip-ups can be picked; retired left out unless the catch
+  already uses one; the setup shows underneath) and
+  "Bait" (type-ahead; anything new becomes a choice). Both optional. If `gear/get` fails, both stay
+  hidden and the save sends nothing about gear, so an edited catch keeps what it had.
+- **Catch page:** "Caught on" links to the tip-up and lists the setup *as caught*; "Bait" under it.
+- **Database:** `scripts/gear/04_catch_gear.sql` adds `catch_gear_set(catch, gear, bait, by)`: picks
+  the version by `caught_when` (the first version if the catch is older than all of them; an empty v1
+  if the tip-up has none yet), finds or adds the bait, and never refuses (the catch is already saved).
+  `vw_catch_details` appends `gear_setup_id`, `caught_on` (JSON) and `bait_name`, as inline subqueries
+  so the view's readers need no rights on the gear tables. `05_check_catch_gear.sql` checks it all.
+- **n8n:** `tools/n8n-migration/gear/deploy_catch_gear.py` patches Save Catch (a "Gear Sent?" branch
+  after the upsert calls `catch_gear_set` only when the request carried `gearId`, so Catch Chat is
+  untouched until stage 5) and GET Catch(es) (adds `caughtOn` and `bait`).
+- **Gear list:** cards like the Anglers page, with a search box (name, owner, model, color, setup
+  parts) and owner pills (only anglers who own a tip-up).
+- **Release order:** 01, 02, 04, then the view, then the n8n patch.
+
 ## Stages
 
 | # | Stage | Touches existing things? | Size |
