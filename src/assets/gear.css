@@ -1,0 +1,451 @@
+/* The gear pages: the list (layout-open), and one tip-up, add/edit and change setup (layout-card).
+ * Form fields, pills and the type-ahead box follow the angler forms (create-angler.css). */
+
+/* ── List ────────────────────────────────────────────────────────── */
+
+.gear-intro {
+  color: var(--gb-on-sky);
+  font-size: 14px;
+  margin: 0 0 16px 0;
+  text-shadow: var(--gb-on-sky-shadow);
+}
+
+.gear-section {
+  margin-bottom: 20px;
+}
+
+.gear-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 10px 0;
+  color: var(--gb-on-sky);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-shadow: var(--gb-on-sky-shadow);
+}
+
+.gear-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gear-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--gb-surface);
+  border-radius: var(--gb-radius-card);
+  box-shadow: var(--gb-shadow-card);
+  color: var(--gb-ink);
+  text-decoration: none;
+  transition: transform 0.15s;
+}
+
+.gear-row:active {
+  transform: scale(0.99);
+}
+
+.gear-row:focus-visible {
+  outline: 3px solid var(--gb-accent);
+  outline-offset: 2px;
+}
+
+.gear-row-flag {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--gb-accent-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.gear-row--retired .gear-row-flag {
+  background: var(--gb-line-soft);
+  filter: grayscale(1);
+}
+
+.gear-row-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.gear-row-name {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.gear-row-name,
+.gear-row-meta {
+  display: block;
+}
+
+.gear-row-meta {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--gb-faint-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gear-row-chevron {
+  color: var(--gb-faintest);
+  font-size: 20px;
+}
+
+.gear-empty {
+  padding: 18px 16px;
+  background: var(--gb-surface);
+  border-radius: var(--gb-radius-card);
+  color: var(--gb-muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+/* ── One tip-up ──────────────────────────────────────────────────── */
+
+.gear-notes {
+  margin: -6px 0 18px 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--gb-accent-border);
+  color: var(--gb-ink-2);
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.gear-sub {
+  margin: -4px 0 18px 0;
+  color: var(--gb-muted);
+  font-size: 14px;
+}
+
+.gear-retired-note {
+  margin: 0 0 16px 0;
+  padding: 10px 12px;
+  background: var(--gb-surface-soft);
+  border: 1px solid var(--gb-line);
+  border-radius: 8px;
+  color: var(--gb-muted);
+  font-size: 13px;
+}
+
+.gear-parts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 16px;
+  margin: 0 0 18px 0;
+  padding: 14px 16px;
+  background: var(--gb-surface-soft);
+  border: 1px solid var(--gb-line);
+  border-radius: 10px;
+  font-size: 15px;
+}
+
+.gear-parts dt {
+  color: var(--gb-faint-2);
+  font-size: 13px;
+  font-weight: 700;
+  padding-top: 1px;
+}
+
+.gear-parts dd {
+  margin: 0;
+  color: var(--gb-ink);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.gear-parts .gear-none {
+  color: var(--gb-faintest);
+}
+
+.gear-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.gear-history-title {
+  margin: 0 0 10px 0;
+  font-size: 15px;
+  color: var(--gb-ink);
+}
+
+.gear-history {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--gb-line-soft);
+}
+
+.gear-history li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--gb-line-soft);
+  font-size: 14px;
+  color: var(--gb-ink);
+}
+
+.gear-history-when {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--gb-faint-2);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.gear-history-hint {
+  margin: 10px 0 0 0;
+  color: var(--gb-faint-2);
+  font-size: 12px;
+}
+
+/* ── Forms ───────────────────────────────────────────────────────── */
+
+.field-group {
+  margin-bottom: 20px;
+  position: relative;
+}
+
+label,
+.field-label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--gb-ink);
+}
+
+.required-mark { color: var(--gb-danger); font-size: 14px; }
+.optional-mark { font-weight: 400; font-size: 12px; color: var(--gb-faintest); }
+
+.field-hint {
+  margin: 6px 0 0 0;
+  font-size: 12px;
+  color: var(--gb-faint-2);
+}
+
+input[type="text"],
+select,
+textarea {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 16px;
+  border: 2px solid var(--gb-line);
+  border-radius: 8px;
+  background: var(--gb-surface-soft);
+  font-family: inherit;
+  color: var(--gb-ink);
+  transition: border-color 0.2s, background 0.2s;
+}
+
+input[type="text"],
+textarea {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input[type="text"]:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--gb-accent);
+  background: var(--gb-surface);
+  box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 70px;
+  line-height: 1.5;
+}
+
+.status-pills {
+  display: flex;
+  gap: 8px;
+}
+
+.status-pill {
+  flex: 1;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-weight: 600;
+  border: 2px solid var(--gb-line);
+  border-radius: 8px;
+  background: var(--gb-surface-soft);
+  color: var(--gb-muted);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.status-pill.selected {
+  background: var(--gb-page-bg);
+  border-color: transparent;
+  color: white;
+}
+
+.field-error {
+  margin: 6px 0 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gb-danger);
+}
+
+.form-error {
+  margin: 4px 0 16px 0;
+  padding: 12px 14px;
+  background: var(--gb-danger-bg);
+  border: 1px solid var(--gb-danger-border);
+  border-left: 4px solid var(--gb-danger);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--gb-danger-strong);
+}
+
+.form-note {
+  margin: 0 0 16px 0;
+  padding: 10px 12px;
+  background: var(--gb-accent-soft);
+  border: 1px solid var(--gb-accent-border);
+  border-left: 4px solid var(--gb-accent);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--gb-ink-2);
+}
+
+/* Type-ahead and tag boxes (as on the angler forms) */
+.tag-input-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  width: 100%;
+  padding: 8px 10px;
+  border: 2px solid var(--gb-line);
+  border-radius: 8px;
+  background: var(--gb-surface-soft);
+  cursor: text;
+}
+
+.tag-input-wrapper:focus-within {
+  border-color: var(--gb-accent);
+  background: var(--gb-surface);
+  box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+}
+
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 6px 5px 12px;
+  background: var(--gb-accent-soft);
+  border: 1px solid var(--gb-accent-border);
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gb-accent-700);
+  white-space: nowrap;
+}
+
+.tag-pill-remove {
+  background: none;
+  border: none;
+  color: var(--gb-accent);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.tag-input-field {
+  flex: 1;
+  min-width: 100px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--gb-ink);
+  padding: 4px 2px;
+}
+
+.tag-suggestions {
+  margin-top: 4px;
+  background: var(--gb-surface);
+  border: 2px solid var(--gb-line);
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.tag-suggestion {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  font: inherit;
+  padding: 10px 14px;
+  font-size: 15px;
+  color: var(--gb-ink);
+  cursor: pointer;
+}
+
+.tag-suggestion:hover,
+.tag-suggestion:focus-visible {
+  background: var(--gb-accent-soft);
+  outline: none;
+}
+
+.tag-suggestion--new {
+  color: var(--gb-accent-strong);
+  font-weight: 700;
+  border-top: 1px solid var(--gb-line-soft);
+}
+
+.form-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+/* Delete: two steps, so a stray tap does nothing */
+.gear-delete {
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid var(--gb-line-soft);
+}
+
+.gear-delete p {
+  margin: 0 0 10px 0;
+  font-size: 13px;
+  color: var(--gb-muted);
+}
+
+.danger-button {
+  background: var(--gb-danger-bg);
+  color: var(--gb-danger-strong);
+  border: 1px solid var(--gb-danger-border);
+}
+
+.gear-delete-confirm {
+  display: flex;
+  gap: 10px;
+}

@@ -50,6 +50,10 @@ const BODIES_OF_WATER_DNR_SEARCH_URL = API_BASE + "bodies-of-water/dnr-search";
 const ANGLERS_GET_URL  = API_BASE + "anglers/get";
 const ANGLERS_SAVE_URL = API_BASE + "anglers/save";
 
+const GEAR_GET_URL        = API_BASE + "gear/get";
+const GEAR_SAVE_URL       = API_BASE + "gear/save";
+const GEAR_SETUP_SAVE_URL = API_BASE + "gear/setup-save";
+
 // Banner on every page of every non-production copy of the site, so it's never
 // mistaken for the live one. It says which kind of copy this is; tapping it opens
 // the admin Under the Hood page. It's a fixed strip with space reserved above the

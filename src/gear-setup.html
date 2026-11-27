@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Change setup · Gillbert</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/theme.css" />
+  <link rel="stylesheet" href="./assets/base.css" />
+  <link rel="stylesheet" href="./assets/topbar.css" />
+  <script src="./assets/settings.js"></script>
+  <script src="./assets/season.js"></script>
+  <link rel="stylesheet" href="./assets/gear.css" />
+</head>
+<body class="layout-card">
+  <header class="topbar" id="topbar" data-back-href="./gear.html" data-back-label="Gear"></header>
+  <script src="./assets/topbar.js"></script>
+  <div class="page-head">
+    <span class="page-head-tile" aria-hidden="true">🪝</span>
+    <div>
+      <p class="page-head-label" id="headLabel">Gear · Setup</p>
+      <h1 id="formHeading">Change setup</h1>
+    </div>
+  </div>
+  <div class="container">
+    <div id="loadingState">
+      <div class="loading-indicator">
+        <div class="fishing-animation">🎣<span class="bobber">●</span></div>
+        <p>Loading setup…</p>
+      </div>
+    </div>
+
+    <div id="errorState" class="hidden">
+      <div class="error-card">
+        <p class="error-icon">⚠️</p>
+        <p id="errorMsg">Unable to load this setup. Please check your connection and try again.</p>
+        <button id="retryBtn" class="primary-button">🔄 Try Again</button>
+      </div>
+      <a href="./gear.html" class="back-button">← Back to Gear</a>
+    </div>
+
+    <div id="formState" class="hidden">
+      <form id="setupForm" novalidate>
+        <p class="form-note hidden" id="newNote">Added. Now its setup: fill in what you know, and skip the rest.</p>
+
+        <div class="field-group">
+          <label for="line">Line</label>
+          <input type="text" id="line" maxlength="100" placeholder="e.g. Dacron 30 lb" autocomplete="off" />
+          <div class="tag-suggestions hidden" id="lineSuggestions"></div>
+        </div>
+
+        <div class="field-group">
+          <label for="leader">Leader</label>
+          <input type="text" id="leader" maxlength="100" placeholder="e.g. Fluoro 10 lb" autocomplete="off" />
+          <div class="tag-suggestions hidden" id="leaderSuggestions"></div>
+        </div>
+
+        <div class="field-group">
+          <label for="hook">Hook</label>
+          <input type="text" id="hook" maxlength="100" placeholder="e.g. #8 Octopus, quick-strike" autocomplete="off" />
+          <div class="tag-suggestions hidden" id="hookSuggestions"></div>
+        </div>
+
+        <div class="field-group">
+          <label for="beadsInput">Beads <span class="optional-mark">(zero or more)</span></label>
+          <div class="tag-input-wrapper" id="beadsWrapper">
+            <input type="text" id="beadsInput" class="tag-input-field" placeholder="Add a bead…" autocomplete="off" />
+          </div>
+          <div class="tag-suggestions hidden" id="beadsSuggestions"></div>
+        </div>
+
+        <div class="field-group">
+          <label for="flashInput">Flash <span class="optional-mark">(zero or more)</span></label>
+          <div class="tag-input-wrapper" id="flashWrapper">
+            <input type="text" id="flashInput" class="tag-input-field" placeholder="Add a blade or flash…" autocomplete="off" />
+          </div>
+          <div class="tag-suggestions hidden" id="flashSuggestions"></div>
+          <p class="field-hint">Press Enter or comma after each one.</p>
+        </div>
+
+        <p class="form-note">Matches show as you type, so "Dacron 30 lb" doesn't turn into "30lb dacron". Anything new is saved for everyone's next pick. Catches already logged on this tip-up keep the setup they were caught on.</p>
+
+        <div id="formError" class="form-error hidden" role="alert"></div>
+
+        <div class="form-actions">
+          <button type="submit" id="saveBtn" class="primary-button">Save setup</button>
+          <a href="./gear.html" id="cancelLink" class="back-button">← Cancel</a>
+        </div>
+      </form>
+    </div>
+
+    <div id="submittingState" class="hidden">
+      <div class="loading-indicator">
+        <div class="fishing-animation">🎣<span class="bobber">●</span></div>
+        <p>Updating Gillbert's records…</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="./assets/config.js"></script>
+  <script src="./assets/admin.js"></script>
+  <script src="./assets/tag-input.js"></script>
+  <script src="./assets/option-picker.js"></script>
+  <script src="./assets/gear-common.js"></script>
+  <script src="./assets/gear-setup.js"></script>
+</body>
+</html>

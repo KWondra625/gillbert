@@ -1,0 +1,142 @@
+# Gear: tip-ups and their setups
+
+Status: **stage 1 built on `feature/gear-tip-ups`, not yet on Staging** (2026-11-24). Design agreed
+2026-11-18; data model reviewed 2026-11-23 (Model + Color added from the crew's feedback, the change
+log renamed `gear_history`, three rules added below). Mockup v2 (6 phone screens) was reviewed alongside this.
+
+## Why
+
+Today a catch says who, what, where and when, but not **what it was caught on**. Over a few
+seasons, knowing which tip-up setups (hook, beads, flash...) and which baits catch what, on
+which lakes, is the interesting data. Hard water comes first: **tip-ups only**. Rods and open
+water come later, shaped by how this winter goes.
+
+## Decisions so far (Kurt, 2026-11-18)
+
+- Every piece of gear has **one owner** (an angler). No groups table.
+- Each tip-up has a **display name** the crew chooses (e.g. `KW 24-01`: initials, year bought,
+  number). **Unique across all gear**, ignoring capitals and extra spaces. The owner is stored
+  separately and never worked out from the name.
+- Each tip-up also has a **Model** (e.g. Frabill Pro-Thermal, Beaver Dam) and a **Color**, both
+  optional type-ahead tags. They describe the tip-up itself, so they aren't versioned (crew feedback,
+  2026-11-23).
+- A tip-up's **setup** = line, leader, hook (one each), beads (zero or more), flash (zero or
+  more), and an optional photo. No depth (the crew always sets ~3' off bottom).
+- Values are **type-ahead tags**: matches show as you type, and anything new becomes a choice
+  for everyone. Pick lists for analysis, with no fixed list to maintain.
+- **Anyone** can change any tip-up's setup. Every change is kept: who, when, and what changed.
+- A catch gets two optional fields: **Caught on** (a tip-up) and **Bait** (per catch, since bait
+  changes during the day; includes "Not sure").
+- A **Retired** status (lost down the hole, broken): off the "Caught on" list, but its name stays
+  reserved and its history and catches stay.
+- Menu: **Gear** in the shack (for everyone, not admin). The page lists tip-ups now; rods appear
+  when built, with no "coming soon" placeholder.
+- Outings and flag counts are a **separate, later project** that builds on gear (flags per
+  tip-up).
+
+## The key idea: a change log, and versions for catches
+
+Two separate things, so the screen stays simple:
+- **The history** (`gear_history`) records every change: who, when, which part, old → new.
+  That's what the tip-up's history shows ("Nov 22 · Dave T: hook #8 octopus → #10 treble,
+  + Glow beads"). Renames, owner changes and retiring go in the same log.
+- **Setup versions** (`gear_setups`) are what catches point at. Saving a change **updates the
+  current version in place while no catch points at it yet** (so fixing a typo or fiddling
+  before the first fish doesn't pile up versions). Once a catch points at the current
+  version, the next save **adds a new version** and leaves the old one as it was.
+
+Nobody picks between "correct" and "new version": there's one Save button, and the app
+decides. The history reads the same either way. So:
+- Catch Details always shows the setup *as it was that day*, even after the tip-up changes,
+  is renamed or retired.
+- Stats count fish against the setup that actually caught them.
+
+## Database (all new, plus two optional columns on catches)
+
+| Table | What it holds |
+|---|---|
+| `gear` | One row per tip-up: `gear_type` (`tip_up` now, `rod` later), `display_name`, `name_key` (generated: lower-cased, spaces squeezed, **unique**), `owner_angler_id`, `model_option_id`, `color_option_id`, `notes` (free text, up to 1,000 characters), `status` (Active / Retired), `retired_note`, created/updated by and at |
+| `gear_options` | The shared tags: `kind` (`line`, `leader`, `hook`, `bead`, `flash`, `bait`, `model`, `color`), `name`, `name_key` (generated, **unique per kind**), `status` (Active / Hidden), created by and at |
+| `gear_setups` | One row per **version**: `gear_id`, `version_no`, `line_option_id`, `leader_option_id`, `hook_option_id`, photo URLs, created by and at. Unique (`gear_id`, `version_no`) |
+| `gear_setup_options` | Beads and flash for a version (zero or more): `setup_id`, `option_id` |
+| `gear_history` | The tip-up's history: setup changes, renames, owner / model / color / notes changes, retire / un-retire: `gear_id`, `event_type`, `field`, `old_value` → `new_value` (as text), by, at |
+
+`catches` gets **`gear_setup_id`** and **`bait_option_id`**, both nullable. Existing catches
+keep null and look exactly as today. `vw_catch_details` gets the new fields **appended at the
+end** (the same approach as the thumbnail columns), so nothing reading it today shifts.
+
+The weekly table snapshot picks up new tables on its own (it copies every table).
+
+Scripts: `scripts/gear/01_gear_tables.sql` (tables, the two catches columns, bait starter list),
+`02_gear_functions.sql` (`gear_get`, `gear_save`, `gear_setup_save` and helpers: all the rules live
+here, one transaction per save), `03_check_gear_functions.sql` (checks on Staging, ends in ROLLBACK).
+The two `catches` columns are added in stage 1 but stay unused until stage 2.
+
+**Rules (from the 2026-11-23 review):**
+1. A catch's version comes from **`caught_when`**, not from when it was saved: the newest version
+   whose `created_at` is at or before the catch time (a fish logged that night still gets the
+   morning's hook). Applies in stage 2.
+2. A tag must be the **right kind** (bait is a bait tag, etc.): the save functions look tags up by
+   kind, since a plain foreign key can't check it.
+3. **Deleting** a tip-up with no catches removes its versions, beads/flash and history with it
+   (`ON DELETE CASCADE`); a catch's foreign key blocks deleting one that has caught fish.
+
+## Server endpoints (n8n)
+
+| Endpoint | Does |
+|---|---|
+| `gear/get` | The tip-up list with each one's current setup (fish counts arrive with stage 2); `?id=` adds that tip-up's history; the `gear_options` per kind for the type-ahead |
+| `gear/save` | Add, rename, change owner / model / color, retire, delete (no catches only). Refuses a duplicate name with a friendly message |
+| `gear/setup-save` | In one transaction: creates any brand-new tags, updates the current version in place (no catches yet) or adds a new one, and writes the change log |
+| Save Catch / Edit Catch | Accept the two new optional fields |
+| (all three) | Built by `tools/n8n-migration/gear/deploy_gear_endpoints.py`: the server's own API-key check, then one Postgres call with the request as a bound parameter |
+| Setup photo | Reuses the single-photo upload pattern from profile photos, plus the existing thumbnail step |
+
+**Save Catch is the riskiest touch:** it's the one funnel for both the form and Catch Chat.
+The change is additive (two optional values, null when missing), Catch Chat keeps sending
+nothing until stage 5, and it gets the full write-test run.
+
+## Stages
+
+| # | Stage | Touches existing things? | Size |
+|---|---|---|---|
+| 1 | **Gear pages:** list, add, rename / retire, change setup (type-ahead + tags), history | No: new tables, pages and endpoints, plus one shack menu link | M |
+| 2 | **Caught on + Bait** on Log a Catch and Edit Catch; a "Caught on" section on Catch Details | Yes: Save Catch, Edit Catch, `vw_catch_details`, two catch pages | M |
+| 3 | **Setup photos** | A little: storage folder + thumbnail step | S |
+| 4 | **Stats page:** fish by setup part, bait, lake and species | No | M |
+| 5 | **Catch Chat / Ask Gillbert** know about gear ("got him on KW 24-02 with a sucker") | Yes: the AI workflows | M |
+| 6 | **Admin merge** for near-duplicate tags ("30lb dacron" into "Dacron 30 lb") | No | S |
+
+Stages 1 and 2 are the winter-useful core. Stage 1 alone lets the crew enter their tip-ups
+before anything else in the app changes. Later: outings and flag counts, then rods.
+
+**Timing:** after the November Follow-ups release. Each stage follows the usual path: a
+feature branch, Staging, release runbook.
+
+## Testing
+
+- Read tests (mocked data) for every new page and for the new catch fields, in Chrome and Safari.
+- Write tests on Staging: add a tip-up, save two setup versions, log a catch on it, check that
+  Catch Details shows the version at the time. Test gear uses an `E2E` name prefix, and
+  `npm run cleanup` learns the new tables (catches first, then setups, options and gear).
+- Full read suite before each merge, since stage 2 touches the shared catch pages.
+
+## Risks and how they're handled
+
+- **Breaking catch logging:** stage 2 only adds optional values; null = today's behavior.
+  Full suite + write tests before merging.
+- **Messy tags** (near-duplicates): type-ahead shows matches first; admin merge in stage 6.
+- **Thin data at first:** ~8 anglers means the stats get interesting over 2–3 seasons. Logging
+  has to be quick or it won't happen: one pick for the tip-up, one for bait, both optional.
+- **Name clashes:** unique, checked by the database itself, not just the page.
+- **Deleting:** gear is retired, not deleted, once any catch points at it. A tip-up with no
+  catches can be deleted outright.
+
+## Answered (Kurt, 2026-11-18)
+
+1. **Typo fixes:** correct in place, as long as the screen stays easy to follow. Done as above:
+   in place while no catch uses the version, one Save button, history from the change log.
+2. **Deleting or merging tags:** admins only (stage 6). Everyone else just adds.
+3. **"Fish this season"** uses the app's hard / open water season dates (Settings).
+4. **Bait starter list:** Shiner (small, medium, large), Sucker (small, medium, large),
+   plus "Not sure". Anything else gets typed and becomes a choice.

@@ -1,0 +1,239 @@
+// Layer 1, read-only: the gear pages (stage 1: list, one tip-up, add/edit, change setup).
+// Every gear call is answered here in the browser, and so is the angler list, so these run
+// before the gear endpoints exist anywhere and nothing is written. The saves are checked by
+// what the page sends; the database rules behind them are tested on Staging
+// (scripts/gear/03_check_gear_functions.sql).
+const { test, expect } = require('../support/fixtures');
+
+const ME = 'kurt@example.test';
+const ANGLERS = [
+  { id: 1, name: 'Kurt W', loginEmails: [ME] },
+  { id: 3, name: 'Dave T', loginEmails: [] },
+  { id: 4, name: 'Mike R', loginEmails: [] },
+];
+
+function tipUp(id, name, overrides = {}) {
+  return {
+    id, gearType: 'tip_up', name, ownerAnglerId: 1, ownerName: 'Kurt W', model: null, color: null,
+    status: 'Active', retiredNote: null, catchCount: 0,
+    setup: { versionNo: 1, line: 'Dacron 30 lb', leader: 'Fluoro 10 lb', hook: '#8 Octopus',
+             beads: ['Glow'], flash: [], photoUrl: null, since: '2026-12-06T19:12:00Z' },
+    ...overrides,
+  };
+}
+
+const TIP_UPS = [
+  tipUp(7, 'KW 24-01', { model: 'Frabill Pro-Thermal', color: 'Blue', notes: 'Trigger sticks in the cold' }),
+  tipUp(8, 'DT 22-01', { ownerAnglerId: 3, ownerName: 'Dave T', setup: null }),
+  tipUp(9, 'KW 24-03', { status: 'Retired', retiredNote: 'Lost down the hole, Jan 2026' }),
+];
+const OPTIONS = {
+  line: ['Dacron 20 lb', 'Dacron 30 lb'], leader: ['Fluoro 10 lb'], hook: ['#10 Treble', '#8 Octopus'],
+  bead: ['Glow', 'Red'], flash: ['Gold blade'], model: ['Beaver Dam', 'Frabill Pro-Thermal'], color: ['Blue', 'Orange'],
+  bait: ['Not sure', 'Shiner (medium)'],
+};
+const HISTORY = [
+  { id: 102, at: '2026-12-20T16:05:00Z', byName: 'Dave T', eventType: 'setup', field: 'hook', oldValue: '#8 Octopus', newValue: '#10 Treble' },
+  { id: 101, at: '2026-12-06T19:12:00Z', byName: 'Kurt W', eventType: 'created', field: null, oldValue: null, newValue: 'KW 24-01' },
+];
+
+// Answers gear/get (all, or one with history), the angler list, and the two saves.
+// Each save's body is kept in state.saves; state.reply decides the answer.
+async function mockGear(page, state = {}) {
+  state.saves = [];
+  const tips = state.tipUps || TIP_UPS;
+  await page.route(url => url.pathname.endsWith('/gillbert/gear/get'), route => {
+    const id = new URL(route.request().url()).searchParams.get('id');
+    const one = tips.filter(t => String(t.id) === id);
+    return route.fulfill({ json: id
+      ? { tipUps: one, options: OPTIONS, history: state.history || HISTORY }
+      : { tipUps: tips, options: OPTIONS, history: null } });
+  });
+  await page.route(url => url.pathname.endsWith('/gillbert/get-lookup-data'), route =>
+    route.fulfill({ json: { anglers: ANGLERS, fishSpecies: [], bodiesOfWater: [] } }));
+  await page.route(url => /\/gillbert\/gear\/(save|setup-save)$/.test(url.pathname), route => {
+    const body = route.request().postDataJSON();
+    state.saves.push({ path: new URL(route.request().url()).pathname.split('/').pop(), body });
+    return route.fulfill({ json: state.reply ? state.reply(body) : { success: true, id: body.id || 12 } });
+  });
+  return state;
+}
+
+test.describe('Gear list', () => {
+  test('active tip-ups by name with owner and setup, then the retired ones', async ({ page }) => {
+    await mockGear(page);
+    await page.goto('gear.html');
+    const active = page.locator('#activeList .gear-row');
+    await expect(active).toHaveCount(2);
+    await expect(page.locator('#activeCount')).toHaveText('2');
+    await expect(active.nth(0)).toContainText('KW 24-01');
+    await expect(active.nth(0)).toContainText('Kurt W · #8 Octopus · Glow');
+    await expect(active.nth(1)).toContainText('DT 22-01');
+    await expect(active.nth(1)).toContainText('No setup yet');
+    await expect(page.locator('#retiredList .gear-row')).toHaveCount(1);
+    await expect(page.locator('#retiredList')).toContainText('Lost down the hole');
+    await expect(active.nth(0)).toHaveAttribute('href', './gear-tipup.html?id=7');
+  });
+
+  test('no tip-ups yet says how to start, and hides the retired section', async ({ page }) => {
+    await mockGear(page, { tipUps: [] });
+    await page.goto('gear.html');
+    await expect(page.locator('#activeEmpty')).toBeVisible();
+    await expect(page.locator('#retiredSection')).toBeHidden();
+    await expect(page.locator('#addBtn')).toHaveAttribute('href', './gear-edit.html');
+  });
+
+  test('the shack menu links to Gear for everyone', async ({ page }) => {
+    await mockGear(page);
+    await page.goto('gear.html');
+    await expect(page.locator('#shack a[href="./gear.html"]')).toHaveCount(1);
+    await expect(page.locator('#adminSectionGrid a[href="./gear.html"]')).toHaveCount(0);
+  });
+});
+
+test.describe('One tip-up', () => {
+  test('shows its parts and its history in words', async ({ page }) => {
+    await mockGear(page);
+    await page.goto('gear-tipup.html?id=7');
+    await expect(page.locator('#tipName')).toHaveText('KW 24-01');
+    await expect(page.locator('#tipSub')).toHaveText("Kurt W's · Active");
+    const parts = page.locator('#tipParts');
+    for (const text of ['Frabill Pro-Thermal', 'Blue', 'Dacron 30 lb', 'Fluoro 10 lb', '#8 Octopus', 'Glow']) {
+      await expect(parts).toContainText(text);
+    }
+    const rows = page.locator('#historyList li');
+    await expect(rows).toHaveCount(2);
+    await expect(rows.nth(0)).toContainText('Dave T');
+    await expect(rows.nth(0)).toContainText('Hook: #8 Octopus → #10 Treble');
+    await expect(rows.nth(1)).toContainText('Added KW 24-01');
+    await expect(page.locator('#tipNotes')).toHaveText('Trigger sticks in the cold');
+    await expect(page.locator('#setupLink')).toHaveAttribute('href', './gear-setup.html?id=7');
+  });
+
+  test('a retired tip-up shows why, and offers no setup change', async ({ page }) => {
+    await mockGear(page);
+    await page.goto('gear-tipup.html?id=9');
+    await expect(page.locator('#retiredNote')).toContainText('Lost down the hole');
+    await expect(page.locator('#setupLink')).toBeHidden();
+    await expect(page.locator('#editLink')).toHaveText('Rename, owner or bring back');
+  });
+
+  test('a tip-up that is gone says so', async ({ page }) => {
+    await mockGear(page);
+    await page.goto('gear-tipup.html?id=999');
+    await expect(page.locator('#errorMsg')).toContainText("isn't here any more");
+  });
+});
+
+test.describe('Add and edit', () => {
+  test.use({ identityEmail: ME });
+
+  test('a taken name is caught while typing, ignoring capitals and spaces', async ({ page }) => {
+    await mockGear(page);
+    await page.goto('gear-edit.html');
+    await page.locator('#name').fill('kw   24-01');
+    await expect(page.locator('#nameError')).toHaveText('"KW 24-01" is already taken (Kurt W\'s). Names must be unique.');
+    await page.locator('#saveBtn').click();
+    await expect(page.locator('#formState')).toBeVisible();
+  });
+
+  test('adding sends name, owner (you, by default), model and color, then opens the setup', async ({ page }) => {
+    const state = await mockGear(page);
+    await page.goto('gear-edit.html');
+    await expect(page.locator('#owner')).toHaveValue('1');
+    await expect(page.locator('#statusGroup')).toBeHidden();
+    await page.locator('#name').fill('KW 25-01');
+    await page.locator('#model').fill('frabill');
+    await page.locator('#modelSuggestions .tag-suggestion').first().click();
+    await expect(page.locator('#model')).toHaveValue('Frabill Pro-Thermal');
+    await page.locator('#notes').fill('Bought at the swap meet');
+    await page.locator('#color').fill('Black');
+    await expect(page.locator('#colorSuggestions')).toContainText('Use "Black" as a new color');
+    await page.locator('#saveBtn').click();
+    await expect(page).toHaveURL(/gear-setup\.html\?id=12&new=1/);
+    expect(state.saves[0]).toEqual({ path: 'save', body: {
+      id: null, name: 'KW 25-01', ownerAnglerId: 1, model: 'Frabill Pro-Thermal', color: 'Black',
+      notes: 'Bought at the swap meet', status: 'Active', retiredNote: '', byAnglerId: 1 } });
+  });
+
+  test('editing fills the form; retiring asks what happened', async ({ page }) => {
+    const state = await mockGear(page);
+    await page.goto('gear-edit.html?id=7');
+    await expect(page.locator('#formHeading')).toHaveText('Edit KW 24-01');
+    await expect(page.locator('#name')).toHaveValue('KW 24-01');
+    await expect(page.locator('#color')).toHaveValue('Blue');
+    await expect(page.locator('#notes')).toHaveValue('Trigger sticks in the cold');
+    await expect(page.locator('#noteGroup')).toBeHidden();
+    await page.locator('#statusPills [data-status="Retired"]').click();
+    await page.locator('#retiredNote').fill('Lost down the hole');
+    await page.locator('#saveBtn').click();
+    await expect(page).toHaveURL(/gear-tipup\.html\?id=7/);
+    expect(state.saves[0].body).toMatchObject({ id: 7, status: 'Retired', retiredNote: 'Lost down the hole' });
+  });
+
+  test('the server\'s message is shown when a save is refused', async ({ page }) => {
+    await mockGear(page, { reply: () => ({ success: false, message: '"KW 25-01" is already taken (Dave T\'s). Names must be unique.' }) });
+    await page.goto('gear-edit.html');
+    await page.locator('#name').fill('KW 25-01');
+    await page.locator('#saveBtn').click();
+    await expect(page.locator('#formError')).toHaveText('"KW 25-01" is already taken (Dave T\'s). Names must be unique.');
+  });
+
+  test('delete takes two taps, and is offered only before any catch', async ({ page }) => {
+    const state = await mockGear(page, { tipUps: [TIP_UPS[0], tipUp(10, 'MR 25-01', { catchCount: 3 })] });
+    await page.goto('gear-edit.html?id=10');
+    await expect(page.locator('#deleteGroup')).toBeHidden();
+    await page.goto('gear-edit.html?id=7');
+    await page.locator('#deleteBtn').click();
+    await expect(page.locator('#deleteConfirm')).toBeVisible();
+    expect(state.saves).toEqual([]);
+    await page.locator('#deleteYes').click();
+    await expect(page).toHaveURL(/gear\.html$/);
+    expect(state.saves[0].body).toEqual({ id: 7, delete: true, byAnglerId: 1 });
+  });
+});
+
+test.describe('Change setup', () => {
+  test('starts from the current setup; matches show, and new values are offered', async ({ page }) => {
+    await mockGear(page);
+    await page.goto('gear-setup.html?id=7');
+    await expect(page.locator('#formHeading')).toHaveText('Change setup');
+    await expect(page.locator('#headLabel')).toHaveText('Gear · KW 24-01');
+    await expect(page.locator('#line')).toHaveValue('Dacron 30 lb');
+    await expect(page.locator('#beadsWrapper .tag-pill')).toHaveCount(1);
+    await page.locator('#line').fill('dac');
+    const box = page.locator('#lineSuggestions .tag-suggestion');
+    await expect(box).toHaveText(['Dacron 20 lb', 'Dacron 30 lb', '＋ Use "dac" as a new line']);
+  });
+
+  test('saving sends every part, spelled like the existing choices', async ({ page }) => {
+    const state = await mockGear(page);
+    await page.goto('gear-setup.html?id=7');
+    await page.locator('#hook').fill('#10 TREBLE');
+    await page.locator('#hook').blur();
+    await expect(page.locator('#hook')).toHaveValue('#10 Treble');
+    await page.locator('#beadsInput').fill('red');
+    await page.locator('#beadsInput').press('Enter');
+    await page.locator('#flashInput').fill('gold blade');   // typed but not entered: still counts
+    await page.locator('#saveBtn').click();
+    await expect(page).toHaveURL(/gear-tipup\.html\?id=7/);
+    expect(state.saves[0]).toEqual({ path: 'setup-save', body: {
+      gearId: 7, line: 'Dacron 30 lb', leader: 'Fluoro 10 lb', hook: '#10 Treble',
+      beads: ['Glow', 'Red'], flash: ['Gold blade'], byAnglerId: null } });
+  });
+
+  test('a new tip-up gets a first-setup heading and note', async ({ page }) => {
+    await mockGear(page);
+    await page.goto('gear-setup.html?id=8&new=1');
+    await expect(page.locator('#formHeading')).toHaveText('First setup');
+    await expect(page.locator('#headLabel')).toHaveText('Gear · DT 22-01');
+    await expect(page.locator('#newNote')).toBeVisible();
+    await expect(page.locator('#line')).toHaveValue('');
+  });
+
+  test('a retired tip-up can\'t be set up', async ({ page }) => {
+    await mockGear(page);
+    await page.goto('gear-setup.html?id=9');
+    await expect(page.locator('#errorMsg')).toContainText('is retired');
+  });
+});

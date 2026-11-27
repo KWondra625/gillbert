@@ -14,7 +14,8 @@
 // "Test" means (see support/test-data.js): anglers, species and bodies of water named
 // "E2E Test …"; chat sessions whose id contains "e2e-test-" (Ask Gillbert and Catch Chat
 // tests set it), with their conversations and chat memory; and catches whose notes carry
-// [E2E Test], that belong to a test angler, or that a test chat logged. Nothing else.
+// [E2E Test], that belong to a test angler, or that a test chat logged; tip-ups and gear tags
+// named "E2E Test …" (with their setups and history). Nothing else.
 //
 // Settings come from tests/.env (git-ignored; see .env.example): STAGING_SSH, STAGING_SSH_HOSTNAME,
 // PG_CONTAINER, PG_USER, PG_DB. It refuses to run without them.
@@ -64,6 +65,12 @@ const ROWS = {
   fish_species: TEST_NAME,
   bodies_of_water: TEST_NAME,
 };
+// Gear (tip-ups and their tags), once its tables exist on the server. A tip-up's versions and
+// history go with it (ON DELETE CASCADE), so only the tip-ups and the tags need listing.
+const GEAR_ROWS = {
+  gear: testName('display_name'),
+  gear_options: TEST_NAME,
+};
 
 async function main() {
   console.log(`${APPLY ? 'APPLYING' : 'DRY RUN (add --apply to remove)'} · API ${config.N8N_BASE_URL} · DB ${SSH} ${PG_CONTAINER}/${PG_DB}\n`);
@@ -105,21 +112,26 @@ async function main() {
   }
 
   // ── 2. Rows, with SQL ─────────────────────────────────────────────────
+  const hasGear = psql(`SELECT to_regclass('public.gear') IS NOT NULL;`) === 't';
+  const rows = hasGear ? { ...ROWS, ...GEAR_ROWS } : ROWS;
   // Leftover media rows go first (their files are handled above), then catches, then
   // test chats (catches point at conversations), then the lookups the catches pointed at. Any real catch still pointing at a test record
   // makes the delete fail, and the whole transaction rolls back.
-  const report = Object.entries(ROWS)
+  const report = Object.entries(rows)
     .map(([table, where]) => `SELECT '${table}', count(*), coalesce(string_agg(id::text, ',' ORDER BY id), '') FROM ${table} WHERE ${where};`)
     .join('\n');
   const deletes = `
     DELETE FROM catch_media WHERE catch_id IN (SELECT id FROM catches WHERE ${ROWS.catches});
     DELETE FROM catches WHERE ${ROWS.catches};
+    ${hasGear ? `DELETE FROM gear WHERE ${GEAR_ROWS.gear};
+    DELETE FROM gear_options WHERE ${GEAR_ROWS.gear_options};` : ''}
     DELETE FROM conversations WHERE ${ROWS.conversations};
     DELETE FROM chat_messages WHERE ${ROWS.chat_messages};
     DELETE FROM anglers WHERE ${ROWS.anglers};
     DELETE FROM fish_species WHERE ${ROWS.fish_species};
     DELETE FROM bodies_of_water WHERE ${ROWS.bodies_of_water};
-    ${['anglers', 'bodies_of_water', 'catches', 'catch_media', 'fish_species', 'conversations', 'chat_messages'].map(t =>
+    ${['anglers', 'bodies_of_water', 'catches', 'catch_media', 'fish_species', 'conversations', 'chat_messages',
+       ...(hasGear ? ['gear', 'gear_options', 'gear_setups', 'gear_history'] : [])].map(t =>
       `SELECT setval('${t}_id_seq', COALESCE((SELECT MAX(id) FROM ${t}), 1), (SELECT MAX(id) FROM ${t}) IS NOT NULL);`).join('\n    ')}`;
 
   console.log('\nRows (table | count | ids):');

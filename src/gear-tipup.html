@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tip-up · Gillbert</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/theme.css" />
+  <link rel="stylesheet" href="./assets/base.css" />
+  <link rel="stylesheet" href="./assets/topbar.css" />
+  <script src="./assets/settings.js"></script>
+  <script src="./assets/season.js"></script>
+  <link rel="stylesheet" href="./assets/gear.css" />
+</head>
+<body class="layout-card">
+  <header class="topbar" id="topbar" data-back-href="./gear.html" data-back-label="Gear"></header>
+  <script src="./assets/topbar.js"></script>
+  <div class="page-head">
+    <span class="page-head-tile" aria-hidden="true">🚩</span>
+    <div>
+      <p class="page-head-label">Gear · Tip-up</p>
+      <h1 id="tipName">Tip-up</h1>
+    </div>
+  </div>
+  <div class="container">
+    <div id="loadingState">
+      <div class="loading-indicator">
+        <div class="fishing-animation">🎣<span class="bobber">●</span></div>
+        <p>Loading tip-up…</p>
+      </div>
+    </div>
+
+    <div id="errorState" class="hidden">
+      <div class="error-card">
+        <p class="error-icon">⚠️</p>
+        <p id="errorMsg">Unable to load this tip-up. Please check your connection and try again.</p>
+        <button id="retryBtn" class="primary-button">🔄 Try Again</button>
+      </div>
+      <a href="./gear.html" class="back-button">← Back to Gear</a>
+    </div>
+
+    <div id="viewState" class="hidden">
+      <p class="gear-sub" id="tipSub"></p>
+      <p class="gear-retired-note hidden" id="retiredNote"></p>
+
+      <dl class="gear-parts" id="tipParts"></dl>
+      <p class="gear-notes hidden" id="tipNotes"></p>
+
+      <div class="gear-actions">
+        <a class="primary-button" id="setupLink" href="#">Change setup</a>
+        <a class="secondary-button" id="editLink" href="#">Rename, owner or retire</a>
+      </div>
+
+      <h2 class="gear-history-title">History</h2>
+      <ul class="gear-history" id="historyList"></ul>
+      <p class="gear-history-hint">Anyone can change a tip-up. Every change is kept with who and when.</p>
+    </div>
+  </div>
+
+  <script src="./assets/config.js"></script>
+  <script src="./assets/admin.js"></script>
+  <script src="./assets/gear-common.js"></script>
+  <script src="./assets/gear-tipup.js"></script>
+</body>
+</html>

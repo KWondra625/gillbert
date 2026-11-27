@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Add a tip-up · Gillbert</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/theme.css" />
+  <link rel="stylesheet" href="./assets/base.css" />
+  <link rel="stylesheet" href="./assets/topbar.css" />
+  <script src="./assets/settings.js"></script>
+  <script src="./assets/season.js"></script>
+  <link rel="stylesheet" href="./assets/gear.css" />
+</head>
+<body class="layout-card">
+  <header class="topbar" id="topbar" data-back-href="./gear.html" data-back-label="Gear"></header>
+  <script src="./assets/topbar.js"></script>
+  <div class="page-head">
+    <span class="page-head-tile page-head-tile--plus" aria-hidden="true" id="headTile">＋</span>
+    <div>
+      <p class="page-head-label">Gear</p>
+      <h1 id="formHeading">Add a tip-up</h1>
+    </div>
+  </div>
+  <div class="container">
+    <div id="loadingState">
+      <div class="loading-indicator">
+        <div class="fishing-animation">🎣<span class="bobber">●</span></div>
+        <p>Just a moment…</p>
+      </div>
+    </div>
+
+    <div id="errorState" class="hidden">
+      <div class="error-card">
+        <p class="error-icon">⚠️</p>
+        <p id="errorMsg">Unable to load this page. Please check your connection and try again.</p>
+        <button id="retryBtn" class="primary-button">🔄 Try Again</button>
+      </div>
+      <a href="./gear.html" class="back-button">← Back to Gear</a>
+    </div>
+
+    <div id="formState" class="hidden">
+      <form id="gearForm" novalidate>
+        <div class="field-group">
+          <label for="name">Name <span class="required-mark">*</span></label>
+          <input type="text" id="name" maxlength="50" placeholder="e.g. KW 24-01" autocomplete="off" />
+          <p class="field-hint">Your crew's choice, e.g. initials, year bought, number. Must be unique (capitals and extra spaces don't count).</p>
+          <p class="field-error hidden" id="nameError"></p>
+        </div>
+
+        <div class="field-group">
+          <label for="owner">Owner <span class="required-mark">*</span></label>
+          <select id="owner"><option value="">Choose an angler…</option></select>
+          <p class="field-error hidden" id="ownerError">Please choose an owner.</p>
+        </div>
+
+        <div class="field-group">
+          <label for="model">Model <span class="optional-mark">(optional)</span></label>
+          <input type="text" id="model" maxlength="100" placeholder="e.g. Frabill Pro-Thermal, Beaver Dam" autocomplete="off" />
+          <div class="tag-suggestions hidden" id="modelSuggestions"></div>
+        </div>
+
+        <div class="field-group">
+          <label for="color">Color <span class="optional-mark">(optional)</span></label>
+          <input type="text" id="color" maxlength="100" placeholder="e.g. Orange, Blue" autocomplete="off" />
+          <div class="tag-suggestions hidden" id="colorSuggestions"></div>
+        </div>
+
+        <div class="field-group">
+          <label for="notes">Notes <span class="optional-mark">(optional)</span></label>
+          <textarea id="notes" maxlength="1000" placeholder="e.g. Trigger sticks in the cold, flag spring replaced Dec 2026"></textarea>
+        </div>
+
+        <div class="field-group hidden" id="statusGroup">
+          <span class="field-label">Status</span>
+          <div class="status-pills" id="statusPills">
+            <button type="button" class="status-pill" data-status="Active">Active</button>
+            <button type="button" class="status-pill" data-status="Retired">Retired</button>
+          </div>
+          <p class="field-hint">Retired (lost down the hole, broken): it leaves the "Caught on" list, but its name stays taken and its history and catches stay.</p>
+        </div>
+
+        <div class="field-group hidden" id="noteGroup">
+          <label for="retiredNote">What happened? <span class="optional-mark">(optional)</span></label>
+          <textarea id="retiredNote" maxlength="200" placeholder="e.g. Lost down the hole, Jan 2026"></textarea>
+        </div>
+
+        <div id="formError" class="form-error hidden" role="alert"></div>
+
+        <div class="form-actions">
+          <button type="submit" id="saveBtn" class="primary-button">Save and set up</button>
+          <a href="./gear.html" id="cancelLink" class="back-button">← Cancel</a>
+        </div>
+
+        <div class="gear-delete hidden" id="deleteGroup">
+          <p>Added by mistake? A tip-up that hasn't caught anything can be deleted, history and all.</p>
+          <button type="button" class="secondary-button danger-button" id="deleteBtn">Delete this tip-up</button>
+          <div class="gear-delete-confirm hidden" id="deleteConfirm">
+            <button type="button" class="secondary-button danger-button" id="deleteYes">Yes, delete it</button>
+            <button type="button" class="secondary-button" id="deleteNo">Keep it</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div id="submittingState" class="hidden">
+      <div class="loading-indicator">
+        <div class="fishing-animation">🎣<span class="bobber">●</span></div>
+        <p>Updating Gillbert's records…</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="./assets/config.js"></script>
+  <script src="./assets/admin.js"></script>
+  <script src="./assets/option-picker.js"></script>
+  <script src="./assets/gear-common.js"></script>
+  <script src="./assets/gear-edit.js"></script>
+</body>
+</html>
