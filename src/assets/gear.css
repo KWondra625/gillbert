@@ -38,6 +38,16 @@
   flex-wrap: wrap;
 }
 
+.gear-list-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.gear-list-actions .secondary-button {
+  white-space: nowrap;
+}
+
 .status-filter-btn {
   padding: 8px 14px;
   border: 2px solid rgba(255, 255, 255, 0.6);

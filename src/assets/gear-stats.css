@@ -1,0 +1,450 @@
+/* Gear Stats (gear-stats.html). The ranked rows are copied from Fish of Fame (fish-of-fame.css),
+ * the Species / Water chips from the Catches page (catches-listing.css), the season pills from
+ * the Gear page (gear.css), so each page keeps its own styles. */
+
+/* ── Season pills (hidden for now) ── */
+.status-filter {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.status-filter-btn {
+  padding: 8px 14px;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  font-family: inherit;   /* buttons don't take the page font on their own */
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+.status-filter-btn:active {
+  transform: scale(0.96);
+}
+.status-filter-btn.active {
+  background: white;
+  color: var(--gb-accent-700);
+  border-color: white;
+}
+
+/* ── Filter chips (catches-listing.css) ── */
+/* Filter Bar */
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.filter-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-chip-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.filter-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 15px;
+  background: rgba(255, 255, 255, 0.18);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 24px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.filter-chip:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.filter-chip.active {
+  background: white;
+  color: var(--gb-accent);
+  border-color: white;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.14);
+}
+
+.filter-chip-value {
+  font-weight: 400;
+}
+
+.filter-chip.active .filter-chip-value {
+  font-weight: 700;
+}
+
+.filter-chip-arrow {
+  font-size: 10px;
+  opacity: 0.75;
+  transition: transform 0.2s;
+}
+
+.filter-chip.open .filter-chip-arrow {
+  transform: rotate(180deg);
+}
+
+/* Filter Dropdown */
+.filter-chip-dropdown {
+  display: none;
+  position: fixed;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  min-width: 210px;
+  max-height: 280px;
+  overflow-y: auto;
+  z-index: 9999;
+  animation: filterDropIn 0.15s ease-out;
+}
+
+.filter-chip-dropdown.open {
+  display: block;
+}
+
+@keyframes filterDropIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.filter-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  font-size: 14px;
+  color: #444;
+  cursor: pointer;
+  border-bottom: 1px solid #f5f5f5;
+  transition: background 0.15s;
+}
+
+.filter-option:last-child {
+  border-bottom: none;
+}
+
+.filter-option:hover {
+  background: var(--gb-accent-soft);
+}
+
+.filter-option.selected {
+  color: var(--gb-accent);
+  font-weight: 600;
+  background: var(--gb-accent-soft);
+}
+
+.filter-option-check {
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+  color: var(--gb-accent);
+  font-weight: 700;
+}
+
+/* ── Ranked rows (fish-of-fame.css) ── */
+/* Section dividers */
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.section-label {
+  color: white;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* Leaderboard list */
+.leaderboard-list {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  margin-bottom: 32px;
+}
+
+/* Rank rows */
+.rank-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--gb-line-soft);
+  border-left: 4px solid transparent;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.rank-row:last-child {
+  border-bottom: none;
+}
+
+.rank-row:hover {
+  background: #fafafa;
+}
+
+.rank-badge {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--gb-accent-soft);
+  color: var(--gb-accent);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+
+
+.rank-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.rank-main {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--gb-ink-2);
+  margin-bottom: 2px;
+  word-break: break-word;
+}
+
+.rank-meta {
+  font-size: 12px;
+  color: var(--gb-faint);
+  word-break: break-word;
+}
+
+
+
+
+/* Medal styling for top 3 — each tier progressively more pronounced (#1 > #2 > #3 > rest) */
+.rank-row.rank-1 .rank-badge,
+.rank-row.rank-2 .rank-badge,
+.rank-row.rank-3 .rank-badge {
+  background: transparent;
+}
+
+.rank-row.rank-3 {
+  border-left-color: #CD7F32;
+  background: rgba(205, 127, 50, 0.07);
+}
+
+.rank-row.rank-3 .rank-badge {
+  font-size: 20px;
+}
+
+.rank-row.rank-3 .rank-main {
+  font-size: 16px;
+}
+
+.rank-row.rank-2 {
+  border-left-width: 5px;
+  border-left-color: #C0C0C0;
+  background: rgba(192, 192, 192, 0.13);
+  padding-top: 15px;
+  padding-bottom: 15px;
+}
+
+.rank-row.rank-2 .rank-badge {
+  font-size: 24px;
+}
+
+.rank-row.rank-2 .rank-main {
+  font-size: 17px;
+}
+
+.rank-row.rank-1 {
+  border-left-width: 6px;
+  border-left-color: #FFD700;
+  background: rgba(255, 215, 0, 0.15);
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+.rank-row.rank-1 .rank-badge {
+  font-size: 28px;
+}
+
+.rank-row.rank-1 .rank-main {
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.rank-row.rank-1 .rank-meta {
+  font-size: 13px;
+}
+
+.rank-row.rank-1:hover { background: rgba(255, 215, 0, 0.22); }
+.rank-row.rank-2:hover { background: rgba(192, 192, 192, 0.22); }
+.rank-row.rank-3:hover { background: rgba(205, 127, 50, 0.14); }
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  margin-bottom: 32px;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 16px;
+  color: var(--gb-faint-2);
+}
+
+
+/* ── This page ── */
+.season-filter {
+  margin-bottom: 12px;
+}
+
+.season-filter[hidden] {
+  display: none;
+}
+
+.stats-summary {
+  margin: 4px 0 22px;
+  color: var(--gb-on-sky);
+  text-shadow: var(--gb-on-sky-shadow);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.stats-note {
+  margin: -8px 0 10px;
+  color: var(--gb-on-sky);
+  text-shadow: var(--gb-on-sky-shadow);
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.leaderboard-list {
+  margin-bottom: 26px;
+}
+
+/* Only tip-up rows open something */
+div.rank-row {
+  cursor: default;
+}
+
+div.rank-row:not(.rank-1):not(.rank-2):not(.rank-3):hover {
+  background: none;
+}
+
+.stat-bar {
+  height: 6px;
+  margin-top: 6px;
+  border-radius: 3px;
+  background: var(--gb-line-soft);
+  overflow: hidden;
+}
+
+.stat-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--gb-accent);
+}
+
+.stat-best {
+  margin-top: 5px;
+  font-size: 12px;
+  color: var(--gb-faint);
+  word-break: break-word;
+}
+
+.stat-count {
+  flex-shrink: 0;
+  min-width: 48px;
+  text-align: right;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--gb-ink-2);
+}
+
+.stat-count small {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gb-faint);
+}
+
+/* No beads / No flash: the baseline to compare against */
+.rank-row.stat-none .rank-main {
+  font-style: italic;
+  font-weight: 600;
+  color: var(--gb-faint);
+}
+
+.rank-row.stat-none .stat-bar span {
+  background: var(--gb-faint);
+  opacity: 0.5;
+}
+
+.stats-more {
+  display: block;
+  width: 100%;
+  padding: 11px 18px;
+  border: none;
+  border-top: 1px solid var(--gb-line-soft);
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gb-accent-700);
+  cursor: pointer;
+}
+
+.stats-loading {
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+
+@media (max-width: 480px) {
+  .section-label { font-size: 17px; }
+  .rank-row { padding: 12px 14px; gap: 10px; }
+  .rank-badge { width: 30px; height: 30px; font-size: 13px; }
+  .rank-main { font-size: 14px; }
+  .rank-meta { font-size: 11px; }
+  .rank-row.rank-2, .rank-row.rank-1 { padding-top: 12px; padding-bottom: 12px; }
+  .rank-row.rank-3 .rank-badge { font-size: 18px; }
+  .rank-row.rank-3 .rank-main { font-size: 15px; }
+  .rank-row.rank-2 .rank-badge { font-size: 21px; }
+  .rank-row.rank-2 .rank-main { font-size: 16px; }
+  .rank-row.rank-1 .rank-badge { font-size: 24px; }
+  .rank-row.rank-1 .rank-main { font-size: 17px; }
+  .rank-row.rank-1 .rank-meta { font-size: 12px; }
+}

@@ -5,6 +5,7 @@
   Gillbert - Gear - POST Save Gear Setup  POST gillbert/gear/setup-save    SELECT gear_setup_save($1::jsonb)
   Gillbert - Gear - GET Gear Tags         GET  gillbert/gear/tags          SELECT gear_tags_get()          (stage 6, admin)
   Gillbert - Gear - POST Save Gear Tag    POST gillbert/gear/tag-save      SELECT gear_tag_save($1::jsonb) (stage 6, admin)
+  Gillbert - Gear - GET Gear Stats        GET  gillbert/gear/stats         SELECT gear_stats_get($1::jsonb) (stage 4)
 
 Each one is: the server's own access check (copied from its GET Anglers / POST Update Angler,
 the same nodes every Gillbert webhook uses), then one Postgres call, then the reply. The logic
@@ -17,7 +18,7 @@ leading "/", so the webhook's CORS setting applies (a leading slash makes n8n sk
   python -I -X utf8 gear/deploy_gear_endpoints.py --prod [--apply]   production: ONLY at release, with Kurt's separate OK
 
 Only the endpoints not yet on the server are created, so a re-run after adding one creates just
-that one (stage 6 added the two tag endpoints after the first three were live).
+that one (stage 6 added the two tag endpoints after the first three were live, stage 4 the stats).
 Undo: deactivate the new workflows (the API helper never deletes). Nothing existing changes.
 Created ids are added to gear/deployed_ids_<host>.json.
 """
@@ -93,6 +94,18 @@ ENDPOINTS = [
         "failed": SAVE_FAILED,
         "note": "## Gear: rename / hide / merge / delete a tag (admin)\nOne call, one transaction: `gear_tag_save()` "
                 "in the database. A merge moves every setup, tip-up and catch onto the other tag.",
+    },
+    {
+        "name": "Gillbert - Gear - GET Gear Stats",
+        "method": "GET", "path": "gillbert/gear/stats", "template": TEMPLATE_GET,
+        "node": "Get Gear Stats",
+        # ?waterId=&speciesId=&from=&to= go over as one JSON value; the database ignores anything malformed
+        "sql": "SELECT gear_stats_get($1::jsonb) AS result;",
+        "params": "={{ [ JSON.stringify($('Inbound Request').item.json.query ?? {}) ] }}",
+        "failed": LOAD_FAILED,
+        "note": "## Gear: stats\nFish by tip-up, bait and setup part, each counted on the setup version it was "
+                "caught on, with the biggest fish per row. Optional lake / species / date filters. "
+                "Logic: `gear_stats_get()` in the database.",
     },
 ]
 

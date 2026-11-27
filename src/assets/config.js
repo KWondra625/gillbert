@@ -55,6 +55,7 @@ const GEAR_SAVE_URL       = API_BASE + "gear/save";
 const GEAR_SETUP_SAVE_URL = API_BASE + "gear/setup-save";
 const GEAR_TAGS_URL       = API_BASE + "gear/tags";      // admin: every tag and its uses
 const GEAR_TAG_SAVE_URL   = API_BASE + "gear/tag-save";  // admin: rename, hide, merge, delete a tag
+const GEAR_STATS_URL      = API_BASE + "gear/stats";     // fish by tip-up, bait and setup part
 
 // Banner on every page of every non-production copy of the site, so it's never
 // mistaken for the live one. It says which kind of copy this is; tapping it opens

@@ -41,13 +41,16 @@
     </div>
 
     <div id="listState" class="hidden">
-      <!-- Search, owner filter and Add: the same controls as the Anglers page -->
+      <!-- Search, owner filter, Stats and Add: the same controls as the Anglers page -->
       <div class="controls">
         <input type="text" id="searchInput" class="search-input" placeholder="Search tip-ups..."
                title="Search by name, owner, model, color or setup" autocomplete="off" />
         <div class="filter-row">
           <div class="status-filter" id="ownerFilter"></div>
-          <a href="./gear-edit.html" class="secondary-button button-small button-raised" id="addBtn">＋ Add Tip-up</a>
+          <div class="gear-list-actions">
+            <a href="./gear-stats.html" class="secondary-button button-small button-raised" id="statsBtn">📊 Stats</a>
+            <a href="./gear-edit.html" class="secondary-button button-small button-raised" id="addBtn">＋ Add Tip-up</a>
+          </div>
         </div>
       </div>
 

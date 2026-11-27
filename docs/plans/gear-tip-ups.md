@@ -175,6 +175,26 @@ Pieces: `scripts/gear/07_gear_tags_admin.sql` (`gear_tags_get`, `gear_tag_save`)
 `tools/n8n-migration/gear/deploy_gear_endpoints.py` (`gear/tags`, `gear/tag-save`; the script now
 creates only what's missing), `gear-tags.html`, `gear-tag-edit.html`, `tests/read/gear-tags.spec.js`.
 
+## Stage 4: Gear Stats (built and on Staging 2026-11-27)
+
+Agreed with Kurt from a mockup (version B: count plus biggest fish):
+- `gear-stats.html`, opened from a 📊 Stats button beside Add Tip-up on the Gear page; for everyone.
+- Sections ranked by fish: tip-ups, bait, hooks, line, leaders, beads, flash (an empty one isn't
+  shown). Each row: a count bar and the biggest fish on it. Top 5, then "Show all". Tip-up rows open
+  the tip-up.
+- Only catches logged on a tip-up count, each on the setup **version** it was caught on.
+- **No beads / No flash** rows (Kurt): a catch on a setup that has none counts there, so with and
+  without can be compared. A tip-up with no setup entered doesn't count as none. Ranked by count,
+  in italics, no medal. A fish on two beads counts for both (noted on the page).
+- Species and Water chips copied from the Catches page; remembered for the visit.
+- This Season / All Time toggle built but **hidden** (2026-27 is the only gear season); showing it
+  next season makes This Season the season's dates (Nov-Mar or Apr-Oct).
+
+Built: `scripts/gear/09_gear_stats.sql` (`gear_stats_get(p jsonb)`, read-only; filters waterId,
+speciesId, from, to, anything malformed ignored), `10_check_gear_stats.sql` (rolled back),
+endpoint `gear/stats` (GET Gear Stats, in `deploy_gear_endpoints.py`), `gear-stats.html/.js/.css`,
+`tests/read/gear-stats.spec.js`.
+
 ## Stages
 
 | # | Stage | Touches existing things? | Size |

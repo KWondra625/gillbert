@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gear Stats · Gillbert</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/theme.css" />
+  <link rel="stylesheet" href="./assets/base.css" />
+  <link rel="stylesheet" href="./assets/topbar.css" />
+  <script src="./assets/settings.js"></script>
+  <script src="./assets/season.js"></script>
+  <link rel="stylesheet" href="./assets/gear-stats.css" />
+</head>
+<body class="layout-open">
+  <div class="container">
+    <header class="topbar" id="topbar" data-back-href="./gear.html" data-back-label="Gear"></header>
+    <script src="./assets/topbar.js"></script>
+
+    <div class="page-head">
+      <span class="page-head-tile" aria-hidden="true">📊</span>
+      <div>
+        <p class="page-head-label">Gear</p>
+        <h1>Gear Stats</h1>
+      </div>
+    </div>
+
+    <!-- This Season / All Time: hidden while the app has one season of gear (2026-27); show it
+         next season and This Season becomes the default -->
+    <div class="status-filter season-filter" id="seasonFilter" hidden>
+      <button type="button" class="status-filter-btn" data-season="this">This Season</button>
+      <button type="button" class="status-filter-btn active" data-season="all">All Time</button>
+    </div>
+
+    <!-- Species and Water: the same chips as the Catches page -->
+    <div class="filter-bar">
+      <div class="filter-chip-wrapper">
+        <button class="filter-chip" id="filterSpeciesChip">
+          <span>🐟</span>
+          <span class="filter-chip-label">Species</span>
+          <span class="filter-chip-value" id="filterSpeciesValue"></span>
+          <span class="filter-chip-arrow">▾</span>
+        </button>
+        <div class="filter-chip-dropdown" id="filterSpeciesDropdown"></div>
+      </div>
+      <div class="filter-chip-wrapper">
+        <button class="filter-chip" id="filterWaterChip">
+          <span>💧</span>
+          <span class="filter-chip-label">Water</span>
+          <span class="filter-chip-value" id="filterWaterValue"></span>
+          <span class="filter-chip-arrow">▾</span>
+        </button>
+        <div class="filter-chip-dropdown" id="filterWaterDropdown"></div>
+      </div>
+    </div>
+
+    <div id="loadingState">
+      <div class="loading-indicator">
+        <div class="fishing-animation">🎣<span class="bobber">●</span></div>
+        <p>Counting fish…</p>
+      </div>
+    </div>
+
+    <div id="errorState" class="hidden">
+      <div class="error-card">
+        <p class="error-icon">⚠️</p>
+        <p id="errorMsg">Unable to load the gear stats. Please check your connection and try again.</p>
+        <button id="retryBtn" class="primary-button">🔄 Try Again</button>
+      </div>
+    </div>
+
+    <div id="statsState" class="hidden">
+      <p class="stats-summary" id="statsSummary"></p>
+      <div class="empty-state hidden" id="statsEmpty"><p id="statsEmptyText"></p></div>
+      <div id="statsSections"></div>
+    </div>
+  </div>
+
+  <script src="./assets/config.js"></script>
+  <script src="./assets/admin.js"></script>
+  <script src="./assets/gear-common.js"></script>
+  <script src="./assets/gear-stats.js"></script>
+</body>
+</html>
