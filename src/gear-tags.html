@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gear Tags · Gillbert</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/theme.css" />
+  <link rel="stylesheet" href="./assets/base.css" />
+  <link rel="stylesheet" href="./assets/topbar.css" />
+  <script src="./assets/settings.js"></script>
+  <script src="./assets/season.js"></script>
+  <link rel="stylesheet" href="./assets/gear-tags.css" />
+</head>
+<body class="layout-open">
+  <div class="container">
+    <header class="topbar" id="topbar"></header>
+    <script src="./assets/topbar.js"></script>
+
+    <div class="page-head">
+      <span class="page-head-tile" aria-hidden="true">🏷️</span>
+      <div>
+        <p class="page-head-label">Admin</p>
+        <h1>Gear Tags</h1>
+      </div>
+    </div>
+
+    <div id="loadingState">
+      <div class="loading-indicator">
+        <div class="fishing-animation">🎣<span class="bobber">●</span></div>
+        <p>Loading gear tags…</p>
+      </div>
+    </div>
+
+    <div id="errorState" class="hidden">
+      <div class="error-card">
+        <p class="error-icon">⚠️</p>
+        <p id="errorMsg">Unable to load gear tags. Please check your connection and try again.</p>
+        <button id="retryBtn" class="primary-button">🔄 Try Again</button>
+      </div>
+    </div>
+
+    <div id="listState" class="hidden">
+      <p class="tags-intro">The choices the crew types into tip-up setups and catches. Tidy up near-duplicates
+        ("dacron 30lb" and "Dacron 30 lb") by merging one into the other.</p>
+      <div class="controls">
+        <input type="text" id="searchInput" class="search-input" placeholder="Search tags..." autocomplete="off" />
+        <div class="filter-row">
+          <div class="status-filter" id="kindFilter"></div>
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Kind</th>
+              <th>Used on</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tagsTableBody"></tbody>
+        </table>
+      </div>
+
+      <p id="emptyState" class="empty-state hidden">No tags match.</p>
+    </div>
+  </div>
+
+  <script src="./assets/config.js"></script>
+  <script src="./assets/admin.js"></script>
+  <script src="./assets/gear-common.js"></script>
+  <script src="./assets/gear-tags.js"></script>
+</body>
+</html>

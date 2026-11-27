@@ -158,6 +158,23 @@ Catch Chat picks up the tip-up and bait: "got him on KW 24-02 with a sucker". As
   caught on" (tip-up or rod), and open water may ask about rods; the save path stays the same
   (gearId).
 
+## Stage 6: admin Gear Tags (built and on Staging 2026-11-27)
+
+**Gear tags** in the shack's admin section: every tag (line, leader, hook, beads, flash, bait,
+model, color) with what uses it, filtered by kind and search, sorted so near-duplicates sit
+together. A tag's page can:
+- **Rename** it (refused if the kind already has that name: merge instead).
+- **Hide / show** it: hidden tags aren't offered as you type; whatever uses them keeps them.
+- **Merge** it into another tag of the same kind (two-step confirm): every setup version,
+  tip-up model/color and catch bait moves over, then the tag goes. Can't be undone.
+- **Delete** it, only when nothing uses it.
+Tip-up histories keep the old text. Like the other admin pages, the gate is the page's.
+
+Pieces: `scripts/gear/07_gear_tags_admin.sql` (`gear_tags_get`, `gear_tag_save`),
+`08_check_gear_tags_admin.sql` (rolled-back checks), two endpoints in
+`tools/n8n-migration/gear/deploy_gear_endpoints.py` (`gear/tags`, `gear/tag-save`; the script now
+creates only what's missing), `gear-tags.html`, `gear-tag-edit.html`, `tests/read/gear-tags.spec.js`.
+
 ## Stages
 
 | # | Stage | Touches existing things? | Size |

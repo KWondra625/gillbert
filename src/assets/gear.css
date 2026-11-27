@@ -498,3 +498,16 @@ textarea {
   display: flex;
   gap: 10px;
 }
+
+/* Admin tag page: merge into another tag (same two-step pattern as delete) */
+.gear-merge select {
+  margin-bottom: 10px;
+}
+
+.gear-merge .gear-delete-confirm {
+  flex-wrap: wrap;
+}
+
+.gear-merge .gear-delete-confirm p {
+  flex-basis: 100%;
+}

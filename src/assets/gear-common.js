@@ -1,4 +1,5 @@
-// Shared by the four gear pages (gear, gear-tipup, gear-edit, gear-setup): loading and saving
+// Shared by the gear pages (gear, gear-tipup, gear-edit, gear-setup, and the admin's gear-tags and
+// gear-tag-edit): loading and saving
 // through the gear endpoints, and the words for a setup and for a history line.
 // The rules (unique names, versions, history) live in the database; this only shows them.
 
@@ -30,6 +31,30 @@ async function gearLoadAnglers() {
   const anglers = gearUnwrap(await res.json()).anglers || [];
   const myAnglerId = await resolveMyAnglerId(anglers);
   return { anglers, myAnglerId };
+}
+
+// Admin (gear-tags, gear-tag-edit): every tag with its uses,
+// [{ id, kind, name, status, tipUps, catches }], sorted by kind then name
+async function gearLoadTags() {
+  const res = await fetch(GEAR_TAGS_URL, { headers: { 'X-API-Key': API_KEY } });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const raw = await res.json();
+  return Array.isArray(raw) && Array.isArray(raw[0]) ? raw[0] : (Array.isArray(raw) ? raw : []);
+}
+
+// The tag kinds, in the order the admin pages show them
+const GEAR_TAG_KINDS = [
+  ['line', 'Line'], ['leader', 'Leader'], ['hook', 'Hook'], ['bead', 'Beads'], ['flash', 'Flash'],
+  ['bait', 'Bait'], ['model', 'Model'], ['color', 'Color'],
+];
+const GEAR_TAG_KIND_LABEL = Object.fromEntries(GEAR_TAG_KINDS);
+
+// "3 tip-ups", "1 catch", "3 tip-ups · 2 catches", or "Not used"
+function gearTagUses(t) {
+  const parts = [];
+  if (t.tipUps) parts.push(`${t.tipUps} tip-up${t.tipUps === 1 ? '' : 's'}`);
+  if (t.catches) parts.push(`${t.catches} catch${t.catches === 1 ? '' : 'es'}`);
+  return parts.length ? parts.join(' · ') : 'Not used';
 }
 
 // Posts a save; returns the answer, or throws with a message the page can show

@@ -3,6 +3,8 @@
   Gillbert - Gear - GET Gear              GET  gillbert/gear/get           SELECT gear_get(...)
   Gillbert - Gear - POST Save Gear        POST gillbert/gear/save          SELECT gear_save($1::jsonb)
   Gillbert - Gear - POST Save Gear Setup  POST gillbert/gear/setup-save    SELECT gear_setup_save($1::jsonb)
+  Gillbert - Gear - GET Gear Tags         GET  gillbert/gear/tags          SELECT gear_tags_get()          (stage 6, admin)
+  Gillbert - Gear - POST Save Gear Tag    POST gillbert/gear/tag-save      SELECT gear_tag_save($1::jsonb) (stage 6, admin)
 
 Each one is: the server's own access check (copied from its GET Anglers / POST Update Angler,
 the same nodes every Gillbert webhook uses), then one Postgres call, then the reply. The logic
@@ -14,8 +16,10 @@ leading "/", so the webhook's CORS setting applies (a leading slash makes n8n sk
   python -I -X utf8 gear/deploy_gear_endpoints.py --apply            Staging: create + publish (Kurt's OK)
   python -I -X utf8 gear/deploy_gear_endpoints.py --prod [--apply]   production: ONLY at release, with Kurt's separate OK
 
-Undo: deactivate the three workflows (the API helper never deletes). Nothing existing changes.
-Created ids are saved to gear/deployed_ids_<host>.json.
+Only the endpoints not yet on the server are created, so a re-run after adding one creates just
+that one (stage 6 added the two tag endpoints after the first three were live).
+Undo: deactivate the new workflows (the API helper never deletes). Nothing existing changes.
+Created ids are added to gear/deployed_ids_<host>.json.
 """
 import copy, json, os, sys, time, uuid
 
@@ -70,6 +74,26 @@ ENDPOINTS = [
         "note": "## Gear: change a setup\nOne call, one transaction: `gear_setup_save()` adds new tags, "
                 "updates the current version in place (no catches yet) or adds a new one, and writes the history.",
     },
+    {
+        "name": "Gillbert - Gear - GET Gear Tags",
+        "method": "GET", "path": "gillbert/gear/tags", "template": TEMPLATE_GET,
+        "node": "Get Gear Tags",
+        "sql": "SELECT gear_tags_get() AS result;",
+        "params": None,
+        "failed": LOAD_FAILED,
+        "note": "## Gear: tags (admin)\nEvery tag (line, leader, hook, bead, flash, bait, model, color) with how many "
+                "tip-ups and catches use it. Logic: `gear_tags_get()` in the database.",
+    },
+    {
+        "name": "Gillbert - Gear - POST Save Gear Tag",
+        "method": "POST", "path": "gillbert/gear/tag-save", "template": TEMPLATE_POST,
+        "node": "Save Gear Tag",
+        "sql": "SELECT gear_tag_save($1::jsonb) AS result;",
+        "params": "={{ [ JSON.stringify($('Inbound Request').item.json.body ?? {}) ] }}",
+        "failed": SAVE_FAILED,
+        "note": "## Gear: rename / hide / merge / delete a tag (admin)\nOne call, one transaction: `gear_tag_save()` "
+                "in the database. A merge moves every setup, tip-up and catch onto the other tag.",
+    },
 ]
 
 
@@ -121,7 +145,7 @@ def build(ep, template, pg_cred):
          "position": [x0, y0 - 100], "credentials": copy.deepcopy(pg_cred),
          "onError": "continueErrorOutput",
          "parameters": {"operation": "executeQuery", "query": ep["sql"],
-                        "options": {"queryReplacement": ep["params"]}}},
+                        "options": {"queryReplacement": ep["params"]} if ep["params"] else {}}},
         {"id": nid(), "name": "Respond to Webhook", "type": "n8n-nodes-base.respondToWebhook", "typeVersion": 1.5,
          "position": [x0 + 260, y0 - 200],
          "parameters": {"respondWith": "json", "responseBody": "={{ JSON.stringify($json.result) }}",
@@ -160,12 +184,13 @@ def check(wf):
 
 
 if __name__ == "__main__":
-    if os.path.exists(IDS_FILE):
-        sys.exit(f"STOP: {os.path.basename(IDS_FILE)} exists: already created on {HOST}? Check before re-running.")
     wf_list = get("/workflows?limit=250")["data"]
     by_name = {w["name"]: w for w in wf_list}
-    if clash := [ep["name"] for ep in ENDPOINTS if ep["name"] in by_name]:
-        sys.exit(f"STOP: already on {HOST}: {clash}")
+    if have := [ep["name"] for ep in ENDPOINTS if ep["name"] in by_name]:
+        print(f"already on {HOST}, left as they are: {have}")
+    todo = [ep for ep in ENDPOINTS if ep["name"] not in by_name]
+    if not todo:
+        sys.exit(f"Nothing to create on {HOST}.")
     full = {}
     for t in (TEMPLATE_GET, TEMPLATE_POST):
         if t not in by_name:
@@ -176,7 +201,7 @@ if __name__ == "__main__":
 
     os.makedirs(DRAFTS, exist_ok=True)
     built = []
-    for ep in ENDPOINTS:
+    for ep in todo:
         wf = build(ep, full[ep["template"]], pg_cred)
         if problems := check(wf):
             sys.exit(f"STOP: {ep['name']}: {problems}")
@@ -190,7 +215,7 @@ if __name__ == "__main__":
         print(f"dry run: nothing written to {HOST}")
         sys.exit(0)
 
-    ids = {}
+    ids = json.load(open(IDS_FILE, encoding="utf-8")) if os.path.exists(IDS_FILE) else {}
     for wf in built:
         made = write("POST", "/workflows", wf)
         ids[wf["name"]] = made["id"]

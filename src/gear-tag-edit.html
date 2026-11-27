@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gear Tag · Gillbert</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./assets/theme.css" />
+  <link rel="stylesheet" href="./assets/base.css" />
+  <link rel="stylesheet" href="./assets/topbar.css" />
+  <script src="./assets/settings.js"></script>
+  <script src="./assets/season.js"></script>
+  <link rel="stylesheet" href="./assets/gear.css" />
+</head>
+<body class="layout-card">
+  <header class="topbar" id="topbar" data-back-href="./gear-tags.html" data-back-label="Gear Tags"></header>
+  <script src="./assets/topbar.js"></script>
+  <div class="page-head">
+    <span class="page-head-tile" aria-hidden="true">🏷️</span>
+    <div>
+      <p class="page-head-label" id="kindLabel">Admin · Gear tag</p>
+      <h1 id="tagName">Gear tag</h1>
+    </div>
+  </div>
+  <div class="container">
+    <div id="loadingState">
+      <div class="loading-indicator">
+        <div class="fishing-animation">🎣<span class="bobber">●</span></div>
+        <p>Just a moment…</p>
+      </div>
+    </div>
+
+    <div id="errorState" class="hidden">
+      <div class="error-card">
+        <p class="error-icon">⚠️</p>
+        <p id="errorMsg">Unable to load this tag. Please check your connection and try again.</p>
+        <button id="retryBtn" class="primary-button">🔄 Try Again</button>
+      </div>
+      <a href="./gear-tags.html" class="back-button">← Back to Gear Tags</a>
+    </div>
+
+    <div id="formState" class="hidden">
+      <p class="gear-sub" id="tagUses"></p>
+
+      <form id="tagForm" novalidate>
+        <div class="field-group">
+          <label for="name">Name <span class="required-mark">*</span></label>
+          <input type="text" id="name" maxlength="100" autocomplete="off" />
+          <p class="field-hint">Fixing the spelling changes it everywhere it's used. Tip-up histories keep the old wording.</p>
+        </div>
+
+        <div class="field-group">
+          <span class="field-label">Status</span>
+          <div class="status-pills" id="statusPills">
+            <button type="button" class="status-pill" data-status="Active">Shown</button>
+            <button type="button" class="status-pill" data-status="Hidden">Hidden</button>
+          </div>
+          <p class="field-hint">Hidden: no longer offered as you type. Setups and catches that use it keep it.</p>
+        </div>
+
+        <div id="formError" class="form-error hidden" role="alert"></div>
+
+        <div class="form-actions">
+          <button type="submit" id="saveBtn" class="primary-button">💾 Save Changes</button>
+          <a href="./gear-tags.html" class="back-button">← Cancel</a>
+        </div>
+      </form>
+
+      <div class="gear-delete gear-merge hidden" id="mergeGroup">
+        <p id="mergeIntro">Same thing spelled another way? Merge it: everything using this tag switches to the other one, and this one goes away.</p>
+        <select id="mergeInto"><option value="">Merge into…</option></select>
+        <button type="button" class="secondary-button" id="mergeBtn" disabled>Merge</button>
+        <div class="gear-delete-confirm hidden" id="mergeConfirm">
+          <p id="mergeConfirmText"></p>
+          <button type="button" class="secondary-button danger-button" id="mergeYes">Yes, merge them</button>
+          <button type="button" class="secondary-button" id="mergeNo">Cancel</button>
+        </div>
+      </div>
+
+      <div class="gear-delete hidden" id="deleteGroup">
+        <p>Nothing uses this tag, so it can be deleted.</p>
+        <button type="button" class="secondary-button danger-button" id="deleteBtn">Delete this tag</button>
+        <div class="gear-delete-confirm hidden" id="deleteConfirm">
+          <button type="button" class="secondary-button danger-button" id="deleteYes">Yes, delete it</button>
+          <button type="button" class="secondary-button" id="deleteNo">Keep it</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="submittingState" class="hidden">
+      <div class="loading-indicator">
+        <div class="fishing-animation">🎣<span class="bobber">●</span></div>
+        <p>Updating Gillbert's records…</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="./assets/config.js"></script>
+  <script src="./assets/admin.js"></script>
+  <script src="./assets/gear-common.js"></script>
+  <script src="./assets/gear-tag-edit.js"></script>
+</body>
+</html>

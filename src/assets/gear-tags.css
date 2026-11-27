@@ -1,0 +1,219 @@
+
+/* ── Header ──────────────────────────────────────────────────────── */
+
+/* ── Controls ────────────────────────────────────────────────────── */
+
+.controls {
+  margin-bottom: 20px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--gb-ink-2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  outline: none;
+  margin-bottom: 12px;
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.status-filter {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.status-filter-btn {
+  padding: 8px 14px;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  font-family: inherit;   /* buttons don't take the page font on their own */
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.status-filter-btn:active {
+  transform: scale(0.96);
+}
+
+.status-filter-btn.active {
+  background: white;
+  color: var(--gb-accent-700);
+  border-color: white;
+}
+
+/* ── Table ───────────────────────────────────────────────────────── */
+
+.table-scroll {
+  overflow-x: auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  margin-bottom: 16px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gb-faint);
+  border-bottom: 2px solid var(--gb-line-soft);
+  white-space: nowrap;
+}
+
+.data-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f5f5f5;
+  color: var(--gb-ink);
+}
+
+.name-cell {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.row-edit-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.row-edit-link:hover {
+  text-decoration: underline;
+}
+
+.name-info-icon {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--gb-accent);
+  cursor: help;
+  vertical-align: middle;
+}
+
+.catch-count-link {
+  color: var(--gb-accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.catch-count-link:hover {
+  text-decoration: underline;
+}
+
+.catch-count-zero {
+  color: var(--gb-line-strong);
+}
+
+.data-row {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.data-row:hover {
+  background: var(--gb-accent-soft);
+}
+
+.data-row:last-child td {
+  border-bottom: none;
+}
+
+.empty-state {
+  text-align: center;
+  color: white;
+  opacity: 0.9;
+  font-size: 14px;
+  margin: 20px 0;
+}
+
+/* ── Pills ───────────────────────────────────────────────────────── */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pill-green { background: #e6fff2; color: #0d5c3f; }
+.pill-red   { background: #fff0f0; color: #c0392b; }
+.pill-amber { background: #fff8e6; color: #d98c00; }
+
+/* ── Loading indicator ───────────────────────────────────────────── */
+
+/* ── Error card ──────────────────────────────────────────────────── */
+
+.error-card {
+  text-align: center;
+  padding: 24px 16px;
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.error-card .error-icon {
+  font-size: 40px;
+  margin: 0 0 12px 0;
+}
+
+.error-card p {
+  font-size: 14px;
+  color: var(--gb-muted);
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.primary-button {
+  display: inline-block;
+  font-size: 15px;
+  padding: 12px 24px;
+  width: auto;
+}
+
+/* ── Back button ─────────────────────────────────────────────────── */
+
+/* ── Utility ─────────────────────────────────────────────────────── */
+
+.container {
+  max-width: 800px; /* wide page: a grid of cards (the shared open layout is 700px) */
+}
+
+/* ── Gear tags ───────────────────────────────────────────────────── */
+
+.tags-intro {
+  margin: 0 0 14px 0;
+  color: white;
+  font-size: 14px;
+  opacity: 0.92;
+}
+
+.tag-unused {
+  color: var(--gb-faint-2);
+}
