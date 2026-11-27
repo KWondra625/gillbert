@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS conversations (
     length_in_raw varchar(255),
     water_depth_ft_raw varchar(255),
     notes_raw TEXT,
+    tip_up_raw varchar(255),
+    bait_raw varchar(255),
     conversation_status varchar(255),
     started_at TIMESTAMPTZ,
     ended_at TIMESTAMPTZ,

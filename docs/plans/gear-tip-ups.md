@@ -116,6 +116,48 @@ nothing until stage 5, and it gets the full write-test run.
   parts) and owner pills (only anglers who own a tip-up).
 - **Release order:** 01, 02, 04, then the view, then the n8n patch.
 
+## Stage 5 design: Catch Chat (agreed 2026-11-27)
+
+Catch Chat picks up the tip-up and bait: "got him on KW 24-02 with a sucker". Ask Gillbert
+(questions about gear) is left for later.
+
+**How Gillbert behaves**
+- Each turn it's given the active tip-ups (with owners) and the bait choices.
+- It catches both whenever they're mentioned, in any order.
+- During ice season (November to March, by catch date, like the site's season look) it asks for
+  them in the same breath as depth: "Which tip-up was it on, what bait, and any idea on the
+  depth?" No extra turn. In open water it never asks, but still takes them if mentioned.
+- Tip-up: only a name from the list. Loose versions are fine ("kw 2402", "Dave's 22-01") when
+  exactly one fits; otherwise it asks once with up to 3 likely names, then leaves it blank. It
+  never makes one up. Whose tip-up doesn't matter.
+- Bait: the existing spelling when it's the same bait. Kind but no size ("sucker") → "Sucker".
+  Anything new becomes a choice, like the form.
+- The recap before saving mentions both.
+
+**How it saves**
+- The name is matched again in the database (active tip-ups, same name rule as the gear pages).
+  No match = no tip-up; Catch Chat never creates gear.
+- Save Catch gets gearId and bait from Catch Chat too, so the catch gets the setup version and
+  bait through the same `catch_gear_set` as the forms.
+
+**Changes** (tools/n8n-migration/gear/deploy_catch_chat_gear.py; dry run on Staging is clean)
+1. `scripts/gear/06_catch_chat_gear.sql`: `conversations` gets `tip_up_raw`, `bait_raw`.
+2. n8n data table `fish_catch_conversations`: the same two string columns, added by hand in
+   the n8n screen (the API key can't change data tables). Must come before step 3.
+3. The script: Save Catch takes gearId and bait from workflow calls; Catch Chat gets "Get Gear
+   Names", the prompt and output fields, the two *_raw fields carried through, "Lookup Tip-Up",
+   and sends both to Save Catch.
+4. Test: `tests/write/09-catch-chat.spec.js` (opt-in, calls Claude) names a test tip-up and bait
+   and checks both land on the catch.
+
+**Answered (Kurt, 2026-11-27)**
+- Bait with no size: store the kind alone ("Sucker"), no extra question. Guessing the size from
+  a recent catch's bait was considered and dropped: more complexity than it's worth.
+- Ask about the tip-up only in ice season (Nov–Mar).
+- Jigging rods come later (low priority). Then "tip-up" in the prompt becomes "what it was
+  caught on" (tip-up or rod), and open water may ask about rods; the save path stays the same
+  (gearId).
+
 ## Stages
 
 | # | Stage | Touches existing things? | Size |

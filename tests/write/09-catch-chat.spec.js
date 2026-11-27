@@ -2,7 +2,8 @@
 // Gillbert in Catch Chat. It calls Claude several times, so it only runs with
 // CATCH_CHAT_TESTS=1 (and not with SKIP_AI=1). The chat runs as a test angler, through
 // the identity fixture, on a test chat session; cleanup removes the catch, the
-// conversation and the chat memory.
+// conversation and the chat memory. Gear stage 5: the angler also names a test tip-up and a
+// test bait, and both land on the catch (cleanup removes the tip-up and the bait choice too).
 const { test, expect, unlockAdmin } = require('../support/fixtures');
 const { getCatches, getLookups } = require('../support/staging-api');
 const { requireStagingWrites, testName, RUN_ID, useTestChatSession } = require('../support/test-data');
@@ -14,6 +15,8 @@ test.describe.configure({ mode: 'serial' });
 
 const EMAIL = `e2e-chat-${RUN_ID}@example.com`;
 const ANGLER = testName('Chat Angler');
+const TIP_UP = testName('Chat Tip-up');
+const BAIT = testName('Chat Bait');
 const MAX_TURNS = 5;
 
 async function me() {
@@ -33,6 +36,14 @@ test('set up: a test angler with a login email', async ({ page }) => {
   await expect(page).toHaveURL(/edit-angler\.html\?id=\d+/);
 });
 
+test('set up: a test tip-up for the angler to name', async ({ page }) => {
+  await page.goto('gear-edit.html');
+  await page.locator('#name').fill(TIP_UP);
+  await page.locator('#owner').selectOption({ label: ANGLER });
+  await page.locator('#saveBtn').click();
+  await expect(page).toHaveURL(/gear-setup\.html\?id=\d+&new=1/);
+});
+
 test.describe('logged in as the test angler', () => {
   test.use({ identityEmail: EMAIL });
 
@@ -46,7 +57,7 @@ test.describe('logged in as the test angler', () => {
     await useTestChatSession(page, 'gillbert_chat_session');
     await page.goto('catch-chat.html');
     const replies = page.locator('.message--gillbert:not(.message--thinking):not(.message--error)');
-    let said = `I caught a 21 inch ${speciesName} on ${water.name} today at 2pm, in 8 feet of water. No notes.`;
+    let said = `I caught a 21 inch ${speciesName} on ${water.name} today at 2pm, in 8 feet of water, on tip-up ${TIP_UP} with ${BAIT} for bait. No notes.`;
 
     // Answer like a person would: Gillbert sometimes takes "I" to mean the logged-in
     // angler and sometimes asks who caught it, so reply to what it actually asked.
@@ -70,6 +81,8 @@ test.describe('logged in as the test angler', () => {
     expect(saved.waterDepth).toBe(8);
     expect(saved.recordSource).toBe('Gillbert Chat');
     expect(saved.createdByAnglerId).toBe((await me()).id);
+    expect(saved.caughtOn && saved.caughtOn.name).toBe(TIP_UP);
+    expect(saved.bait).toBe(BAIT);
     // Gillbert's reply names the new catch, and the page turns that into a link.
     await expect(page.locator(`a.chat-catch-link`, { hasText: saved.catchNumber })).toBeVisible();
   });
