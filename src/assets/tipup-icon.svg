@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- The Gear icon: a Frabill tip-up flag on its spring wire, facing right like the 🚩 emoji -->
+  <line x1="17" y1="5" x2="17" y2="58" stroke="#5d6b75" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M15 48 h4 M15 51 h4 M15 54 h4 M15 57 h4" stroke="#8a959d" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M18 7 L50 2 L51 33 L18 37 Z" fill="#f57c1f" stroke="#d4630f" stroke-width="1.6" stroke-linejoin="round"/>
+  <rect x="42" y="7" width="3" height="7" rx="1.5" fill="#fff" opacity="0.85" transform="rotate(-9 43.5 10.5)"/>
+</svg>

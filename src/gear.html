@@ -18,7 +18,7 @@
     <script src="./assets/topbar.js"></script>
 
     <div class="page-head">
-      <span class="page-head-tile" aria-hidden="true">🚩</span>
+      <span class="page-head-tile" aria-hidden="true"><img class="tipup-ico" src="./assets/tipup-icon.svg" alt="" /></span>
       <div>
         <p class="page-head-label">The crew</p>
         <h1>Gear</h1>
@@ -43,10 +43,13 @@
     <div id="listState" class="hidden">
       <p class="gear-intro">Everyone's tip-ups. Tap one to see or change its setup.</p>
 
+      <div class="gear-toolbar">
+        <a href="./gear-edit.html" class="secondary-button button-small button-raised" id="addBtn">＋ Add Tip-up</a>
+      </div>
+
       <section class="gear-section" aria-labelledby="activeHead">
         <h2 class="gear-section-head" id="activeHead">
           <span>Tip-ups · <span id="activeCount">0</span></span>
-          <a href="./gear-edit.html" class="secondary-button button-small button-raised" id="addBtn">＋ Add a tip-up</a>
         </h2>
         <ul class="gear-list" id="activeList"></ul>
         <p class="gear-empty hidden" id="activeEmpty">No tip-ups yet. Add the first one, and its setup after.</p>

@@ -87,7 +87,7 @@ async function load() {
       if (!t) { notFound(); return; }
       document.title = `Edit ${t.name} · Gillbert`;
       el.formHeading.textContent = `Edit ${t.name}`;
-      el.headTile.textContent = '🚩';
+      el.headTile.innerHTML = '<img class="tipup-ico" src="./assets/tipup-icon.svg" alt="" />';
       el.headTile.classList.remove('page-head-tile--plus');
       GillbertTopbar.setBack(`./gear-tipup.html?id=${t.id}`, t.name);
       el.cancelLink.href = `./gear-tipup.html?id=${t.id}`;

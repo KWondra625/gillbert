@@ -14,6 +14,13 @@
   margin-bottom: 20px;
 }
 
+/* Same spot and button as "+ Add Angler" on the Anglers page */
+.gear-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
 .gear-section-head {
   display: flex;
   align-items: center;

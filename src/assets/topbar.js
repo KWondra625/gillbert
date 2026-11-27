@@ -32,7 +32,7 @@
         <div class="tray-label">Your setup</div>
         <a href="./notifications.html"><span class="tray-ico">🔔</span><span><b>Catch notifications</b><span>Get a buzz when someone logs a catch</span></span></a>
         <a href="./me.html"><span class="tray-ico">👤</span><span><b>My profile</b><span>Your photo and login</span></span></a>
-        <a href="./gear.html"><span class="tray-ico">🚩</span><span><b>Gear</b><span>Everyone's tip-ups and their setups</span></span></a>
+        <a href="./gear.html"><span class="tray-ico"><img class="tipup-ico" src="./assets/tipup-icon.svg" alt="" /></span><span><b>Gear</b><span>Everyone's tip-ups and their setups</span></span></a>
       </div>
       <div class="tray">
         <div class="tray-label">About Gillbert</div>

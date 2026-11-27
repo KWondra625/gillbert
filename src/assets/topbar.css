@@ -409,3 +409,11 @@
 :where(.layout-card) .container .page-intro {
   text-shadow: none;
 }
+
+/* The orange tip-up drawing used as the Gear icon (in place of an emoji) */
+.tipup-ico {
+  display: inline-block;
+  height: 1.2em;
+  width: auto;
+  vertical-align: middle;
+}

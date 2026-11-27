@@ -25,7 +25,7 @@ function row(t) {
   return `
     <li>
       <a class="gear-row${retired ? ' gear-row--retired' : ''}" href="./gear-tipup.html?id=${encodeURIComponent(t.id)}" data-id="${t.id}">
-        <span class="gear-row-flag" aria-hidden="true">🚩</span>
+        <span class="gear-row-flag" aria-hidden="true"><img class="tipup-ico" src="./assets/tipup-icon.svg" alt="" /></span>
         <span class="gear-row-body">
           <span class="gear-row-name">${gearEsc(t.name)}</span>
           <span class="gear-row-meta">${gearEsc(meta)}</span>

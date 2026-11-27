@@ -102,6 +102,11 @@ VALUES ('bait', 'Shiner (small)'), ('bait', 'Shiner (medium)'), ('bait', 'Shiner
        ('bait', 'Not sure')
 ON CONFLICT (kind, name_key) DO NOTHING;
 
+-- Line starter list (Kurt, 2026-11-26): the crew mostly runs Sufix metered tip-up braid
+INSERT INTO gear_options (kind, name)
+VALUES ('line', 'Sufix Metered Tip-Up Ice Braid 15 lb'), ('line', 'Sufix Metered Tip-Up Ice Braid 20 lb')
+ON CONFLICT (kind, name_key) DO NOTHING;
+
 -- Same owner as the rest of the database (scripts/roles/gillbert_fullaccess.sql)
 DO $$
 DECLARE t text;
@@ -115,11 +120,12 @@ END $$;
 
 COMMIT;
 
--- Check: 5 tables, 2 new catches columns, 7 baits
+-- Check: 5 tables, 2 new catches columns, 7 baits, 2 lines
 SELECT (SELECT count(*) FROM information_schema.tables
          WHERE table_schema = current_schema()
            AND table_name IN ('gear_options', 'gear', 'gear_setups', 'gear_setup_options', 'gear_history')) AS gear_tables,
        (SELECT count(*) FROM information_schema.columns
          WHERE table_schema = current_schema() AND table_name = 'catches'
            AND column_name IN ('gear_setup_id', 'bait_option_id')) AS catches_columns,
-       (SELECT count(*) FROM gear_options WHERE kind = 'bait') AS baits;
+       (SELECT count(*) FROM gear_options WHERE kind = 'bait') AS baits,
+       (SELECT count(*) FROM gear_options WHERE kind = 'line') AS lines;
