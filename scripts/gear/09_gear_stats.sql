@@ -6,7 +6,7 @@
 -- Only catches logged on a tip-up count (a catch with no tip-up has nothing to slice by), and
 -- each one counts for the setup VERSION it was caught on, so changing a hook later doesn't move
 -- old fish. Beads and flash can be none: a catch whose setup had none counts under "No beads" /
--- "No flash". A fish on two beads counts under both, so a section's counts can add up to more
+-- "No flash" (a setup nobody entered isn't none). A fish on two beads counts under both, so a section's counts can add up to more
 -- than the fish. Line, leader and hook are always on the tip-up, so a blank one is just not
 -- entered and isn't counted.
 
@@ -66,6 +66,10 @@ parts AS (
   CROSS JOIN (VALUES ('bead'), ('flash')) k(kind)
   WHERE NOT EXISTS (SELECT 1 FROM gear_setup_options so JOIN gear_options o ON o.id = so.option_id
                     WHERE so.setup_id = cs.setup_id AND o.kind = k.kind)
+    -- ...and only when the setup was entered: a tip-up logged on before anyone set it up gets an
+    -- empty first version (catch_gear_set), and "not entered" isn't "none"
+    AND (cs.line_option_id IS NOT NULL OR cs.leader_option_id IS NOT NULL OR cs.hook_option_id IS NOT NULL
+         OR EXISTS (SELECT 1 FROM gear_setup_options so WHERE so.setup_id = cs.setup_id))
 ),
 counted AS (
   SELECT section, key_id, is_none, min(name) AS name, min(owner) AS owner, count(*) AS fish

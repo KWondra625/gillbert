@@ -101,6 +101,20 @@ BEGIN
   IF NOT (after->'species') @> jsonb_build_array(jsonb_build_object('id', sp2)) THEN RAISE EXCEPTION 'species list'; END IF;
   RAISE NOTICE 'ok: filters';
 
+  -- A tip-up nobody set up: its catch counts for the tip-up, but not as No beads / No flash
+  r := gear_save(jsonb_build_object('name', 'ZZ Stats-02', 'ownerAnglerId', a1, 'byAnglerId', a1));
+  INSERT INTO catches (record_source, angler_id, fish_species_id, body_of_water_id, caught_when, notes)
+  VALUES ('Gear check', a1, sp1, bw, now(), '[stats check, rolled back]') RETURNING id INTO c1;
+  PERFORM catch_gear_set(c1, (r->>'id')::int, NULL, a1);
+  before := after;
+  after := gear_stats_get();
+  IF NOT EXISTS (SELECT 1 FROM jsonb_array_elements(after->'sections'->'tipUp') t WHERE t->>'name' = 'ZZ Stats-02')
+    THEN RAISE EXCEPTION 'tip-up with no setup missing'; END IF;
+  IF coalesce((SELECT (t->>'fish')::int FROM jsonb_array_elements(after->'sections'->'bead') t WHERE (t->>'none')::boolean), 0)
+   <> coalesce((SELECT (t->>'fish')::int FROM jsonb_array_elements(before->'sections'->'bead') t WHERE (t->>'none')::boolean), 0)
+    THEN RAISE EXCEPTION 'a setup nobody entered counted as No beads'; END IF;
+  RAISE NOTICE 'ok: a setup nobody entered isn''t None';
+
   -- An inactive catch drops out
   UPDATE catches SET status = 'Inactive' WHERE id = c2;
   IF (gear_stats_get()->>'fish')::int <> (after->>'fish')::int - 1 THEN RAISE EXCEPTION 'inactive catch counted'; END IF;

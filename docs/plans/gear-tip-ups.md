@@ -195,6 +195,12 @@ speciesId, from, to, anything malformed ignored), `10_check_gear_stats.sql` (rol
 endpoint `gear/stats` (GET Gear Stats, in `deploy_gear_endpoints.py`), `gear-stats.html/.js/.css`,
 `tests/read/gear-stats.spec.js`.
 
+Review with seeded data (2026-11-27): `tests/write/13-gear-stats.spec.js` seeds 5 tip-ups (one never
+set up, two changed mid-season), ~27 catches through Log a Catch, Edit Catch and Catch Chat, and
+checks gear/stats against a count made from get-catches, unfiltered and per species and lake. It
+found one bug, fixed in 09: a tip-up logged on before anyone set it up gets an empty first version,
+which counted as No beads / No flash; "not entered" now isn't "none".
+
 ## Stages
 
 | # | Stage | Touches existing things? | Size |
