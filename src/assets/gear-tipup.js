@@ -11,6 +11,7 @@ const el = {
   setupLink:   document.getElementById('setupLink'),
   editLink:    document.getElementById('editLink'),
   historyList: document.getElementById('historyList'),
+  viewCatches: document.getElementById('viewCatchesLink'),
   errorMsg:    document.getElementById('errorMsg'),
   retryBtn:    document.getElementById('retryBtn'),
 };
@@ -24,7 +25,18 @@ function part(label, value) {
   return `<dt>${label}</dt><dd>${shown ? gearEsc(shown) : '<span class="gear-none">—</span>'}</dd>`;
 }
 
+let shown = null;  // the tip-up on the page, for the View Catches link
+
+// "View 3 Catches" opens the catches list filtered to this tip-up; with none it's greyed out
+function renderViewCatches(t) {
+  const n = Number(t.catchCount) || 0;
+  el.viewCatches.textContent = n > 0 ? `🎣 View ${n} Catch${n === 1 ? '' : 'es'}` : '🎣 No Catches Yet';
+  el.viewCatches.classList.toggle('view-catches-link--empty', n === 0);
+}
+
 function render(t, history) {
+  shown = t;
+  renderViewCatches(t);
   document.title = `${t.name} · Gillbert`;
   el.tipName.textContent = t.name;
   el.tipSub.textContent = [`${t.ownerName}'s`, t.status].join(' · ');
@@ -82,5 +94,10 @@ async function load() {
   }
 }
 
+el.viewCatches.addEventListener('click', e => {
+  e.preventDefault();
+  if (!shown || !(Number(shown.catchCount) > 0)) return;
+  goToGearCatches(shown.id, shown.name, { href: `./gear-tipup.html?id=${encodeURIComponent(shown.id)}`, label: shown.name });
+});
 el.retryBtn.addEventListener('click', load);
 window.addEventListener('DOMContentLoaded', load);

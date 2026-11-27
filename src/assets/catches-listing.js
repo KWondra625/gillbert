@@ -23,6 +23,9 @@ const el = {
   filterGroupChip: document.getElementById('filterGroupChip'),
   filterGroupValue: document.getElementById('filterGroupValue'),
   filterGroupDropdown: document.getElementById('filterGroupDropdown'),
+  filterGearWrapper: document.getElementById('filterGearWrapper'),
+  filterGearChip: document.getElementById('filterGearChip'),
+  filterGearValue: document.getElementById('filterGearValue'),
   filterPendingWrapper: document.getElementById('filterPendingWrapper'),
   filterPendingChip: document.getElementById('filterPendingChip'),
   filterPendingValue: document.getElementById('filterPendingValue'),
@@ -36,7 +39,8 @@ let allCatches = [];
 let filteredCatches = [];
 let currentPage = 1;
 let lookups = { anglers: [], species: [], bodiesOfWater: [] };
-let activeFilters = { angler: '', species: '', water: '', waterId: null, group: '', pendingOnly: false };
+// gearId/gearName: set only by a tip-up page's View Catches link (gear-catches.js); no dropdown
+let activeFilters = { angler: '', species: '', water: '', waterId: null, group: '', gearId: null, gearName: '', pendingOnly: false };
 // anglerId -> groups[] — built once lookups.anglers loads, so the Group
 // filter can check a catch's angler without re-deriving this per catch.
 let groupsByAnglerId = {};
@@ -430,6 +434,7 @@ function applyFilters() {
       if (c.bodyOfWaterId !== activeFilters.waterId) return false;
     } else if (activeFilters.water && c.bodyOfWaterName !== activeFilters.water) return false;
     if (activeFilters.group && !(groupsByAnglerId[c.anglerId] || []).includes(activeFilters.group)) return false;
+    if (activeFilters.gearId != null && !(c.caughtOn && c.caughtOn.gearId === activeFilters.gearId)) return false;
     if (activeFilters.pendingOnly && c.verifiedAt) return false;
     return true;
   });
@@ -447,15 +452,24 @@ function updateFilterUI() {
   updateChip('species', el.filterSpeciesChip, el.filterSpeciesValue);
   updateChip('water', el.filterWaterChip, el.filterWaterValue);
   updateChip('group', el.filterGroupChip, el.filterGroupValue);
+  updateGearChip();
   updatePendingChip();
   syncDropdownSelections();
-  const hasFilter = activeFilters.angler || activeFilters.species || activeFilters.water || activeFilters.group || activeFilters.pendingOnly;
+  const hasFilter = activeFilters.angler || activeFilters.species || activeFilters.water || activeFilters.group
+    || activeFilters.gearId != null || activeFilters.pendingOnly;
   if (hasFilter && allCatches.length) {
     el.filterSummary.classList.add('visible');
     el.filterSummaryText.textContent = `🎣 Showing ${filteredCatches.length} of ${allCatches.length} catches`;
   } else {
     el.filterSummary.classList.remove('visible');
   }
+}
+
+// Caught on: shown only while a tip-up filter is on; tapping it takes the filter off
+function updateGearChip() {
+  const on = activeFilters.gearId != null;
+  el.filterGearWrapper.hidden = !on;
+  el.filterGearValue.textContent = on ? ': ' + (activeFilters.gearName || 'tip-up') : '';
 }
 
 // Toggle chip (not a dropdown picker) — label always shows a live pending count.
@@ -517,8 +531,14 @@ function closeDropdowns() {
 document.addEventListener('click', closeDropdowns);
 
 el.filterClearAll.addEventListener('click', () => {
-  activeFilters = { angler: '', species: '', water: '', waterId: null, group: '', pendingOnly: false };
+  activeFilters = { angler: '', species: '', water: '', waterId: null, group: '', gearId: null, gearName: '', pendingOnly: false };
   sessionStorage.removeItem('gillbert_filters');
+  applyFilters();
+});
+
+el.filterGearChip.addEventListener('click', () => {
+  activeFilters.gearId = null;
+  activeFilters.gearName = '';
   applyFilters();
 });
 

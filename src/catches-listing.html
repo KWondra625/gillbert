@@ -38,6 +38,15 @@
       </div>
 
       <div class="filter-bar">
+        <!-- Only from a tip-up's View Catches link; first so it's seen -->
+        <div class="filter-chip-wrapper" id="filterGearWrapper" hidden>
+          <button class="filter-chip active" id="filterGearChip" title="Show every tip-up">
+            <img class="tipup-ico" src="./assets/tipup-icon.svg" alt="" />
+            <span class="filter-chip-label">Caught on</span>
+            <span class="filter-chip-value" id="filterGearValue"></span>
+            <span class="filter-chip-arrow" aria-hidden="true">✕</span>
+          </button>
+        </div>
         <div class="filter-chip-wrapper">
           <button class="filter-chip" id="filterAnglerChip">
             <span>👤</span>

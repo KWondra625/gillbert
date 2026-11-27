@@ -178,3 +178,51 @@ test.describe('catch page: Caught on', () => {
     await expect(page.locator('.detail-row', { hasText: 'Bait' })).toHaveCount(0);
   });
 });
+
+test.describe('tip-up page: View Catches', () => {
+  const ON_7 = { ...CATCH, id: 502, catchNumber: 'Catch 26-502', caughtOn: { ...CATCH.caughtOn, gearId: 7, name: 'KW 24-01', status: 'Active' } };
+  const NO_GEAR = { ...CATCH, id: 503, catchNumber: 'Catch 26-503', caughtOn: null };
+
+  async function mockTipUpAndList(page, catchCount) {
+    await page.route(url => url.pathname.endsWith('/gillbert/get-lookup-data'), route => route.fulfill({ json: LOOKUPS }));
+    await page.route(url => url.pathname.endsWith('/gillbert/gear/get'), route =>
+      route.fulfill({ json: { tipUps: [{ ...TIP_UPS[0], catchCount }], options: OPTIONS, history: [] } }));
+    await page.route(url => url.pathname.endsWith('/gillbert/get-catches'), route =>
+      route.fulfill({ json: [ON_7, NO_GEAR, CATCH] }));
+  }
+
+  test('opens the catches list filtered to the tip-up; the chip takes the filter off', async ({ page }) => {
+    await mockTipUpAndList(page, 1);
+    await page.goto('gear-tipup.html?id=7');
+    const link = page.locator('#viewCatchesLink');
+    await expect(link).toHaveText('🎣 View 1 Catch');
+    await link.click();
+    await expect(page).toHaveURL(/catches-listing\.html/);
+    const cards = page.locator('#catchesContainer .catch-card');
+    await expect(cards).toHaveCount(1);
+    await expect(cards.first()).toContainText('26-502');
+    await expect(page.locator('#filterGearChip')).toContainText('Caught on');
+    await expect(page.locator('#filterGearValue')).toHaveText(': KW 24-01');
+    await expect(page.locator('#filterSummaryText')).toContainText('Showing 1 of 3');
+    await expect(page.locator('#bottomBackLink')).toHaveText('← Back to KW 24-01');
+
+    await page.locator('#filterGearChip').click();
+    await expect(page.locator('#filterGearWrapper')).toBeHidden();
+    await expect(cards).toHaveCount(3);
+  });
+
+  test('with no catches yet it is greyed out and goes nowhere', async ({ page }) => {
+    await mockTipUpAndList(page, 0);
+    await page.goto('gear-tipup.html?id=7');
+    const link = page.locator('#viewCatchesLink');
+    await expect(link).toHaveText('🎣 No Catches Yet');
+    await expect(link).toHaveClass(/view-catches-link--empty/);
+  });
+
+  test('the catches list shows no Caught on chip on a plain visit', async ({ page }) => {
+    await mockTipUpAndList(page, 1);
+    await page.goto('catches-listing.html');
+    await expect(page.locator('#catchesContainer .catch-card')).toHaveCount(3);
+    await expect(page.locator('#filterGearWrapper')).toBeHidden();
+  });
+});

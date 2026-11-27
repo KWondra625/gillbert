@@ -275,6 +275,29 @@
   font-size: 12px;
 }
 
+/* View Catches, at the bottom like the Angler, Water and Species pages */
+.gear-footer {
+  display: flex;
+  margin-top: 20px;
+}
+
+.view-catches-link {
+  color: var(--gb-accent);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.view-catches-link:hover {
+  text-decoration: underline;
+}
+
+.view-catches-link--empty {
+  color: var(--gb-line-strong);
+  cursor: default;
+  pointer-events: none;
+}
+
 /* ── Forms ───────────────────────────────────────────────────────── */
 
 .field-group {
