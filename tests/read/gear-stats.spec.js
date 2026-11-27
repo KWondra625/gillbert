@@ -58,15 +58,16 @@ test('ranks each section by fish, with the biggest fish, and skips empty section
   await expect(page.locator('.stats-section[data-section="bait"] .rank-row').first()).not.toHaveAttribute('href', /./);
 });
 
-test('No beads sits in the ranking but takes no medal', async ({ page }) => {
+test('No beads ranks like the rest, in italics', async ({ page }) => {
   await mockStats(page);
   await page.goto('gear-stats.html');
   const beads = page.locator('.stats-section[data-section="bead"]');
+  await expect(beads.locator('.section-label')).toHaveText('🫧 Beads');
   await expect(beads.locator('.stats-note')).toHaveText('A fish on two beads counts for both.');
   const rows = beads.locator('.rank-row');
   await expect(rows.first()).toHaveClass(/stat-none/);
-  await expect(rows.first().locator('.rank-badge')).toHaveText('–');
-  await expect(rows.nth(1)).toHaveClass(/rank-1/);                // Glow gets the gold
+  await expect(rows.first()).toHaveClass(/rank-1/);               // most fish: the gold
+  await expect(rows.nth(1)).toHaveClass(/rank-2/);
 });
 
 test('long sections show the top 5, then all', async ({ page }) => {

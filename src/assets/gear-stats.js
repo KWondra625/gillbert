@@ -24,8 +24,8 @@ const SECTIONS = [
   { key: 'hook',   label: '🪝 Hooks' },
   { key: 'line',   label: '🧵 Line' },
   { key: 'leader', label: '〰️ Leaders' },
-  { key: 'bead',   label: '🔮 Beads', note: 'A fish on two beads counts for both.' },
-  { key: 'flash',  label: '✨ Flash', note: 'A fish on two flashes counts for both.' },
+  { key: 'bead',   label: '🫧 Beads', note: 'A fish on two beads counts for both.' },
+  { key: 'flash',  label: '🪩 Flash', note: 'A fish on two flashes counts for both.' },
 ];
 const TOP = 5;                     // rows shown before "Show all"
 const MEDALS = ['🥇', '🥈', '🥉'];
@@ -71,10 +71,10 @@ function biggestText(b) {
 }
 
 function rowHtml(sectionKey, r, i, max) {
-  const medal = i >= 0 && i < 3;
+  const medal = i < 3;
   const cls = `rank-row${medal ? ` rank-${i + 1}` : ''}${r.none ? ' stat-none' : ''}`;
   const body = `
-    <div class="rank-badge">${r.none ? "–" : medal ? MEDALS[i] : i + 1}</div>
+    <div class="rank-badge">${medal ? MEDALS[i] : i + 1}</div>
     <div class="rank-content">
       <div class="rank-main">${gearEsc(r.name)}</div>
       ${r.owner ? `<div class="rank-meta">${gearEsc(r.owner)}</div>` : ''}
@@ -104,9 +104,8 @@ function render(data) {
     const max = Math.max(...rows.map(r => r.fish));
     const open = expanded.has(s.key);
     const shown = open ? rows : rows.slice(0, TOP);
-    // Rank numbers skip the No beads / No flash row, so the medals go to real gear
-    let rank = 0;
-    const html = shown.map(r => rowHtml(s.key, r, r.none ? -1 : rank++, max)).join('');
+    // No beads / No flash ranks like the rest (in italics, as the baseline to compare with)
+    const html = shown.map((r, i) => rowHtml(s.key, r, i, max)).join('');
     const more = rows.length > TOP
       ? `<button type="button" class="stats-more" data-section="${s.key}">${open ? 'Show top ' + TOP : `Show all ${rows.length} →`}</button>`
       : '';
