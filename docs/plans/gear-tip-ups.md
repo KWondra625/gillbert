@@ -255,7 +255,8 @@ Stages 1 and 2 are the winter-useful core. Later, separate projects: outings and
 rods.
 
 **Timing:** all on one branch, `feature/gear-tip-ups`, on Staging since 2026-11-26/28. One PR into
-`develop` in January, then the usual release runbook for production.
+`develop` in January, then production by the vault runbook "Run Release - Gear Up" (every SQL
+script, n8n deploy and manual step in order, with undo and a cleanable smoke test).
 
 ## Follow-ups (agreed 2026-11-28, built, waiting for Staging)
 
