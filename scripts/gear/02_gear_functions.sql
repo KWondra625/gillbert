@@ -105,6 +105,8 @@ tip AS (
     'updatedAt', g.updated_at,
     'catchCount', (SELECT count(*) FROM catches c JOIN gear_setups s ON s.id = c.gear_setup_id
                     WHERE s.gear_id = g.id AND c.status = 'Active'),  -- like Gear Stats (deleted catches don't count)
+    -- Any catch at all, deleted ones too: those still point at it, so it can't be deleted (Delete hides)
+    'anyCatch', EXISTS (SELECT 1 FROM catches c JOIN gear_setups s ON s.id = c.gear_setup_id WHERE s.gear_id = g.id),
     'setup', CASE WHEN cur.id IS NULL THEN NULL ELSE jsonb_build_object(
       'versionNo', cur.version_no,
       'line', ol.name,
@@ -119,7 +121,11 @@ tip AS (
       'since', cur.created_at,
       -- When its setup was last saved (a new version or a fix; a photo doesn't count): the page
       -- asks "fixing a mistake, or did the rig change?" within 2 hours of it
-      'savedAt', (SELECT max(h.at) FROM gear_history h WHERE h.gear_id = g.id AND h.event_type IN ('setup', 'fix'))) END
+      'savedAt', (SELECT max(h.at) FROM gear_history h WHERE h.gear_id = g.id AND h.event_type IN ('setup', 'fix')),
+      -- Whether a fix is still allowed, by the database's clock (the same test gear_setup_save
+      -- makes), so a phone with the wrong time never decides it
+      'fixable', coalesce((SELECT max(h.at) FROM gear_history h WHERE h.gear_id = g.id AND h.event_type IN ('setup', 'fix'))
+                          > now() - interval '120 minutes', false)) END
   ) AS j
   FROM gear g
   JOIN anglers a ON a.id = g.owner_angler_id
@@ -276,8 +282,8 @@ END $$;
 --   mode 'new' (or none): the rig changed, so a new version; earlier catches keep theirs.
 --   A blank first version nobody filled in (made for a catch or a photo) with no catches is
 --   just filled in.
--- Values are tag names; new ones are added. The current version is updated in place while
--- no catch uses it; once one does, a new version is added and the old one is left as it was.
+-- Values are tag names; new ones are added. Apart from a fix or that blank first version, a
+-- change always adds a new version and leaves the old one as it was.
 CREATE OR REPLACE FUNCTION gear_setup_save(p jsonb) RETURNS jsonb
 LANGUAGE plpgsql AS $$
 DECLARE
@@ -341,12 +347,13 @@ BEGIN
   v_saved := (SELECT max(at) FROM gear_history WHERE gear_id = v_gear AND event_type IN ('setup', 'fix'));
   IF cur.id IS NULL THEN
     v_new := true;
-  ELSIF cur.line_option_id IS NULL AND cur.leader_option_id IS NULL AND cur.hook_option_id IS NULL
+  ELSIF cur.version_no = 1 AND cur.line_option_id IS NULL AND cur.leader_option_id IS NULL AND cur.hook_option_id IS NULL
         AND old_beads = '{}' AND old_flash = '{}'
         AND NOT EXISTS (SELECT 1 FROM catches WHERE gear_setup_id = cur.id) THEN
     v_new := false;  v_fix := false;   -- filling in a blank first version
   ELSIF v_fix THEN
-    IF NOT (coalesce(p->>'admin', '') = 'true' OR v_saved > now() - interval '120 minutes') THEN
+    -- (no setup saved yet: v_saved is NULL, and that's "outside the 2 hours", not "allowed")
+    IF NOT (coalesce(p->>'admin', '') = 'true' OR coalesce(v_saved > now() - interval '120 minutes', false)) THEN
       PERFORM gear_fail('This setup was saved more than 2 hours ago, so a change is saved as a new setup. Save again and choose "The rig changed".');
     END IF;
     v_new := false;

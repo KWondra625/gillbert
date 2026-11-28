@@ -15,9 +15,9 @@ const ANGLERS = [
 function tipUp(id, name, overrides = {}) {
   return {
     id, gearType: 'tip_up', name, ownerAnglerId: 1, ownerName: 'Kurt W', model: null, color: null,
-    status: 'Active', retiredNote: null, catchCount: 0,
+    status: 'Active', retiredNote: null, catchCount: 0, anyCatch: false,
     setup: { versionNo: 1, line: 'Dacron 30 lb', leader: 'Fluoro 10 lb', hook: '#8 Octopus',
-             beads: ['Glow'], flash: [], photo: null, since: '2026-12-06T19:12:00Z' },
+             beads: ['Glow'], flash: [], photo: null, since: '2026-12-06T19:12:00Z', fixable: false },
     ...overrides,
   };
 }
@@ -202,9 +202,14 @@ test.describe('Add and edit', () => {
     await expect(page.locator('#formError')).toHaveText('"KW 25-01" is already taken (Dave T\'s). Names must be unique.');
   });
 
-  test('delete takes two taps, and is offered only before any catch', async ({ page }) => {
-    const state = await mockGear(page, { tipUps: [TIP_UPS[0], tipUp(10, 'MR 25-01', { catchCount: 3 })] });
+  test('delete takes two taps, and is offered only before any catch (a deleted one counts)', async ({ page }) => {
+    const state = await mockGear(page, { tipUps: [TIP_UPS[0], tipUp(10, 'MR 25-01', { catchCount: 3, anyCatch: true }),
+                                                  tipUp(11, 'MR 25-02', { catchCount: 0, anyCatch: true })] });
     await page.goto('gear-edit.html?id=10');
+    await expect(page.locator('#formState')).toBeVisible();
+    await expect(page.locator('#deleteGroup')).toBeHidden();
+    await page.goto('gear-edit.html?id=11');                 // its only catch was deleted
+    await expect(page.locator('#formState')).toBeVisible();
     await expect(page.locator('#deleteGroup')).toBeHidden();
     await page.goto('gear-edit.html?id=7');
     await page.locator('#deleteBtn').click();
@@ -246,10 +251,11 @@ test.describe('Change setup', () => {
   });
 
   // Saved again within 2 hours: "fixing a mistake, or did the rig change?"
-  const savedAgo = minutes => TIP_UPS.map(t => t.id === 7 ? { ...t, setup: { ...t.setup, savedAt: new Date(Date.now() - minutes * 60000).toISOString() } } : t);
+  // fixable: the database's own "saved under 2 hours ago" (the page never uses this device's clock)
+  const fixable = yes => TIP_UPS.map(t => t.id === 7 ? { ...t, setup: { ...t.setup, fixable: yes } } : t);
 
   test('saved again within 2 hours, Save asks why; "Fixing a mistake" sends a fix', async ({ page }) => {
-    const state = await mockGear(page, { tipUps: savedAgo(30) });
+    const state = await mockGear(page, { tipUps: fixable(true) });
     await page.goto('gear-setup.html?id=7');
     await page.locator('#hook').fill('#10 Treble');
     await page.locator('#saveBtn').click();
@@ -264,7 +270,7 @@ test.describe('Change setup', () => {
   });
 
   test('"The rig changed" sends a new setup; an unchanged save or an old one asks nothing', async ({ page }) => {
-    const state = await mockGear(page, { tipUps: savedAgo(30) });
+    const state = await mockGear(page, { tipUps: fixable(true) });
     await page.goto('gear-setup.html?id=7');
     await page.locator('#saveBtn').click();                // nothing changed
     await expect(page).toHaveURL(/gear-tipup\.html\?id=7/);
@@ -278,7 +284,7 @@ test.describe('Change setup', () => {
   });
 
   test('an admin is asked even after 2 hours, and the fix says so', async ({ page }) => {
-    const state = await mockGear(page, { tipUps: savedAgo(600) });
+    const state = await mockGear(page, { tipUps: fixable(false) });
     await unlockAdmin(page);
     await page.goto('gear-setup.html?id=7');
     await page.locator('#hook').fill('#10 Treble');
@@ -287,6 +293,23 @@ test.describe('Change setup', () => {
     await page.locator('#fixBtn').click();
     await expect(page).toHaveURL(/gear-tipup\.html\?id=7/);
     expect(state.saves[0].body).toMatchObject({ mode: 'fix', admin: true });
+  });
+
+  test('a fix the server refuses shows why, and the next Save makes a new setup without asking', async ({ page }) => {
+    const state = await mockGear(page, { tipUps: fixable(true),
+      reply: body => body.mode === 'fix'
+        ? { success: false, message: 'This setup was saved more than 2 hours ago, so a change is saved as a new setup.' }
+        : { success: true } });
+    await page.goto('gear-setup.html?id=7');
+    await page.locator('#hook').fill('#10 Treble');
+    await page.locator('#saveBtn').click();
+    await page.locator('#fixBtn').click();
+    await expect(page.locator('#formError')).toContainText('more than 2 hours ago');
+    await expect(page.locator('#formState')).toBeVisible();
+    await expect(page.locator('#hook')).toHaveValue('#10 Treble');   // what they typed is kept
+    await page.locator('#saveBtn').click();
+    await expect(page).toHaveURL(/gear-tipup\.html\?id=7/);
+    expect(state.saves.map(x => x.body.mode)).toEqual(['fix', 'new']);
   });
 
   test('a new tip-up gets a first-setup heading and note', async ({ page }) => {

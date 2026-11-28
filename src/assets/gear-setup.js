@@ -22,7 +22,6 @@ const el = {
 let options = {};
 let myAnglerId = null;
 let loadedSetup = null;   // the setup as loaded, to tell whether Save changes anything
-const FIX_WINDOW_MS = 120 * 60 * 1000;   // same 2 hours as gear_setup_save
 
 const pickers = Object.fromEntries(['line', 'leader', 'hook'].map(kind => [kind, createOptionPicker({
   input: document.getElementById(kind),
@@ -120,8 +119,7 @@ function choiceNeeded(next) {
   const s = loadedSetup;
   if (!s || sameSetup(s, { line: null, leader: null, hook: null, beads: [], flash: [] })) return null;
   if (sameSetup(s, next)) return null;
-  const recent = s.savedAt && Date.now() - new Date(s.savedAt).getTime() < FIX_WINDOW_MS;
-  if (recent) return 'recent';
+  if (s.fixable === true) return 'recent';   // decided by the database's clock, not this device's
   return typeof isAdminUnlocked === 'function' && isAdminUnlocked() ? 'admin' : null;
 }
 
@@ -166,6 +164,8 @@ async function save(mode) {
     location.href = `./gear-tipup.html?id=${encodeURIComponent(tipId)}`;
   } catch (err) {
     console.warn('Setup save refused:', err.message);
+    // A fix refused for time: the window has closed, so the next Save just makes a new setup
+    if (mode === 'fix' && loadedSetup) loadedSetup.fixable = false;
     showState('formState');
     el.formError.textContent = err.message;
     el.formError.classList.remove('hidden');

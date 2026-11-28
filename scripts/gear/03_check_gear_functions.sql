@@ -12,7 +12,7 @@ DO $$
 DECLARE
   a1 int; a2 int; sp int; bw int;
   seq_last bigint; seq_called boolean;
-  r jsonb; g int; g2 int; g3 int; v int; s1 int; c int;
+  r jsonb; g int; g2 int; g3 int; g4 int; v int; s1 int; c int; c4 int;
   h text;
 BEGIN
   SELECT last_value, is_called INTO seq_last, seq_called FROM catches_id_seq;
@@ -111,6 +111,39 @@ BEGIN
   r := gear_setup_save(jsonb_build_object('gearId', g3, 'hook', '#8 Octopus', 'byAnglerId', a1));
   IF (r->>'newVersion')::boolean OR (r->>'versionNo')::int IS DISTINCT FROM 1 THEN RAISE EXCEPTION 'blank v1: %', r; END IF;
   RAISE NOTICE 'ok: a blank first version is filled in, not versioned';
+
+  -- A blank first version that already has a catch ("setup unknown") is kept: the setup is v2.
+  -- And a "fix" with no setup saved yet is outside the 2 hours (refused), not allowed.
+  r := gear_save(jsonb_build_object('name', 'ZZ Check-04', 'ownerAnglerId', a1));
+  g4 := (r->>'id')::int;
+  INSERT INTO catches (record_source, angler_id, fish_species_id, body_of_water_id, caught_when, notes)
+  VALUES ('Gear check', a1, sp, bw, now(), '[gear check, rolled back]') RETURNING id INTO c4;
+  PERFORM catch_gear_set(c4, g4, NULL, a1);                     -- makes the blank v1
+  r := gear_setup_save(jsonb_build_object('gearId', g4, 'hook', '#4 Circle', 'byAnglerId', a1, 'mode', 'fix'));
+  IF (r->>'success')::boolean IS DISTINCT FROM false THEN RAISE EXCEPTION 'fix with no setup saved yet: %', r; END IF;
+  r := gear_setup_save(jsonb_build_object('gearId', g4, 'hook', '#4 Circle', 'byAnglerId', a1));
+  IF NOT (r->>'newVersion')::boolean OR (r->>'versionNo')::int IS DISTINCT FROM 2 THEN RAISE EXCEPTION 'blank v1 with a catch: %', r; END IF;
+  IF (SELECT caught_on->>'hook' FROM vw_catch_details WHERE id = c4) IS NOT NULL THEN RAISE EXCEPTION 'the catch should stay setup unknown'; END IF;
+
+  -- A fix changes what catches on that version show; a new setup doesn't
+  PERFORM catch_gear_set(c4, g4, NULL, a1);                     -- now on v2 (#4 Circle)
+  r := gear_setup_save(jsonb_build_object('gearId', g4, 'hook', '#4 Circle hook', 'byAnglerId', a1, 'mode', 'fix'));
+  IF (r->>'newVersion')::boolean OR (r->>'versionNo')::int IS DISTINCT FROM 2 THEN RAISE EXCEPTION 'fix on v2: %', r; END IF;
+  IF (SELECT caught_on->>'hook' FROM vw_catch_details WHERE id = c4) IS DISTINCT FROM '#4 Circle hook' THEN RAISE EXCEPTION 'a fix should show on its catches'; END IF;
+  IF NOT (gear_get(g4)->'tipUps'->0->'setup'->>'fixable')::boolean THEN RAISE EXCEPTION 'fixable right after a save'; END IF;
+
+  -- Cleared down to nothing is a blank v3; filling it later is a new version, not "the blank first one"
+  r := gear_setup_save(jsonb_build_object('gearId', g4, 'byAnglerId', a1));
+  IF (r->>'versionNo')::int IS DISTINCT FROM 3 THEN RAISE EXCEPTION 'cleared setup: %', r; END IF;
+  r := gear_setup_save(jsonb_build_object('gearId', g4, 'hook', '#2 Circle', 'byAnglerId', a1));
+  IF (r->>'versionNo')::int IS DISTINCT FROM 4 THEN RAISE EXCEPTION 'a blank later version must not be filled in: %', r; END IF;
+  RAISE NOTICE 'ok: a blank v1 with a catch, a fix with no setup yet, a fix on catches, a blank later version';
+
+  -- anyCatch counts deleted catches (they still point at it), catchCount doesn't
+  UPDATE catches SET status = 'Inactive' WHERE id = c4;
+  IF (gear_get(g4)->'tipUps'->0->>'catchCount')::int IS DISTINCT FROM 0
+     OR NOT (gear_get(g4)->'tipUps'->0->>'anyCatch')::boolean THEN RAISE EXCEPTION 'counts: %', gear_get(g4)->'tipUps'->0; END IF;
+  RAISE NOTICE 'ok: a deleted catch hides Delete (anyCatch) but isn''t counted';
 
   -- Delete refused once a catch uses it; retire instead, then setup changes are refused
   r := gear_save(jsonb_build_object('id', g, 'delete', true));

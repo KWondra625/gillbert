@@ -5,8 +5,8 @@
 -- New objects are handed to gillbert_fullaccess at the end, like everything else in the database.
 --
 -- catches gets two nullable columns (gear_setup_id, bait_option_id). Nothing reads or writes
--- them until stage 2; existing catches keep null. They're added now so the setup-save rule
--- ("add a new version once a catch uses the current one") is final from day one.
+-- them until stage 2; existing catches keep null. They're added now so catches can point at
+-- setup versions from day one (the versioning rule itself lives in 02's gear_setup_save).
 -- vw_catch_details lists its columns by name, so it doesn't change.
 BEGIN;
 
@@ -45,8 +45,8 @@ CREATE TABLE IF NOT EXISTS gear (
     CONSTRAINT gear_name_key UNIQUE (name_key)
 );
 
--- One row per setup version; catches point here (stage 2). A version is edited in place
--- until a catch uses it; after that, the next change adds a new version.
+-- One row per setup version; catches point here (stage 2). A change adds a new version; only a
+-- "fixing a mistake" save (within 2 hours, or an admin's) edits one in place (see 02).
 -- created_at = when this version took effect (a late-logged catch picks its version by caught_when).
 CREATE TABLE IF NOT EXISTS gear_setups (
     id SERIAL PRIMARY KEY,

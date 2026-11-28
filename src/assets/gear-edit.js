@@ -104,7 +104,8 @@ async function load() {
       el.statusGroup.classList.remove('hidden');
       setStatus(t.status);
       el.saveBtn.textContent = 'Save';
-      el.deleteGroup.classList.toggle('hidden', Number(t.catchCount) > 0);
+      // Offered only when no catch, not even a deleted one, points at it (the database refuses then)
+      el.deleteGroup.classList.toggle('hidden', t.anyCatch !== false);
     } else {
       setStatus('Active');
       if (myAnglerId != null) el.owner.value = String(myAnglerId);   // the owner defaults to you

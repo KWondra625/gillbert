@@ -52,7 +52,8 @@ Two separate things, so the screen stays simple:
   setup they were caught on, unless it's a fix.)" A fix corrects the current version in place,
   catches on it included, and the history marks it "fixed". After 2 hours a change is always a
   new version; **an admin** can fix the current version at any time (the page asks them too).
-  The database enforces the 2 hours (`mode: 'fix'`, `admin`), not just the page. A blank first
+  The database enforces the 2 hours (`mode: 'fix'`, `admin`), not just the page, and tells the
+  page when to ask (`gear_get`'s `setup.fixable`, by the database's clock, never the phone's). A blank first
   version (made for a catch or a photo before anyone entered the setup) with no catches is just
   filled in. Before this, a version was edited in place whenever no catch pointed at it yet,
   which rewrote the setup of fish not logged yet.

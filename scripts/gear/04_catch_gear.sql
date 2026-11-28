@@ -24,7 +24,7 @@ BEGIN
   IF NOT FOUND THEN RETURN; END IF;
 
   -- Lock the tip-up (shared) so a setup or photo save on it can't run in between: those take
-  -- FOR UPDATE, then edit the version in place only while no catch points at it.
+  -- FOR UPDATE, then decide between editing the current version in place and adding one.
   IF p_gear_id IS NOT NULL THEN
     PERFORM 1 FROM gear WHERE id = p_gear_id FOR SHARE;
   END IF;
