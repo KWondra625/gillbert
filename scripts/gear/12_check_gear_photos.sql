@@ -37,9 +37,10 @@ BEGIN
   -- Refused: a path for another tip-up, a URL outside gear-media
   r := gear_photo_save(jsonb_set(photo1, '{blobPath}', '"gear/999999/AAAAAAAA1.jpg"'));
   IF (r->>'success')::boolean THEN RAISE EXCEPTION 'path for another tip-up accepted'; END IF;
-  IF jsonb_array_length(r->'removePaths') IS DISTINCT FROM 3 THEN RAISE EXCEPTION 'refused save should list its 3 files: %', r; END IF;
+  IF r->'removePaths' IS DISTINCT FROM '[]'::jsonb THEN RAISE EXCEPTION 'never list files outside this tip-up: %', r; END IF;
   r := gear_photo_save(jsonb_set(photo1, '{thumbnailUrl}', '"https://zzcheck.blob.core.windows.net/catch-media/x.jpg"'));
   IF (r->>'success')::boolean THEN RAISE EXCEPTION 'URL outside gear-media accepted'; END IF;
+  IF jsonb_array_length(r->'removePaths') IS DISTINCT FROM 3 THEN RAISE EXCEPTION 'refused save should list its 3 new files: %', r; END IF;
   RAISE NOTICE 'ok: bad requests refused';
 
   -- A photo before any setup: an empty v1 holds it; nothing to delete
@@ -82,11 +83,16 @@ BEGIN
   IF NOT (r->>'success')::boolean OR r->'removePaths' IS DISTINCT FROM '[]'::jsonb THEN RAISE EXCEPTION 'second remove: %', r; END IF;
   RAISE NOTICE 'ok: remove';
 
-  -- Retired: refused, and the new files are listed for clean-up
+  -- Retired: refused; new files are listed for clean-up, but never a photo a setup still shows
   PERFORM gear_save(jsonb_build_object('id', g, 'name', 'ZZ Photo-01', 'ownerAnglerId', a1, 'status', 'Retired', 'byAnglerId', a1));
-  r := gear_photo_save(photo1);
+  r := gear_photo_save(jsonb_set(jsonb_set(jsonb_set(jsonb_set(photo1, '{blobPath}', to_jsonb(format('gear/%s/EEEEEEEE5.jpg', g))),
+    '{readUrl}', to_jsonb(acct || format('gear/%s/EEEEEEEE5.jpg', g))),
+    '{thumbnailUrl}', to_jsonb(acct || format('gear/%s/EEEEEEEE5-thumb.jpg', g))),
+    '{viewingUrl}', to_jsonb(acct || format('gear/%s/EEEEEEEE5-view.jpg', g))));
   IF (r->>'success')::boolean OR jsonb_array_length(r->'removePaths') IS DISTINCT FROM 3 THEN RAISE EXCEPTION 'retired: %', r; END IF;
-  RAISE NOTICE 'ok: retired tip-up refused';
+  r := gear_photo_save(photo1);   -- v1 (and the catch) still show photo1
+  IF (r->>'success')::boolean OR r->'removePaths' IS DISTINCT FROM '[]'::jsonb THEN RAISE EXCEPTION 'a replayed save must not list files in use: %', r; END IF;
+  RAISE NOTICE 'ok: retired tip-up refused; files in use never listed';
 
   -- Deleting a tip-up with no catches lists its photo's files, for the workflow to delete
   r := gear_save(jsonb_build_object('name', 'ZZ Photo-02', 'ownerAnglerId', a1, 'byAnglerId', a1));

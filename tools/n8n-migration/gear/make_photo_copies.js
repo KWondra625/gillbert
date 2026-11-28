@@ -131,7 +131,7 @@ try {
     await run('curl', ['-sS', '-f', '-X', 'PUT', '-H', 'Content-Length: 0',
       '-H', `x-ms-blob-content-type: ${header('Content-Type') || 'image/jpeg'}`,
       ...(header('Cache-Control') ? ['-H', `x-ms-blob-cache-control: ${header('Cache-Control')}`] : []),
-      '-H', `x-ms-blob-content-disposition: attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(name)}`,
+      '-H', `x-ms-blob-content-disposition: attachment; filename="${ascii}"; filename*=UTF-8''${enc(name)}`,
       buildSas(container, r.blobPath, 'w', 15) + '&comp=properties']);
   }
   Object.assign(result, { ok: true, thumbnailUrl: result.thumbUrl, viewingUrl: result.viewUrl || null });

@@ -33,7 +33,7 @@ const CatchGear = (() => {
 
   const baitPicker = createOptionPicker({ input: el.bait, box: el.baitBox, getPool: () => baits, newLabel: 'bait' });
   const esc = s => String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
-  const key = s => String(s || '').trim().replace(/\s+/g, ' ').toLowerCase();
+  const key = gearKey;   // option-picker.js: the same name match as the database
 
   // "Dacron 30 lb · Fluoro 10 lb · #8 Octopus · Glow, Red"
   function summary(s) {
@@ -58,7 +58,7 @@ const CatchGear = (() => {
 
   // Matches on name or owner; the catch's angler's tip-ups first, then by name
   function showMatches() {
-    const q = key(el.gear.value);
+    const q = key(el.gear.value.replace(/ \(retired\)$/, ''));
     if (selected && q === key(selected.name)) { hideMatches(); return; }
     const anglerId = anglerSelect ? Number(anglerSelect.value) : null;
     const matches = pool()
@@ -111,7 +111,8 @@ const CatchGear = (() => {
       if (e.key === 'Escape') hideMatches();
       if (e.key === 'Enter') {
         e.preventDefault();
-        const first = el.gearBox.querySelector('button.tag-suggestion');
+        // An empty box means "none": Enter mustn't quietly pick the first tip-up on the list
+        const first = key(el.gear.value) && el.gearBox.querySelector('button.tag-suggestion');
         if (first) choose(tipUps.find(t => String(t.id) === first.dataset.id)); else settle();
       }
     });

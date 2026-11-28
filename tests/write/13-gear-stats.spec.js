@@ -67,6 +67,8 @@ async function setUp(page, tip, setup) {
     for (const v of list || []) { await page.locator(box).fill(v); await page.locator(box).press('Enter'); }
   }
   await page.locator('#saveBtn').click();
+  // Changed minutes after the last save: the page asks; these are real changes of rig
+  if (await page.locator('#setupChoice').isVisible()) await page.locator('#newSetupBtn').click();
   await expect(page).toHaveURL(new RegExp(`gear-tipup\\.html\\?id=${tip}`));
 }
 

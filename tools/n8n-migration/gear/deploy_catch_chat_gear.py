@@ -14,6 +14,8 @@ Two workflows change:
       Record" carry tip_up_raw and bait_raw like the other *_raw fields.
     - New "Lookup Tip-Up" after "Merge All Lookups": the name said, matched again in the
       database against active tip-ups (never creates one; no match = no tip-up).
+    - Both gear lookups carry on if they fail (onError continueRegularOutput): no gear, but the
+      chat and the save still work.
     - "Save Catch Record" also sends gearId and bait.
   Gillbert - POST - Save Catch
     - "When Executed by Another Workflow" takes gearId and bait; "Extrract Input from Workflow
@@ -231,6 +233,11 @@ def plan_chat(live):
         conns["Merge All Lookups"]["main"][0] = [{"node": "Lookup Tip-Up", "type": "main", "index": 0}]
         conns["Lookup Tip-Up"] = {"main": [[{"node": "Save Catch Record", "type": "main", "index": 0}]]}
 
+    # A gear lookup that fails mustn't stop the chat: carry on with no tip-up list / no tip-up
+    # (the expressions above fall back to '(none)' / null). Catch Chat didn't depend on gear before.
+    for name in ("Get Gear Names", "Lookup Tip-Up"):
+        node(nodes, name)["onError"] = "continueRegularOutput"
+
     save = node(nodes, "Save Catch Record")["parameters"]["workflowInputs"]
     save["value"].setdefault("gearId", "={{ $('Lookup Tip-Up').first().json.id ?? null }}")
     save["value"].setdefault("bait", "={{ $('Insert Conversation Record').first().json.bait_raw || null }}")
@@ -277,9 +284,11 @@ for wf_name, planner in ((SAVE_WF, plan_save), (CHAT_WF, plan_chat)):
     old_nodes = {n["name"]: n for n in live["nodes"]}
     for n in nodes:
         if n["name"] not in old_nodes:
-            show_diff(f"{wf_name} / NEW {n['name']}", {}, {k: n[k] for k in ("type", "parameters", "executeOnce", "alwaysOutputData") if k in n})
+            show_diff(f"{wf_name} / NEW {n['name']}", {}, {k: n[k] for k in ("type", "parameters", "executeOnce", "alwaysOutputData", "onError") if k in n})
         elif n["parameters"] != old_nodes[n["name"]]["parameters"]:
             show_diff(f"{wf_name} / {n['name']}", old_nodes[n["name"]]["parameters"], n["parameters"])
+        if n["name"] in old_nodes and n.get("onError") != old_nodes[n["name"]].get("onError"):
+            print(f"== {wf_name} / {n['name']}: onError {old_nodes[n['name']].get('onError')} -> {n.get('onError')}")
     if conns != live["connections"]:
         show_diff(f"{wf_name} / connections",
                   {k: [[c["node"] for c in br] for br in v.get("main", [])] for k, v in live["connections"].items()},
@@ -297,7 +306,7 @@ for live, nodes, conns in plans:
         continue
     back = put_workflow(live["id"], live, nodes, conns)
     want = {n["name"]: n["parameters"] for n in nodes}
-    ok = all(want.get(x["name"]) == x["parameters"] for x in back["nodes"]) and len(back["nodes"]) == len(nodes) \
+    ok = all(want.get(x["name"]) == x["parameters"] for x in back["nodes"]) and len(back["nodes"]) == len(nodes)         and all({n["name"]: n.get("onError") for n in nodes}.get(x["name"]) == x.get("onError") for x in back["nodes"]) \
         and back["active"] == live["active"]
     print(f"{HOST} {live['name']} ({live['id']}): read-back {'OK' if ok else 'MISMATCH'} (active={back['active']})")
     if not ok:

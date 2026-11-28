@@ -60,6 +60,12 @@ test.describe('tip-up page', () => {
     await expect(page.locator('#photoLightbox')).toBeVisible();
     await expect(page.locator('#photoLightboxImg')).toHaveAttribute('src', PHOTO.viewingUrl);
     await expect(page.locator('#photoOriginal')).toHaveAttribute('href', PHOTO.originalUrl);
+    await expect(page.locator('#photoOriginal')).toHaveAttribute('target', '_blank');   // leaves the app's tab alone
+    await expect(page.locator('#photoClose')).toBeFocused();                              // focus moves into the photo
+    await page.keyboard.press('Tab');
+    await expect(page.locator('#photoOriginal')).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(page.locator('#photoClose')).toBeFocused();                              // and stays there
     await page.keyboard.press('Escape');
     await expect(page.locator('#photoLightbox')).toBeHidden();
   });

@@ -16,13 +16,25 @@
 --   row: { id, name, owner (tip-ups), none (the No beads / No flash row), fish,
 --          biggest: { catchNumber, length, species, angler, caughtWhen } or null }
 -- waters / species are every lake and species with a tip-up catch, for the filters, unfiltered.
+-- 'YYYY-MM-DD' to a date; anything else (a bad shape, or a day that doesn't exist) is NULL
+BEGIN;
+
+CREATE OR REPLACE FUNCTION gear_safe_date(p text) RETURNS date
+LANGUAGE plpgsql IMMUTABLE AS $$
+BEGIN
+  IF p IS NULL OR p !~ '^\d{4}-\d{2}-\d{2}$' THEN RETURN NULL; END IF;
+  RETURN p::date;
+EXCEPTION WHEN others THEN
+  RETURN NULL;
+END $$;
+
 CREATE OR REPLACE FUNCTION gear_stats_get(p jsonb DEFAULT '{}'::jsonb) RETURNS jsonb
 LANGUAGE sql STABLE AS $$
 WITH f AS (
   SELECT CASE WHEN p->>'waterId'   ~ '^\d{1,9}$' THEN (p->>'waterId')::int END   AS water_id,
          CASE WHEN p->>'speciesId' ~ '^\d{1,9}$' THEN (p->>'speciesId')::int END AS species_id,
-         CASE WHEN p->>'from' ~ '^\d{4}-\d{2}-\d{2}$' THEN (p->>'from')::date END AS d_from,
-         CASE WHEN p->>'to'   ~ '^\d{4}-\d{2}-\d{2}$' THEN (p->>'to')::date END   AS d_to
+         gear_safe_date(p->>'from') AS d_from,
+         gear_safe_date(p->>'to')   AS d_to
 ),
 -- Every active catch on a tip-up, before the filters (for the filter lists)
 on_gear AS (
@@ -42,8 +54,9 @@ cs AS (
   SELECT o.* FROM on_gear o, f
   WHERE (f.water_id   IS NULL OR o.body_of_water_id = f.water_id)
     AND (f.species_id IS NULL OR o.fish_species_id  = f.species_id)
-    AND (f.d_from IS NULL OR o.caught_when >= f.d_from)
-    AND (f.d_to   IS NULL OR o.caught_when <  f.d_to + 1)
+    -- Days as the crew lives them (Central), like the catch views, whatever the session's time zone
+    AND (f.d_from IS NULL OR (o.caught_when AT TIME ZONE 'America/Chicago')::date >= f.d_from)
+    AND (f.d_to   IS NULL OR (o.caught_when AT TIME ZONE 'America/Chicago')::date <= f.d_to)
 ),
 -- One row per catch per thing it counts for: section, key, name
 parts AS (
@@ -115,9 +128,12 @@ $$;
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'gillbert_fullaccess') THEN
+    ALTER FUNCTION gear_safe_date(text) OWNER TO gillbert_fullaccess;
     ALTER FUNCTION gear_stats_get(jsonb) OWNER TO gillbert_fullaccess;
   END IF;
 END $$;
+
+COMMIT;
 
 -- Check: it answers (fish and tip-ups counted, the sections there)
 SELECT r->'fish' AS fish, r->'tipUps' AS tip_ups, jsonb_object_keys(r->'sections') AS sections

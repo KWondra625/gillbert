@@ -3,7 +3,7 @@
 // before the gear endpoints exist anywhere and nothing is written. The saves are checked by
 // what the page sends; the database rules behind them are tested on Staging
 // (scripts/gear/03_check_gear_functions.sql).
-const { test, expect } = require('../support/fixtures');
+const { test, expect, unlockAdmin } = require('../support/fixtures');
 
 const ME = 'kurt@example.test';
 const ANGLERS = [
@@ -17,7 +17,7 @@ function tipUp(id, name, overrides = {}) {
     id, gearType: 'tip_up', name, ownerAnglerId: 1, ownerName: 'Kurt W', model: null, color: null,
     status: 'Active', retiredNote: null, catchCount: 0,
     setup: { versionNo: 1, line: 'Dacron 30 lb', leader: 'Fluoro 10 lb', hook: '#8 Octopus',
-             beads: ['Glow'], flash: [], photoUrl: null, since: '2026-12-06T19:12:00Z' },
+             beads: ['Glow'], flash: [], photo: null, since: '2026-12-06T19:12:00Z' },
     ...overrides,
   };
 }
@@ -33,6 +33,7 @@ const OPTIONS = {
   bait: ['Not sure', 'Shiner (medium)'],
 };
 const HISTORY = [
+  { id: 103, at: '2026-12-20T16:30:00Z', byName: 'Dave T', eventType: 'fix', field: 'leader', oldValue: 'Fluoro 12 lb', newValue: 'Fluoro 10 lb' },
   { id: 102, at: '2026-12-20T16:05:00Z', byName: 'Dave T', eventType: 'setup', field: 'hook', oldValue: '#8 Octopus', newValue: '#10 Treble' },
   { id: 101, at: '2026-12-06T19:12:00Z', byName: 'Kurt W', eventType: 'created', field: null, oldValue: null, newValue: 'KW 24-01' },
 ];
@@ -120,10 +121,11 @@ test.describe('One tip-up', () => {
       await expect(parts).toContainText(text);
     }
     const rows = page.locator('#historyList li');
-    await expect(rows).toHaveCount(2);
-    await expect(rows.nth(0)).toContainText('Dave T');
-    await expect(rows.nth(0)).toContainText('Hook: #8 Octopus → #10 Treble');
-    await expect(rows.nth(1)).toContainText('Added KW 24-01');
+    await expect(rows).toHaveCount(3);
+    await expect(rows.nth(0)).toContainText('Leader fixed: Fluoro 12 lb → Fluoro 10 lb');
+    await expect(rows.nth(1)).toContainText('Dave T');
+    await expect(rows.nth(1)).toContainText('Hook: #8 Octopus → #10 Treble');
+    await expect(rows.nth(2)).toContainText('Added KW 24-01');
     await expect(page.locator('#tipNotes')).toHaveText('Trigger sticks in the cold');
     await expect(page.locator('#setupLink')).toHaveAttribute('href', './gear-setup.html?id=7');
   });
@@ -147,11 +149,14 @@ test.describe('Add and edit', () => {
   test.use({ identityEmail: ME });
 
   test('a taken name is caught while typing, ignoring capitals and spaces', async ({ page }) => {
-    await mockGear(page);
+    const state = await mockGear(page);
     await page.goto('gear-edit.html');
     await page.locator('#name').fill('kw   24-01');
     await expect(page.locator('#nameError')).toHaveText('"KW 24-01" is already taken (Kurt W\'s). Names must be unique.');
     await page.locator('#saveBtn').click();
+    await page.waitForTimeout(500);                        // give a save the time it would take
+    expect(state.saves).toEqual([]);
+    await expect(page).toHaveURL(/gear-edit\.html$/);
     await expect(page.locator('#formState')).toBeVisible();
   });
 
@@ -237,7 +242,51 @@ test.describe('Change setup', () => {
     await expect(page).toHaveURL(/gear-tipup\.html\?id=7/);
     expect(state.saves[0]).toEqual({ path: 'setup-save', body: {
       gearId: 7, line: 'Dacron 30 lb', leader: 'Fluoro 10 lb', hook: '#10 Treble',
-      beads: ['Glow', 'Red'], flash: ['Gold blade'], byAnglerId: null } });
+      beads: ['Glow', 'Red'], flash: ['Gold blade'], byAnglerId: null, mode: 'new' } });   // saved long ago: no question
+  });
+
+  // Saved again within 2 hours: "fixing a mistake, or did the rig change?"
+  const savedAgo = minutes => TIP_UPS.map(t => t.id === 7 ? { ...t, setup: { ...t.setup, savedAt: new Date(Date.now() - minutes * 60000).toISOString() } } : t);
+
+  test('saved again within 2 hours, Save asks why; "Fixing a mistake" sends a fix', async ({ page }) => {
+    const state = await mockGear(page, { tipUps: savedAgo(30) });
+    await page.goto('gear-setup.html?id=7');
+    await page.locator('#hook').fill('#10 Treble');
+    await page.locator('#saveBtn').click();
+    await expect(page.locator('#setupChoice')).toBeVisible();
+    await expect(page.locator('#setupChoiceText')).toHaveText('This setup was saved less than 2 hours ago. Are you fixing a mistake in it, or did the rig change? '
+      + "(Fish already logged keep the setup they were caught on, unless it's a fix.)");
+    expect(state.saves).toEqual([]);                       // nothing saved until they answer
+    await page.locator('#fixBtn').click();
+    await expect(page).toHaveURL(/gear-tipup\.html\?id=7/);
+    expect(state.saves[0].body).toMatchObject({ hook: '#10 Treble', mode: 'fix' });
+    expect(state.saves[0].body).not.toHaveProperty('admin');
+  });
+
+  test('"The rig changed" sends a new setup; an unchanged save or an old one asks nothing', async ({ page }) => {
+    const state = await mockGear(page, { tipUps: savedAgo(30) });
+    await page.goto('gear-setup.html?id=7');
+    await page.locator('#saveBtn').click();                // nothing changed
+    await expect(page).toHaveURL(/gear-tipup\.html\?id=7/);
+    expect(state.saves[0].body.mode).toBe('new');
+    await page.goto('gear-setup.html?id=7');
+    await page.locator('#hook').fill('#10 Treble');
+    await page.locator('#saveBtn').click();
+    await page.locator('#newSetupBtn').click();
+    await expect(page).toHaveURL(/gear-tipup\.html\?id=7/);
+    expect(state.saves[1].body).toMatchObject({ hook: '#10 Treble', mode: 'new' });
+  });
+
+  test('an admin is asked even after 2 hours, and the fix says so', async ({ page }) => {
+    const state = await mockGear(page, { tipUps: savedAgo(600) });
+    await unlockAdmin(page);
+    await page.goto('gear-setup.html?id=7');
+    await page.locator('#hook').fill('#10 Treble');
+    await page.locator('#saveBtn').click();
+    await expect(page.locator('#setupChoiceText')).toContainText('As an admin, you can fix the current setup at any time.');
+    await page.locator('#fixBtn').click();
+    await expect(page).toHaveURL(/gear-tipup\.html\?id=7/);
+    expect(state.saves[0].body).toMatchObject({ mode: 'fix', admin: true });
   });
 
   test('a new tip-up gets a first-setup heading and note', async ({ page }) => {

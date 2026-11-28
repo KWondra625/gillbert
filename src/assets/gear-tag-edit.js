@@ -117,7 +117,11 @@ el.form.addEventListener('submit', async e => {
     if (restatus) await gearSave(GEAR_TAG_SAVE_URL, { id: tag.id, action: status === 'Hidden' ? 'hide' : 'show' });
     window.location.href = './gear-tags.html';
   } catch (err) {
+    const wanted = status;
     await load();          // shows what did save (a rename can succeed before a hide fails)
+    if (!document.getElementById('errorState').classList.contains('hidden')) return;  // the reload failed: its error shows
+    if (tag.name !== name) el.name.value = name;          // the rename didn't happen: keep what was typed
+    setStatus(wanted);
     showError(err.message);
   }
 });

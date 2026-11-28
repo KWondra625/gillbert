@@ -1,7 +1,9 @@
 // Layer 2, create and clean up (Staging only): the admin's Gear Tags pages (gear stage 6), end
 // to end. Two test tip-ups get two spellings of a hook; the admin renames one, merges it into
 // the other, hides and shows a tag, and deletes one nothing uses.
-// Everything is named "E2E Test …"; run `npm run cleanup` afterwards to remove it.
+// Everything is named "E2E Test …" (its tags "E2E Test Tags …", so they never meet 11-gear's
+// tags: a tag is matched without capitals, so "hook a" would land on 11's "Hook A").
+// Run `npm run cleanup` afterwards to remove it.
 // Needs scripts/gear/07 and the gear/tags + gear/tag-save endpoints on Staging.
 const { test, expect, unlockAdmin } = require('../support/fixtures');
 const { apiGet } = require('../support/staging-api');
@@ -12,9 +14,9 @@ test.describe.configure({ mode: 'serial' });
 
 const TIP_1 = testName('Tags Tip-up 1');
 const TIP_2 = testName('Tags Tip-up 2');
-const HOOK_A = testName('hook a');
-const HOOK_B = testName('Hook B');
-const FLASH = testName('Flash');
+const HOOK_A = testName('Tags hook a');
+const HOOK_B = testName('Tags Hook B');
+const FLASH = testName('Tags Flash');
 let tip1;
 
 async function tags() {
@@ -101,10 +103,11 @@ test.describe('as admin', () => {
   });
 
   test('a tag nothing uses any more can be deleted', async ({ page }) => {
-    // Take the flash off the tip-up (no catches, so the setup changes in place)
+    // Take the flash off the tip-up: a fix (saved minutes ago), so the setup changes in place
     await page.goto(`gear-setup.html?id=${tip1}`);
     await page.locator('#flashWrapper .tag-pill-remove').first().click();
     await page.locator('#saveBtn').click();
+    await page.locator('#fixBtn').click();
     await expect(page).toHaveURL(new RegExp(`gear-tipup\\.html\\?id=${tip1}`));
 
     const f = await tagNamed(FLASH);

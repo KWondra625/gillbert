@@ -87,6 +87,7 @@ function gearHistoryText(h) {
   switch (h.eventType) {
     case 'created':  return `Added ${h.newValue}`;
     case 'setup':    return `${GEAR_FIELD_LABELS[h.field] || h.field}: ${was} → ${now}`;
+    case 'fix':      return `${GEAR_FIELD_LABELS[h.field] || h.field} fixed: ${was} → ${now}`;   // corrected in place
     case 'rename':   return `Renamed ${was} → ${now}`;
     case 'owner':    return `Owner: ${was} → ${now}`;
     case 'model':    return `Model: ${was} → ${now}`;

@@ -445,7 +445,8 @@ if __name__ == "__main__":
     if not APPLY:
         sys.exit(f"dry run: nothing written to {HOST}")
     back = put_workflow(live["id"], live, nodes, conns)
-    ok = {n["name"] for n in back["nodes"]} == {n["name"] for n in nodes} and back["active"] == live["active"]
+    ok = ({n["name"]: n["parameters"] for n in back["nodes"]} == {n["name"]: n["parameters"] for n in nodes}
+          and back["active"] == live["active"])
     print(f"{THUMBS} ({live['id']}): read-back {'OK' if ok else 'MISMATCH'} (active={back['active']})")
     if not ok:
         sys.exit(f"STOP: restore with --part thumbnails --restore {backup_dir}")

@@ -12,7 +12,7 @@ DO $$
 DECLARE
   a1 int; a2 int; sp int; bw int;
   seq_last bigint; seq_called boolean;
-  r jsonb; g int; g2 int; v int; s1 int; c int;
+  r jsonb; g int; g2 int; g3 int; v int; s1 int; c int;
   h text;
 BEGIN
   SELECT last_value, is_called INTO seq_last, seq_called FROM catches_id_seq;
@@ -64,11 +64,12 @@ BEGIN
   IF (r->>'changed')::boolean THEN RAISE EXCEPTION 'unchanged setup counted as a change: %', r; END IF;
   RAISE NOTICE 'ok: saving the same setup changes nothing';
 
-  -- Change before any catch: v1 updated in place
+  -- "Fixing a mistake" within 2 hours of the last save: v1 corrected in place, history says fix
   r := gear_setup_save(jsonb_build_object('gearId', g, 'line', 'Dacron 30 lb', 'leader', 'Fluoro 10 lb', 'hook', '#6 Octopus',
-                                          'beads', jsonb_build_array('Glow'), 'byAnglerId', a2));
-  IF (r->>'newVersion')::boolean OR (SELECT count(*) FROM gear_setups WHERE gear_id = g) <> 1 THEN RAISE EXCEPTION 'in place: %', r; END IF;
-  RAISE NOTICE 'ok: a change before any catch updates v1 in place';
+                                          'beads', jsonb_build_array('Glow'), 'byAnglerId', a2, 'mode', 'fix'));
+  IF (r->>'newVersion')::boolean OR (SELECT count(*) FROM gear_setups WHERE gear_id = g) IS DISTINCT FROM 1 THEN RAISE EXCEPTION 'fix in place: %', r; END IF;
+  IF NOT EXISTS (SELECT 1 FROM gear_history WHERE gear_id = g AND event_type = 'fix' AND field = 'hook') THEN RAISE EXCEPTION 'fix history'; END IF;
+  RAISE NOTICE 'ok: a fix within 2 hours corrects v1 in place, marked as a fix';
 
   -- A catch on v1, then a change: v2 added, v1 left as it was
   SELECT id INTO s1 FROM gear_setups WHERE gear_id = g AND version_no = 1;
@@ -87,6 +88,29 @@ BEGIN
   IF (r #>> '{tipUps,0,catchCount}')::int <> 1 THEN RAISE EXCEPTION 'catch count: %', r #> '{tipUps,0}'; END IF;
   IF r #>> '{history,0,field}' NOT IN ('hook', 'flash') THEN RAISE EXCEPTION 'history order: %', r->'history'; END IF;
   RAISE NOTICE 'ok: gear_get: current setup v2, 1 catch, history newest first';
+  IF (r #>> '{tipUps,0,setup,savedAt}') IS NULL THEN RAISE EXCEPTION 'savedAt missing: %', r #> '{tipUps,0,setup}'; END IF;
+
+  -- 3 hours on: a fix is refused, unless an admin asks; a plain change makes a new version
+  UPDATE gear_history SET at = at - interval '3 hours' WHERE gear_id = g;
+  r := gear_setup_save(jsonb_build_object('gearId', g, 'line', 'Dacron 30 lb', 'leader', 'Fluoro 12 lb', 'hook', '#10 Treble',
+                                          'beads', jsonb_build_array('Glow'), 'flash', jsonb_build_array('Gold blade'), 'byAnglerId', a2, 'mode', 'fix'));
+  IF (r->>'success')::boolean IS DISTINCT FROM false THEN RAISE EXCEPTION 'a late fix should be refused: %', r; END IF;
+  r := gear_setup_save(jsonb_build_object('gearId', g, 'line', 'Dacron 30 lb', 'leader', 'Fluoro 12 lb', 'hook', '#10 Treble',
+                                          'beads', jsonb_build_array('Glow'), 'flash', jsonb_build_array('Gold blade'), 'byAnglerId', a2,
+                                          'mode', 'fix', 'admin', true));
+  IF (r->>'newVersion')::boolean OR (r->>'versionNo')::int IS DISTINCT FROM 2 THEN RAISE EXCEPTION 'admin fix: %', r; END IF;
+  r := gear_setup_save(jsonb_build_object('gearId', g, 'line', 'Dacron 30 lb', 'leader', 'Fluoro 15 lb', 'hook', '#10 Treble',
+                                          'beads', jsonb_build_array('Glow'), 'flash', jsonb_build_array('Gold blade'), 'byAnglerId', a2));
+  IF NOT (r->>'newVersion')::boolean OR (r->>'versionNo')::int IS DISTINCT FROM 3 THEN RAISE EXCEPTION 'plain change, no catch: %', r; END IF;
+  RAISE NOTICE 'ok: a late fix is refused (admins may); a change without "fix" is a new version, catch or not';
+
+  -- A blank first version (made for a catch or a photo) with no catches is just filled in
+  r := gear_save(jsonb_build_object('name', 'ZZ Check-03', 'ownerAnglerId', a1));
+  g3 := (r->>'id')::int;
+  INSERT INTO gear_setups (gear_id, version_no) VALUES (g3, 1);
+  r := gear_setup_save(jsonb_build_object('gearId', g3, 'hook', '#8 Octopus', 'byAnglerId', a1));
+  IF (r->>'newVersion')::boolean OR (r->>'versionNo')::int IS DISTINCT FROM 1 THEN RAISE EXCEPTION 'blank v1: %', r; END IF;
+  RAISE NOTICE 'ok: a blank first version is filled in, not versioned';
 
   -- Delete refused once a catch uses it; retire instead, then setup changes are refused
   r := gear_save(jsonb_build_object('id', g, 'delete', true));

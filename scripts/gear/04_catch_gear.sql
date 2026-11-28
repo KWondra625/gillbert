@@ -10,6 +10,8 @@
 -- It never refuses: the catch is already saved by then, so a bad tip-up id just leaves
 -- "Caught on" empty instead of failing the save. The forms only offer real tip-ups.
 
+BEGIN;
+
 CREATE OR REPLACE FUNCTION catch_gear_set(p_catch_id int, p_gear_id int, p_bait text, p_by int)
 RETURNS SETOF catches
 LANGUAGE plpgsql AS $$
@@ -21,7 +23,12 @@ BEGIN
   SELECT caught_when INTO v_when FROM catches WHERE id = p_catch_id;
   IF NOT FOUND THEN RETURN; END IF;
 
-  IF p_gear_id IS NOT NULL AND EXISTS (SELECT 1 FROM gear WHERE id = p_gear_id) THEN
+  -- Lock the tip-up (shared) so a setup or photo save on it can't run in between: those take
+  -- FOR UPDATE, then edit the version in place only while no catch points at it.
+  IF p_gear_id IS NOT NULL THEN
+    PERFORM 1 FROM gear WHERE id = p_gear_id FOR SHARE;
+  END IF;
+  IF p_gear_id IS NOT NULL AND FOUND THEN
     -- The version in use when the fish was caught: the newest one that took effect at or
     -- before caught_when (a catch logged that night still gets the morning's hook).
     -- Caught before the first version was entered? Use the first version.
@@ -60,3 +67,5 @@ BEGIN
     ALTER FUNCTION catch_gear_set(int, int, text, int) OWNER TO gillbert_fullaccess;
   END IF;
 END $$;
+
+COMMIT;

@@ -14,9 +14,17 @@
 -- the page can show as is. They never raise for a bad request.
 
 -- Trims, squeezes inner spaces, and turns blank into NULL
+BEGIN;
+
 CREATE OR REPLACE FUNCTION gear_clean(p text) RETURNS text
 LANGUAGE sql IMMUTABLE AS $$
-  SELECT NULLIF(regexp_replace(btrim(coalesce(p, '')), '\s+', ' ', 'g'), '')
+  SELECT NULLIF(btrim(regexp_replace(coalesce(p, ''), '\s+', ' ', 'g')), '')
+$$;
+
+-- A request's id as a number, or NULL when it isn't one (a bad value never raises)
+CREATE OR REPLACE FUNCTION gear_int(p text) RETURNS int
+LANGUAGE sql IMMUTABLE AS $$
+  SELECT CASE WHEN btrim(p) ~ '^\d{1,9}$' THEN btrim(p)::int END
 $$;
 
 -- Stops a save with a message for the person saving (caught by the save functions below)
@@ -96,7 +104,7 @@ tip AS (
     'createdAt', g.created_at,
     'updatedAt', g.updated_at,
     'catchCount', (SELECT count(*) FROM catches c JOIN gear_setups s ON s.id = c.gear_setup_id
-                    WHERE s.gear_id = g.id),
+                    WHERE s.gear_id = g.id AND c.status = 'Active'),  -- like Gear Stats (deleted catches don't count)
     'setup', CASE WHEN cur.id IS NULL THEN NULL ELSE jsonb_build_object(
       'versionNo', cur.version_no,
       'line', ol.name,
@@ -108,7 +116,10 @@ tip AS (
       'photo', CASE WHEN cur.photo_blob_path IS NULL THEN NULL ELSE jsonb_build_object(
                  'thumbnailUrl', cur.photo_thumbnail_url, 'viewingUrl', cur.photo_viewing_url,
                  'originalUrl', cur.photo_read_url) END,
-      'since', cur.created_at) END
+      'since', cur.created_at,
+      -- When its setup was last saved (a new version or a fix; a photo doesn't count): the page
+      -- asks "fixing a mistake, or did the rig change?" within 2 hours of it
+      'savedAt', (SELECT max(h.at) FROM gear_history h WHERE h.gear_id = g.id AND h.event_type IN ('setup', 'fix'))) END
   ) AS j
   FROM gear g
   JOIN anglers a ON a.id = g.owner_angler_id
@@ -144,10 +155,10 @@ $$;
 CREATE OR REPLACE FUNCTION gear_save(p jsonb) RETURNS jsonb
 LANGUAGE plpgsql AS $$
 DECLARE
-  v_id     int  := NULLIF(p->>'id', '')::int;
-  v_by     int  := NULLIF(p->>'byAnglerId', '')::int;
+  v_id     int  := gear_int(p->>'id');
+  v_by     int  := gear_int(p->>'byAnglerId');
   v_name   text := gear_clean(p->>'name');
-  v_owner  int  := NULLIF(p->>'ownerAnglerId', '')::int;
+  v_owner  int  := gear_int(p->>'ownerAnglerId');
   v_status text := coalesce(NULLIF(p->>'status', ''), 'Active');
   v_note   text := NULLIF(btrim(coalesce(p->>'retiredNote', '')), '');
   v_notes  text := NULLIF(btrim(coalesce(p->>'notes', '')), '');
@@ -160,9 +171,13 @@ BEGIN
   IF v_by IS NOT NULL AND NOT EXISTS (SELECT 1 FROM anglers WHERE id = v_by) THEN
     v_by := NULL;  -- an unknown "who" is recorded as unknown, not refused
   END IF;
+  -- An id that isn't a number is a bad request, not "add a new tip-up"
+  IF v_id IS NULL AND nullif(p->>'id', '') IS NOT NULL THEN
+    PERFORM gear_fail('That tip-up no longer exists.');
+  END IF;
 
   -- Delete: only a tip-up no catch points at (the catches foreign key also refuses it)
-  IF coalesce((p->>'delete')::boolean, false) THEN
+  IF p->>'delete' = 'true' THEN
     SELECT * INTO v_old FROM gear WHERE id = v_id FOR UPDATE;
     IF NOT FOUND THEN PERFORM gear_fail('That tip-up no longer exists.'); END IF;
     IF EXISTS (SELECT 1 FROM catches c JOIN gear_setups s ON s.id = c.gear_setup_id WHERE s.gear_id = v_id) THEN
@@ -254,14 +269,20 @@ EXCEPTION
 END $$;
 
 -- ── gear/setup-save ────────────────────────────────────────────────────────────────────────
--- Body: { gearId, line, leader, hook, beads: [...], flash: [...], byAnglerId }
+-- Body: { gearId, line, leader, hook, beads: [...], flash: [...], byAnglerId, mode, admin }
+--   mode 'fix': correct the current version in place ("fixing a mistake"), so catches already
+--     on it change too. Allowed within 2 hours of the setup's last save, or any time for an admin
+--     (admin: true; the admin gate is the page's, like the other admin pages). Otherwise refused.
+--   mode 'new' (or none): the rig changed, so a new version; earlier catches keep theirs.
+--   A blank first version nobody filled in (made for a catch or a photo) with no catches is
+--   just filled in.
 -- Values are tag names; new ones are added. The current version is updated in place while
 -- no catch uses it; once one does, a new version is added and the old one is left as it was.
 CREATE OR REPLACE FUNCTION gear_setup_save(p jsonb) RETURNS jsonb
 LANGUAGE plpgsql AS $$
 DECLARE
-  v_gear   int := NULLIF(p->>'gearId', '')::int;
-  v_by     int := NULLIF(p->>'byAnglerId', '')::int;
+  v_gear   int := gear_int(p->>'gearId');
+  v_by     int := gear_int(p->>'byAnglerId');
   g        gear%ROWTYPE;
   cur      gear_setups%ROWTYPE;
   v_line   int;
@@ -274,6 +295,8 @@ DECLARE
   v_setup  int;
   v_version int;
   v_new    boolean;
+  v_fix    boolean := p->>'mode' = 'fix';
+  v_saved  timestamptz;
 BEGIN
   IF v_by IS NOT NULL AND NOT EXISTS (SELECT 1 FROM anglers WHERE id = v_by) THEN
     v_by := NULL;
@@ -314,9 +337,26 @@ BEGIN
     END IF;
   END IF;
 
-  -- The history, part by part (a first setup reads as "none → ...")
+  -- In place or a new version (see the header). Decided before the history, which says which.
+  v_saved := (SELECT max(at) FROM gear_history WHERE gear_id = v_gear AND event_type IN ('setup', 'fix'));
+  IF cur.id IS NULL THEN
+    v_new := true;
+  ELSIF cur.line_option_id IS NULL AND cur.leader_option_id IS NULL AND cur.hook_option_id IS NULL
+        AND old_beads = '{}' AND old_flash = '{}'
+        AND NOT EXISTS (SELECT 1 FROM catches WHERE gear_setup_id = cur.id) THEN
+    v_new := false;  v_fix := false;   -- filling in a blank first version
+  ELSIF v_fix THEN
+    IF NOT (coalesce(p->>'admin', '') = 'true' OR v_saved > now() - interval '120 minutes') THEN
+      PERFORM gear_fail('This setup was saved more than 2 hours ago, so a change is saved as a new setup. Save again and choose "The rig changed".');
+    END IF;
+    v_new := false;
+  ELSE
+    v_new := true;
+  END IF;
+
+  -- The history, part by part (a first setup reads as "none → ..."); a fix is marked as one
   INSERT INTO gear_history (gear_id, event_type, field, old_value, new_value, by_angler_id)
-  SELECT v_gear, 'setup', f.field, f.old_value, f.new_value, v_by
+  SELECT v_gear, CASE WHEN v_fix THEN 'fix' ELSE 'setup' END, f.field, f.old_value, f.new_value, v_by
     FROM (VALUES
       (1, 'line',   gear_option_name(cur.line_option_id),   gear_option_name(v_line)),
       (2, 'leader', gear_option_name(cur.leader_option_id), gear_option_name(v_leader)),
@@ -326,9 +366,6 @@ BEGIN
     ) AS f(n, field, old_value, new_value)
    WHERE f.old_value IS DISTINCT FROM f.new_value
    ORDER BY f.n;
-
-  v_new := cur.id IS NULL
-        OR EXISTS (SELECT 1 FROM catches WHERE gear_setup_id = cur.id);
 
   IF v_new THEN
     v_version := coalesce(cur.version_no, 0) + 1;
@@ -376,7 +413,9 @@ BEGIN
   END IF;
 END $$;
 
--- Check: 9 functions, and the empty list answers
+COMMIT;
+
+-- Check: the gear functions (02's, plus any from 07, 09, 11, 13), and the empty list answers
 SELECT (SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
          WHERE n.nspname = current_schema() AND p.proname LIKE 'gear\_%') AS gear_functions,
        gear_get() -> 'tipUps' AS tip_ups;

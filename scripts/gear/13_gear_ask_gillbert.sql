@@ -1,5 +1,6 @@
 -- Gear stage 5, second half: Ask Gillbert answers gear questions (docs/plans/gear-tip-ups.md).
--- Safe to re-run. Run as the database admin, after 01-04, 09 and 11, then 14 (rolled back).
+-- Safe to re-run. Run as the database admin, after 01-04, 09 (gear_stats_get, gear_safe_date)
+-- and 11, then 14 (rolled back).
 --
 -- Ask Gillbert's tools log in as gillbert_ai_reader, which can read only vw_catch_details
 -- (scripts/roles/gillbert_ai_reader.sql). Rather than letting it read the gear tables, it gets
@@ -49,6 +50,14 @@ BEGIN
     IF v_species IS NULL THEN
       RETURN jsonb_build_object('error', format('No fish species is called "%s".', p_species));
     END IF;
+  END IF;
+
+  -- Dates: a real 'YYYY-MM-DD' or nothing; never quietly answer all-time for a bad one
+  IF nullif(btrim(coalesce(p_from, '')), '') IS NOT NULL AND gear_safe_date(btrim(p_from)) IS NULL THEN
+    RETURN jsonb_build_object('error', format('"%s" isn''t a date; use YYYY-MM-DD.', p_from));
+  END IF;
+  IF nullif(btrim(coalesce(p_to, '')), '') IS NOT NULL AND gear_safe_date(btrim(p_to)) IS NULL THEN
+    RETURN jsonb_build_object('error', format('"%s" isn''t a date; use YYYY-MM-DD.', p_to));
   END IF;
 
   r := gear_stats_get(jsonb_strip_nulls(jsonb_build_object(

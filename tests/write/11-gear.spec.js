@@ -57,11 +57,13 @@ test('set up its line, hook and a bead; the page shows them', async ({ page }) =
   expect(tip.setup).toMatchObject({ versionNo: 1, line: LINE, hook: HOOK_1, beads: [BEAD] });
 });
 
-test('change the hook before any catch: still version 1, and the history says so', async ({ page }) => {
+test('fix the hook within 2 hours ("Fixing a mistake"): still version 1, and the history says fixed', async ({ page }) => {
   await page.goto(`gear-setup.html?id=${tipId}`);
   await page.locator('#hook').fill(HOOK_2);
   await page.locator('#saveBtn').click();
-  await expect(page.locator('#historyList')).toContainText(`Hook: ${HOOK_1} → ${HOOK_2}`);
+  await expect(page.locator('#setupChoiceText')).toContainText('This setup was saved less than 2 hours ago.');
+  await page.locator('#fixBtn').click();
+  await expect(page.locator('#historyList')).toContainText(`Hook fixed: ${HOOK_1} → ${HOOK_2}`);
   expect((await findTip()).setup.versionNo).toBe(1);
 });
 
@@ -85,10 +87,11 @@ test('log a catch on it with a new bait; the catch page shows the setup as caugh
   catchNumber = new URL(page.url()).searchParams.get('catchNumber');
 });
 
-test('a setup change after the catch adds version 2; the catch keeps version 1', async ({ page }) => {
+test('a setup change after the catch ("The rig changed") adds version 2; the catch keeps version 1', async ({ page }) => {
   await page.goto(`gear-setup.html?id=${tipId}`);
   await page.locator('#hook').fill(HOOK_1);
   await page.locator('#saveBtn').click();
+  await page.locator('#newSetupBtn').click();
   await expect(page).toHaveURL(new RegExp(`gear-tipup\\.html\\?id=${tipId}`));
   expect((await findTip()).setup.versionNo).toBe(2);
   await page.goto(`catch-details.html?catchNumber=${encodeURIComponent(catchNumber)}`);

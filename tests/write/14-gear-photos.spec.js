@@ -80,6 +80,7 @@ test('a catch on it, then a setup change: v2 carries the photo', async ({ page }
   await page.goto(`gear-setup.html?id=${tipId}`);
   await page.locator('#hook').fill(testName('Photo Hook B'));
   await page.locator('#saveBtn').click();
+  await page.locator('#newSetupBtn').click();   // saved minutes ago, so the page asks: the rig changed
   await expect(page).toHaveURL(new RegExp(`gear-tipup\\.html\\?id=${tipId}`));
   const t = await tip();
   expect(t.setup.versionNo).toBe(2);

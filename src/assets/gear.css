@@ -657,3 +657,28 @@ textarea {
   font-size: 14px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
+
+/* Setup page: "fixing a mistake, or did the rig change?" */
+.setup-choice {
+  margin: 12px 0;
+  padding: 14px 16px;
+  border: 2px solid var(--gb-accent-700);
+  border-radius: 12px;
+  background: var(--gb-surface-soft);
+}
+
+.setup-choice p {
+  margin: 0 0 12px 0;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.setup-choice-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.setup-choice-buttons button {
+  flex: 1 1 160px;
+}

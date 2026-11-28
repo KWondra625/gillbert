@@ -159,8 +159,9 @@ function buildCaughtOnRow(c) {
   const setup = parts.length ? escapeHtml(parts.join(' · ')) : 'Setup not entered';
   // The photo of the setup as it was (gear stage 3): its thumbnail, opening the viewing copy
   const p = c.photo;
-  const photo = p && /^https:\/\//.test(p.thumbnailUrl || '')
-    ? `<a class="caught-on-photo" href="${escapeHtml(p.viewingUrl || p.thumbnailUrl)}" target="_blank" rel="noopener">
+  const https = u => (/^https:\/\//.test(u || '') ? u : '');
+  const photo = p && https(p.thumbnailUrl)
+    ? `<a class="caught-on-photo" href="${escapeHtml(https(p.viewingUrl) || p.thumbnailUrl)}" target="_blank" rel="noopener">
          <img src="${escapeHtml(p.thumbnailUrl)}" alt="The setup it was caught on" loading="lazy" /></a>`
     : '';
   return `

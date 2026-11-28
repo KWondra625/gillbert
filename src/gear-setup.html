@@ -83,6 +83,15 @@
 
         <div id="formError" class="form-error hidden" role="alert"></div>
 
+        <!-- Saved again soon after the last save (or by an admin): a fix, or a new setup? -->
+        <div class="setup-choice hidden" id="setupChoice" role="group" aria-labelledby="setupChoiceText">
+          <p id="setupChoiceText"></p>
+          <div class="setup-choice-buttons">
+            <button type="button" class="secondary-button" id="fixBtn">✏️ Fixing a mistake</button>
+            <button type="button" class="primary-button" id="newSetupBtn">🆕 The rig changed</button>
+          </div>
+        </div>
+
         <div class="form-actions">
           <button type="submit" id="saveBtn" class="primary-button">Save setup</button>
           <a href="./gear.html" id="cancelLink" class="back-button">← Cancel</a>

@@ -42,6 +42,7 @@ BEGIN
     THEN RAISE EXCEPTION 'tip-up row: %', r->'sections'->'tipUp'; END IF;
   IF r->'filters'->>'water' IS DISTINCT FROM bwname THEN RAISE EXCEPTION 'filters: %', r->'filters'; END IF;
   IF NOT gear_ai_stats('ZZ no such lake') ? 'error' OR NOT gear_ai_stats('', 'ZZ no such fish') ? 'error'
+     OR NOT gear_ai_stats('', '', '2026-11-1') ? 'error' OR NOT gear_ai_stats('', '', '', '2027-02-29') ? 'error'
     THEN RAISE EXCEPTION 'unknown names should say so'; END IF;
   IF (SELECT max(jsonb_array_length(v)) FROM jsonb_each(gear_ai_stats()->'sections') x(k, v)) > 10
     THEN RAISE EXCEPTION 'sections should stop at 10'; END IF;

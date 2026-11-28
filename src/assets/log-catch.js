@@ -51,7 +51,7 @@ async function fetchLookups() {
     populateSelect(el.fishSpeciesId,  sortedSpecies);
     populateSelect(el.bodyOfWaterId,  data.bodiesOfWater || []);
     myAnglerId = await resolveMyAnglerId(data.anglers || []);
-    await CatchGear.setup({ anglerSelect: el.anglerId });
+    CatchGear.setup({ anglerSelect: el.anglerId });   // not awaited: the form never waits for the tip-up list
     setDefaultCatchTime();
     showState('formState', STATE_IDS);
   } catch (err) {

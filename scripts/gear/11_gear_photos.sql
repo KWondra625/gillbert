@@ -20,10 +20,12 @@ BEGIN;
 
 ALTER TABLE gear_setups ADD COLUMN IF NOT EXISTS photo_viewing_url varchar(255);
 
--- 'photo' history lines: field 'photo', new_value added / replaced / removed
+-- 'photo' history lines: field 'photo', new_value added / replaced / removed.
+-- 'fix' lines (review fix, 2026-11-28): a setup part corrected in place ("fixing a mistake"),
+-- like 'setup' but marked, since it also changes what earlier catches on that version show.
 ALTER TABLE gear_history DROP CONSTRAINT IF EXISTS gear_history_event_type_check;
 ALTER TABLE gear_history ADD CONSTRAINT gear_history_event_type_check
-  CHECK (event_type IN ('created', 'setup', 'rename', 'owner', 'model', 'color', 'notes', 'retire', 'unretire', 'photo'));
+  CHECK (event_type IN ('created', 'setup', 'fix', 'rename', 'owner', 'model', 'color', 'notes', 'retire', 'unretire', 'photo'));
 
 -- A photo's three file paths (original, thumbnail, viewing copy) from the original's path
 CREATE OR REPLACE FUNCTION gear_photo_paths(p_blob_path text) RETURNS jsonb
@@ -46,7 +48,8 @@ $$;
 --   blobPath: gear/<gearId>/<ID>.<ext>, as the upload slot issued it (checked again here)
 -- Answer: { success, message?, photo: {thumbnailUrl, viewingUrl, originalUrl}, removePaths }
 --   removePaths: the replaced photo's files when nothing else uses them; on a refusal, the new
---   files (so the workflow cleans up what it just made)
+--   files when no setup uses them (so the workflow cleans up what it just made, and never a photo
+--   a setup still shows: a replayed or stale request can name one), and only in this tip-up's folder
 CREATE OR REPLACE FUNCTION gear_photo_save(p jsonb) RETURNS jsonb
 LANGUAGE plpgsql AS $$
 DECLARE
@@ -63,13 +66,13 @@ BEGIN
      OR coalesce(p->>'viewingUrl', '')   !~ '^https://[a-z0-9]+\.blob\.core\.windows\.net/gear-media/'
      OR coalesce(p->>'readUrl', '')      !~ '^https://[a-z0-9]+\.blob\.core\.windows\.net/gear-media/' THEN
     RETURN jsonb_build_object('success', false, 'message', 'That photo didn''t upload properly. Please try again.',
-                              'removePaths', CASE WHEN v_path ~ '^gear/\d+/[A-Z0-9]{8,24}\.[a-z]{3,4}$'
-                                                  THEN gear_photo_paths(v_path) ELSE '[]'::jsonb END);
+                              'removePaths', CASE WHEN v_path ~ ('^gear/' || coalesce(v_gear, -1) || '/[A-Z0-9]{8,24}\.[a-z]{3,4}$')
+                                                  THEN gear_photo_unused_paths(v_path) ELSE '[]'::jsonb END);
   END IF;
 
   SELECT * INTO g FROM gear WHERE id = v_gear FOR UPDATE;
   IF NOT FOUND OR g.status = 'Retired' THEN
-    RETURN jsonb_build_object('success', false, 'removePaths', gear_photo_paths(v_path), 'message',
+    RETURN jsonb_build_object('success', false, 'removePaths', gear_photo_unused_paths(v_path), 'message',
       CASE WHEN FOUND THEN 'This tip-up is retired, so its setup can''t change.' ELSE 'That tip-up no longer exists.' END);
   END IF;
 

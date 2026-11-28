@@ -1,6 +1,6 @@
 -- Gear stage 6: the admin's tag clean-up (docs/plans/gear-tip-ups.md, "Stage 6").
 -- Tags are the shared type-ahead values: line, leader, hook, bead, flash, bait, model, color.
--- Safe to re-run (CREATE OR REPLACE). Run after 01-04, as the database admin.
+-- Safe to re-run (CREATE OR REPLACE). Run after 01-04, as the database admin (uses 02's gear_int).
 --
 --   gear/tags       SELECT gear_tags_get()           every tag with how much it's used
 --   gear/tag-save   SELECT gear_tag_save($1::jsonb)  rename, hide, show, merge or delete one
@@ -11,6 +11,8 @@
 
 -- Every tag, with the tip-ups that use it (in any setup version, or as model / color) and the
 -- catches that name it as bait
+BEGIN;
+
 CREATE OR REPLACE FUNCTION gear_tags_get() RETURNS jsonb
 LANGUAGE sql STABLE AS $$
 WITH used AS (
@@ -43,10 +45,10 @@ $$;
 CREATE OR REPLACE FUNCTION gear_tag_save(p jsonb) RETURNS jsonb
 LANGUAGE plpgsql AS $$
 DECLARE
-  v_id     int  := NULLIF(p->>'id', '')::int;
+  v_id     int  := gear_int(p->>'id');
   v_action text := p->>'action';
   v_name   text := gear_clean(p->>'name');
-  v_into   int  := NULLIF(p->>'intoId', '')::int;
+  v_into   int  := gear_int(p->>'intoId');
   v_tag    gear_options%ROWTYPE;
   v_target gear_options%ROWTYPE;
   v_taken  text;
@@ -113,6 +115,8 @@ BEGIN
     ALTER FUNCTION gear_tag_save(jsonb) OWNER TO gillbert_fullaccess;
   END IF;
 END $$;
+
+COMMIT;
 
 -- Check: both functions answer (the list, and a refused change on a tag that isn't there)
 SELECT jsonb_array_length(gear_tags_get()) AS tags,

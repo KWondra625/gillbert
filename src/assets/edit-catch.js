@@ -99,7 +99,8 @@ async function loadEditCatch() {
     }
 
     prefillForm(catchData);
-    await CatchGear.setup({ anglerSelect: el.anglerId, current: { caughtOn: catchData.caughtOn, bait: catchData.bait } });
+    // Not awaited: the form never waits for the tip-up list (until it's there, the save keeps the catch's)
+    CatchGear.setup({ anglerSelect: el.anglerId, current: { caughtOn: catchData.caughtOn, bait: catchData.bait } });
 
     el.formHeading.textContent = `Edit ${catchData.catchNumber}`;
     showState('formState', STATE_IDS);

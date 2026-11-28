@@ -43,13 +43,21 @@ Two separate things, so the screen stays simple:
 - **The history** (`gear_history`) records every change: who, when, which part, old → new.
   That's what the tip-up's history shows ("Nov 22 · Dave T: hook #8 octopus → #10 treble,
   + Glow beads"). Renames, owner changes and retiring go in the same log.
-- **Setup versions** (`gear_setups`) are what catches point at. Saving a change **updates the
-  current version in place while no catch points at it yet** (so fixing a typo or fiddling
-  before the first fish doesn't pile up versions). Once a catch points at the current
-  version, the next save **adds a new version** and leaves the old one as it was.
+- **Setup versions** (`gear_setups`) are what catches point at. Saving a change **adds a new
+  version** and leaves the old one as it was, so a fish logged late (caught at 9, logged that
+  night after a noon change) still gets the morning's setup.
+- **Fixing a mistake** (changed 2026-11-28 after the code review; Kurt's design): within
+  **2 hours of the setup's last save**, Save asks "This setup was saved less than 2 hours ago.
+  Are you **fixing a mistake** in it, or did the **rig change**? (Fish already logged keep the
+  setup they were caught on, unless it's a fix.)" A fix corrects the current version in place,
+  catches on it included, and the history marks it "fixed". After 2 hours a change is always a
+  new version; **an admin** can fix the current version at any time (the page asks them too).
+  The database enforces the 2 hours (`mode: 'fix'`, `admin`), not just the page. A blank first
+  version (made for a catch or a photo before anyone entered the setup) with no catches is just
+  filled in. Before this, a version was edited in place whenever no catch pointed at it yet,
+  which rewrote the setup of fish not logged yet.
 
-Nobody picks between "correct" and "new version": there's one Save button, and the app
-decides. The history reads the same either way. So:
+One Save button; the question only appears when it matters. So:
 - Catch Details always shows the setup *as it was that day*, even after the tip-up changes,
   is renamed or retired.
 - Stats count fish against the setup that actually caught them.
@@ -90,7 +98,7 @@ The two `catches` columns are added in stage 1 but stay unused until stage 2.
 |---|---|
 | `gear/get` | The tip-up list with each one's current setup (fish counts arrive with stage 2); `?id=` adds that tip-up's history; the `gear_options` per kind for the type-ahead |
 | `gear/save` | Add, rename, change owner / model / color, retire, delete (no catches only). Refuses a duplicate name with a friendly message |
-| `gear/setup-save` | In one transaction: creates any brand-new tags, updates the current version in place (no catches yet) or adds a new one, and writes the change log |
+| `gear/setup-save` | In one transaction: creates any brand-new tags, adds a new version (or, for a fix within 2 hours / by an admin, corrects the current one in place), and writes the change log |
 | Save Catch / Edit Catch | Accept the two new optional fields |
 | (all three) | Built by `tools/n8n-migration/gear/deploy_gear_endpoints.py`: the server's own API-key check, then one Postgres call with the request as a bound parameter |
 | Setup photo | Reuses the single-photo upload pattern from profile photos, plus the existing thumbnail step |
@@ -117,7 +125,7 @@ nothing until stage 5, and it gets the full write-test run.
   untouched until stage 5) and GET Catch(es) (adds `caughtOn` and `bait`).
 - **Gear list:** cards like the Anglers page, with a search box (name, owner, model, color, setup
   parts) and owner pills (only anglers who own a tip-up).
-- **Release order:** 01, 02, 04, then the view, then the n8n patch.
+- **Release order:** see the runbook "Run Release - Gear Up" (02 now needs 11 first: 01, 11, 02, 04, the view, 06, 07, 09, 13).
 
 ## Stage 5 design: Catch Chat (agreed 2026-11-27)
 
@@ -184,7 +192,10 @@ Agreed with Kurt from a mockup:
 - One photo per **setup version**. The tip-up page shows and changes the current version's photo,
   as its own action (Add / Replace / Remove, saved straight away). A photo never makes a new
   version; a setup change carries the photo into the new version until someone replaces it.
-  Catches show the photo of the version they were caught on.
+  Catches show the photo of the version they were caught on. A photo change applies to the
+  current version in place, so catches already on it show the new photo too (Kurt, 2026-11-28,
+  after the review asked: the photo is "what this rig looks like"; a real change of rig makes a
+  new version anyway). A replaced or removed photo's files go once no version uses them.
 - Tip-up page: the photo first (thumbnail; tap for the viewing copy and "Download original"), a
   dashed "Add a photo of this setup" box when there's none, and history lines Photo added /
   replaced / removed. Catch Details: a small thumbnail in "Caught on". Gear list: a 📷 badge when
@@ -301,8 +312,8 @@ Still open, Inbox: limit tip-up edits to the owner (and admin)?
 
 ## Answered (Kurt, 2026-11-18)
 
-1. **Typo fixes:** correct in place, as long as the screen stays easy to follow. Done as above:
-   in place while no catch uses the version, one Save button, history from the change log.
+1. **Typo fixes:** correct in place, as long as the screen stays easy to follow. Since
+   2026-11-28: "Fixing a mistake" within 2 hours of the last save (admins any time), see "The key idea".
 2. **Deleting or merging tags:** admins only (stage 6). Everyone else just adds.
 3. **"Fish this season"** uses the app's hard / open water season dates (Settings).
 4. **Bait starter list:** Shiner (small, medium, large), Sucker (small, medium, large),

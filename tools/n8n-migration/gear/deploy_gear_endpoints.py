@@ -1,4 +1,4 @@
-"""Gear stage 1: create the three gear webhooks (docs/plans/gear-tip-ups.md).
+"""Gear: create the gear webhooks (stage 1, plus stages 4 and 6; docs/plans/gear-tip-ups.md).
 
   Gillbert - Gear - GET Gear              GET  gillbert/gear/get           SELECT gear_get(...)
   Gillbert - Gear - POST Save Gear        POST gillbert/gear/save          SELECT gear_save($1::jsonb)
@@ -13,7 +13,7 @@ lives in the database functions (scripts/gear/02_gear_functions.sql), which must
 The request goes to Postgres as a bound parameter ($1), never as SQL text. Paths have no
 leading "/", so the webhook's CORS setting applies (a leading slash makes n8n skip it).
 
-  python -I -X utf8 gear/deploy_gear_endpoints.py                    Staging dry run: builds all 3, writes nothing
+  python -I -X utf8 gear/deploy_gear_endpoints.py                    Staging dry run: builds them all, writes nothing
   python -I -X utf8 gear/deploy_gear_endpoints.py --apply            Staging: create + publish (Kurt's OK)
   python -I -X utf8 gear/deploy_gear_endpoints.py --prod [--apply]   production: ONLY at release, with Kurt's separate OK
 

@@ -2,7 +2,7 @@
  * the Species / Water chips from the Catches page (catches-listing.css), the season pills from
  * the Gear page (gear.css), so each page keeps its own styles. */
 
-/* ── Season pills (hidden for now) ── */
+/* ── Season pills (This Season / All Time) ── */
 .status-filter {
   display: flex;
   gap: 6px;
@@ -329,10 +329,6 @@
 /* ── This page ── */
 .season-filter {
   margin-bottom: 12px;
-}
-
-.season-filter[hidden] {
-  display: none;
 }
 
 .stats-summary {

@@ -69,8 +69,14 @@ const ROWS = {
 // history go with it (ON DELETE CASCADE), so only the tip-ups and the tags need listing.
 const GEAR_ROWS = {
   gear: testName('display_name'),
-  gear_options: TEST_NAME,
+  // Case-insensitive: Catch Chat's AI can re-case a test bait ("e2e test chat bait …")
+  gear_options: `name ILIKE ${sqlString(`${NAME_PREFIX} %`)}`,
 };
+// A test angler's name on a real gear row (who added a tag, changed a setup, wrote a history
+// line) would block deleting the angler: those become "unknown" first, as a deleted angler would.
+const GEAR_BY_COLUMNS = [['gear', 'created_by_angler_id'], ['gear', 'updated_by_angler_id'],
+  ['gear_options', 'created_by_angler_id'], ['gear_setups', 'created_by_angler_id'],
+  ['gear_setups', 'updated_by_angler_id'], ['gear_history', 'by_angler_id']];
 
 async function main() {
   console.log(`${APPLY ? 'APPLYING' : 'DRY RUN (add --apply to remove)'} · API ${config.N8N_BASE_URL} · DB ${SSH} ${PG_CONTAINER}/${PG_DB}\n`);
@@ -117,10 +123,18 @@ async function main() {
     // other version shows it. So, one photo at a time: put it on the current version only (SQL,
     // test tip-ups only, back in service so the remove isn't refused), then remove it through the app.
     for (const gearId of [...new Set(setupPhotos.map(([g]) => Number(g)))]) {
+      const tried = new Set();
       for (let i = 0; i < 20; i++) {
         const [path, readUrl] = (psql(`SELECT photo_blob_path, photo_read_url FROM gear_setups
           WHERE gear_id = ${gearId} AND photo_blob_path IS NOT NULL ORDER BY version_no DESC LIMIT 1;`) || '').split(' | ');
         if (!path) break;
+        if (tried.has(path)) {
+          // Its remove failed but the file is already gone (else we'd have stopped): let the row go
+          psql(`UPDATE gear_setups SET photo_blob_path = NULL, photo_read_url = NULL, photo_thumbnail_url = NULL,
+                  photo_viewing_url = NULL WHERE gear_id = ${gearId} AND photo_blob_path = ${sqlString(path)};`);
+          continue;
+        }
+        tried.add(path);
         psql(`BEGIN;
           UPDATE gear SET status = 'Active' WHERE id = ${gearId} AND ${GEAR_ROWS.gear};
           UPDATE gear_setups s SET photo_blob_path = src.photo_blob_path, photo_read_url = src.photo_read_url,
@@ -134,6 +148,10 @@ async function main() {
         const before = stillStored.length;
         await attempt(`setup photo ${path}`, 'gear/photo-remove', { gearId }, readUrl);
         if (stillStored.length > before) break;
+        // The workflow's file delete is best effort, so check the original really went: a file
+        // left under gear/<id>/ would later look like the next tip-up's (the id is reused).
+        const left = await fetch(readUrl, { method: 'HEAD' }).then(r => r.status, () => 'unreachable');
+        if (left !== 404) { stillStored.push(`setup photo ${path} (still there after the remove: ${left})`); break; }
       }
     }
     if (stillStored.length) {
@@ -159,6 +177,8 @@ async function main() {
     DELETE FROM gear_options WHERE ${GEAR_ROWS.gear_options};` : ''}
     DELETE FROM conversations WHERE ${ROWS.conversations};
     DELETE FROM chat_messages WHERE ${ROWS.chat_messages};
+    ${hasGear ? GEAR_BY_COLUMNS.map(([t, c]) =>
+      `UPDATE ${t} SET ${c} = NULL WHERE ${c} IN (SELECT id FROM anglers WHERE ${ROWS.anglers});`).join('\n    ') : ''}
     DELETE FROM anglers WHERE ${ROWS.anglers};
     DELETE FROM fish_species WHERE ${ROWS.fish_species};
     DELETE FROM bodies_of_water WHERE ${ROWS.bodies_of_water};

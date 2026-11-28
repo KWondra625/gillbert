@@ -139,4 +139,13 @@ BEGIN
   END IF;
 END $$;
 
+-- Same owner as the rest of the database (scripts/roles/gillbert_fullaccess.sql): re-creating
+-- the view as the admin would otherwise leave it owned by the admin
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'gillbert_fullaccess') THEN
+    ALTER VIEW vw_catch_details OWNER TO gillbert_fullaccess;
+  END IF;
+END $$;
+
 COMMIT;

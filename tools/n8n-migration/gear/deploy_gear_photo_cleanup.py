@@ -7,6 +7,8 @@ workflows; each is backed up first and --restore puts it back.
   Gillbert - Media - POST Media Admin    the Media page's Storage Check covers gear-media too:
                                          files no setup points at (delete only), setups pointing at
                                          a missing file.
+  Gillbert - Media - Make Photo Copies   its code brought up to make_photo_copies.js (review fix:
+                                         the original's download name keeps an apostrophe).
 
   python -I -X utf8 gear/deploy_gear_photo_cleanup.py              Staging dry run
   python -I -X utf8 gear/deploy_gear_photo_cleanup.py --apply      Staging (Kurt's OK)
@@ -125,9 +127,16 @@ def plan_media_admin(live):
     return nodes
 
 
+def plan_copies(live):
+    nodes = copy.deepcopy(live["nodes"])
+    code = next(n for n in nodes if n["name"] == "Make Photo Copies")
+    code["parameters"]["jsCode"] = P.COPIES_JS
+    return nodes
+
+
 if __name__ == "__main__":
     by_name = {w["name"]: w for w in P.get("/workflows?limit=250")["data"]}
-    for need in (SAVE_GEAR, MEDIA_ADMIN, P.SHARED_SAS):
+    for need in (SAVE_GEAR, MEDIA_ADMIN, P.SHARED_SAS, P.COPIES):
         if need not in by_name:
             sys.exit(f"STOP: {need!r} not found on {P.HOST}")
     if RESTORE:
@@ -145,6 +154,8 @@ if __name__ == "__main__":
     plans.append((live, nodes, conns))
     live = P.get(f"/workflows/{by_name[MEDIA_ADMIN]['id']}")
     plans.append((live, plan_media_admin(live), live["connections"]))
+    live = P.get(f"/workflows/{by_name[P.COPIES]['id']}")
+    plans.append((live, plan_copies(live), live["connections"]))
 
     todo = []
     for live, nodes, conns in plans:

@@ -156,6 +156,44 @@ test.describe('Edit Catch: Caught on and Bait', () => {
     await expect(page).toHaveURL(/catch-details\.html/);
     expect(state.saves[0]).toMatchObject({ catchId: 501, gearId: 7, bait: null });
   });
+
+  test('saved untouched, it keeps the retired tip-up and the bait', async ({ page }) => {
+    const state = await mockCatchPages(page);
+    await page.goto('edit-catch.html?catchNumber=Catch%2026-501');
+    await expect(page.locator('#gearSearch')).toHaveValue('KW 24-03 (retired)');
+    await page.locator('#gearSearch').focus();
+    await expect(page.locator('#gearSuggestions')).toBeHidden();   // its own pick, not "No tip-up matches"
+    await page.locator('#saveBtn').click();
+    await expect(page).toHaveURL(/catch-details\.html/);
+    expect(state.saves[0]).toMatchObject({ catchId: 501, gearId: 9, bait: 'Sucker (large)' });
+  });
+
+  test('clearing Caught on sends no tip-up; Enter in the empty box picks nothing', async ({ page }) => {
+    const state = await mockCatchPages(page);
+    await page.goto('edit-catch.html?catchNumber=Catch%2026-501');
+    await expect(page.locator('#gearSearch')).toHaveValue('KW 24-03 (retired)');
+    await page.locator('#gearSearch').fill('');
+    await page.locator('#gearSearch').press('Enter');
+    await expect(page.locator('#gearSearch')).toHaveValue('');
+    await page.locator('#saveBtn').click();
+    await expect(page).toHaveURL(/catch-details\.html/);
+    expect(state.saves[0]).toMatchObject({ catchId: 501, gearId: null });
+  });
+});
+
+test.describe('Edit Catch when the tip-up list is down', () => {
+  test.use({ identityEmail: ME, allowConsoleErrors: true });
+
+  test('the save leaves the catch\'s tip-up and bait alone (sends neither)', async ({ page }) => {
+    const state = await mockCatchPages(page, { gearDown: true });
+    await page.goto('edit-catch.html?catchNumber=Catch%2026-501');
+    await expect(page.locator('#catchForm')).toBeVisible();
+    await expect(page.locator('#gearGroup')).toBeHidden();
+    await page.locator('#saveBtn').click();
+    await expect(page).toHaveURL(/catch-details\.html/);
+    expect(state.saves[0]).not.toHaveProperty('gearId');
+    expect(state.saves[0]).not.toHaveProperty('bait');
+  });
 });
 
 test.describe('catch page: Caught on', () => {
@@ -217,6 +255,9 @@ test.describe('tip-up page: View Catches', () => {
     const link = page.locator('#viewCatchesLink');
     await expect(link).toHaveText('🎣 No Catches Yet');
     await expect(link).toHaveClass(/view-catches-link--empty/);
+    await link.click({ force: true });
+    await page.waitForTimeout(300);
+    await expect(page).toHaveURL(/gear-tipup\.html\?id=7$/);
   });
 
   test('the catches list shows no Caught on chip on a plain visit', async ({ page }) => {
