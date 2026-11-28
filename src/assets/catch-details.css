@@ -1036,3 +1036,19 @@
   font-size: 13px;
   color: var(--gb-ink-2);
 }
+
+/* Caught on: the setup's photo, small (gear stage 3) */
+.caught-on-photo {
+  display: block;
+  width: 96px;
+  margin-top: 8px;
+}
+
+.caught-on-photo img {
+  display: block;
+  width: 96px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}

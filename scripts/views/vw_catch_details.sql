@@ -108,7 +108,11 @@ CREATE VIEW vw_catch_details AS
                                      WHERE so.setup_id = s.id AND o.kind = 'bead'), '[]'::jsonb),
                   'flash', coalesce((SELECT jsonb_agg(o.name ORDER BY lower(o.name))
                                      FROM gear_setup_options so JOIN gear_options o ON o.id = so.option_id
-                                     WHERE so.setup_id = s.id AND o.kind = 'flash'), '[]'::jsonb))
+                                     WHERE so.setup_id = s.id AND o.kind = 'flash'), '[]'::jsonb),
+                  -- Gear stage 3: that version's photo (scripts/gear/11 first)
+                  'photo', CASE WHEN s.photo_blob_path IS NULL THEN NULL ELSE jsonb_build_object(
+                             'thumbnailUrl', s.photo_thumbnail_url, 'viewingUrl', s.photo_viewing_url,
+                             'originalUrl', s.photo_read_url) END)
            FROM gear_setups s JOIN gear g ON g.id = s.gear_id
            WHERE s.id = c.gear_setup_id) AS caught_on,
         (SELECT o.name FROM gear_options o WHERE o.id = c.bait_option_id) AS bait_name

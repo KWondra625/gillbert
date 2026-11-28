@@ -95,6 +95,7 @@ function gearHistoryText(h) {
     case 'retire':   return h.field === 'note' ? `Retired note: ${was} → ${now}`
                                                : `Retired${h.newValue ? `: ${h.newValue}` : ''}`;
     case 'unretire': return 'Back in service';
+    case 'photo':    return `Photo ${h.newValue || 'changed'}`;   // added / replaced / removed
     default:         return h.eventType;
   }
 }

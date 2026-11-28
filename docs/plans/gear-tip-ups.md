@@ -175,6 +175,39 @@ Pieces: `scripts/gear/07_gear_tags_admin.sql` (`gear_tags_get`, `gear_tag_save`)
 `tools/n8n-migration/gear/deploy_gear_endpoints.py` (`gear/tags`, `gear/tag-save`; the script now
 creates only what's missing), `gear-tags.html`, `gear-tag-edit.html`, `tests/read/gear-tags.spec.js`.
 
+## Stage 3: setup photos (built 2026-11-27)
+
+Agreed with Kurt from a mockup:
+- One photo per **setup version**. The tip-up page shows and changes the current version's photo,
+  as its own action (Add / Replace / Remove, saved straight away). A photo never makes a new
+  version; a setup change carries the photo into the new version until someone replaces it.
+  Catches show the photo of the version they were caught on.
+- Tip-up page: the photo first (thumbnail; tap for the viewing copy and "Download original"), a
+  dashed "Add a photo of this setup" box when there's none, and history lines Photo added /
+  replaced / removed. Catch Details: a small thumbnail in "Caught on". Gear list: a 📷 badge when
+  the **current** setup has a photo (not any version).
+- Like catch photos (Kurt: keep the originals, be consistent): the original is kept, and the server
+  makes `<ID>-thumb.jpg` (1200 px) and `<ID>-view.jpg` (2048 px) with the same `magick` settings.
+  iPhone HEIC is read by magick directly (the copies are JPEG). 25 MB limit; JPG, PNG, WebP, HEIC.
+- Files: the `gear-media` container, `gear/<gearId>/<ID>.<ext>` (its own container so the Media
+  page's Storage Check doesn't flag them).
+
+n8n (Kurt: reuse rather than copy): the copy-making code moved out of Make Thumbnails into a shared
+sub-workflow **Make Photo Copies** (`tools/n8n-migration/gear/make_photo_copies.js`), used by Make
+Thumbnails (catch photos) and Save Setup Photo. The upload slot reuses the shared SAS sub-workflow
+and the usual access check. Three thin endpoints: `gear/photo-sas`, `gear/photo-save`,
+`gear/photo-remove` (`deploy_gear_photos.py --part gear`; Make Thumbnails' switch is
+`--part thumbnails`, backed up, `--restore`).
+
+Database: `scripts/gear/11_gear_photos.sql` (photo_viewing_url, the `photo` history type,
+`gear_photo_save` / `gear_photo_remove`, which say which files nothing uses any more, so a photo
+an older version still shows is never deleted), then 02 and `scripts/views/vw_catch_details.sql`
+re-run, then `12_check_gear_photos.sql`. Tests: `tests/read/gear-photos.spec.js`,
+`tests/write/14-gear-photos.spec.js`; `npm run cleanup` removes test tip-ups' photo files
+through gear/photo-remove.
+
+Known gap: deleting a tip-up that has no catches (gear/save) leaves its photo files in storage.
+
 ## Stage 4: Gear Stats (built and on Staging 2026-11-27)
 
 Agreed with Kurt from a mockup (version B: count plus biggest fish):

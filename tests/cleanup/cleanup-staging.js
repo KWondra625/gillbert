@@ -4,9 +4,9 @@
 //   npm run cleanup -- --apply  removes it
 //
 // Two steps, because the app can delete files but not rows:
-//   1. Files: media on test catches and test anglers' profile photos are deleted through
-//      the app's own endpoints (catch-media/delete, anglers/delete-photo), which remove
-//      the stored file as well as the row.
+//   1. Files: media on test catches, test anglers' profile photos and test tip-ups' setup
+//      photos are deleted through the app's own endpoints (catch-media/delete,
+//      anglers/delete-photo, gear/photo-remove), which remove the stored files as well.
 //   2. Rows: test catches, anglers, species and bodies of water are deleted with SQL on
 //      the Staging database over SSH, in one transaction, and the id sequences are reset
 //      so the next real catch number follows on with no gap (scripts/reset_table_ids.sql).
@@ -87,9 +87,19 @@ async function main() {
   const anglers = (Array.isArray(anglerData) ? anglerData : Object.values(anglerData).find(Array.isArray) || []);
   const photos = anglers.filter(a => isTestName(a.name) && a.profilePhotoReadUrl);
 
-  console.log(`Files: ${media.length} media on ${testCatches.length} test catch(es), ${photos.length} test angler photo(s)`);
+  // Setup photos (gear stage 3), on any version of a test tip-up
+  const hasGear = psql(`SELECT to_regclass('public.gear') IS NOT NULL;`) === 't';
+  const hasSetupPhotos = hasGear && psql(`SELECT count(*) FROM information_schema.columns
+    WHERE table_name = 'gear_setups' AND column_name = 'photo_viewing_url';`) === '1';
+  const setupPhotos = !hasSetupPhotos ? [] : psql(`SELECT DISTINCT g.id, s.photo_blob_path FROM gear g
+    JOIN gear_setups s ON s.gear_id = g.id WHERE ${GEAR_ROWS.gear} AND s.photo_blob_path IS NOT NULL ORDER BY 1, 2;`)
+    .split('\n').filter(Boolean).map(l => l.split(' | '));
+
+  console.log(`Files: ${media.length} media on ${testCatches.length} test catch(es), ${photos.length} test angler photo(s), `
+    + `${setupPhotos.length} test setup photo(s)`);
   for (const m of media) console.log(`  media ${m.id}  ${m.catchNumber}  ${m.contentType}  ${m.blobPath}`);
   for (const a of photos) console.log(`  photo  angler ${a.id} "${a.name}"`);
+  for (const [gearId, path] of setupPhotos) console.log(`  setup photo  tip-up ${gearId}  ${path}`);
   if (APPLY) {
     // A delete can fail. If its file is already gone, the row step below can still remove
     // the row. If the file is still in storage, removing the row would orphan it, so stop
@@ -103,6 +113,29 @@ async function main() {
     };
     for (const m of media) await attempt(`media ${m.id}`, 'catch-media/delete', { mediaId: m.id }, m.readUrl);
     for (const a of photos) await attempt(`photo of angler ${a.id}`, 'anglers/delete-photo', { anglerId: a.id }, a.profilePhotoReadUrl);
+    // gear/photo-remove takes the photo off a tip-up's CURRENT setup and deletes its files once no
+    // other version shows it. So, one photo at a time: put it on the current version only (SQL,
+    // test tip-ups only, back in service so the remove isn't refused), then remove it through the app.
+    for (const gearId of [...new Set(setupPhotos.map(([g]) => Number(g)))]) {
+      for (let i = 0; i < 20; i++) {
+        const [path, readUrl] = (psql(`SELECT photo_blob_path, photo_read_url FROM gear_setups
+          WHERE gear_id = ${gearId} AND photo_blob_path IS NOT NULL ORDER BY version_no DESC LIMIT 1;`) || '').split(' | ');
+        if (!path) break;
+        psql(`BEGIN;
+          UPDATE gear SET status = 'Active' WHERE id = ${gearId} AND ${GEAR_ROWS.gear};
+          UPDATE gear_setups s SET photo_blob_path = src.photo_blob_path, photo_read_url = src.photo_read_url,
+                 photo_thumbnail_url = src.photo_thumbnail_url, photo_viewing_url = src.photo_viewing_url
+            FROM (SELECT * FROM gear_setups WHERE gear_id = ${gearId} AND photo_blob_path = ${sqlString(path)} LIMIT 1) src
+           WHERE s.id = (SELECT id FROM gear_setups WHERE gear_id = ${gearId} ORDER BY version_no DESC LIMIT 1);
+          UPDATE gear_setups SET photo_blob_path = NULL, photo_read_url = NULL, photo_thumbnail_url = NULL, photo_viewing_url = NULL
+           WHERE gear_id = ${gearId} AND photo_blob_path = ${sqlString(path)}
+             AND id <> (SELECT id FROM gear_setups WHERE gear_id = ${gearId} ORDER BY version_no DESC LIMIT 1);
+          COMMIT;`);
+        const before = stillStored.length;
+        await attempt(`setup photo ${path}`, 'gear/photo-remove', { gearId }, readUrl);
+        if (stillStored.length > before) break;
+      }
+    }
     if (stillStored.length) {
       console.error(`\nStopped before removing any rows: these files are still in storage, and removing`
         + ` their rows would leave them orphaned. Run cleanup again later.\n  ${stillStored.join('\n  ')}`);
@@ -112,7 +145,6 @@ async function main() {
   }
 
   // ── 2. Rows, with SQL ─────────────────────────────────────────────────
-  const hasGear = psql(`SELECT to_regclass('public.gear') IS NOT NULL;`) === 't';
   const rows = hasGear ? { ...ROWS, ...GEAR_ROWS } : ROWS;
   // Leftover media rows go first (their files are handled above), then catches, then
   // test chats (catches point at conversations), then the lookups the catches pointed at. Any real catch still pointing at a test record

@@ -43,6 +43,25 @@
       <p class="gear-sub" id="tipSub"></p>
       <p class="gear-retired-note hidden" id="retiredNote"></p>
 
+      <!-- The current setup's photo (stage 3): its own action, saved straight away; never a new version -->
+      <div class="gear-photo" id="photoBox">
+        <button type="button" class="gear-photo-view hidden" id="photoView" aria-label="See the photo full size">
+          <img id="photoImg" alt="This tip-up's setup" />
+        </button>
+        <div class="gear-photo-actions hidden" id="photoActions">
+          <button type="button" class="secondary-button button-small" id="photoReplaceBtn">📷 Replace photo</button>
+          <button type="button" class="secondary-button button-small" id="photoRemoveBtn">Remove</button>
+        </div>
+        <div class="gear-photo-confirm hidden" id="photoRemoveConfirm">
+          <p>Remove this photo? Catches made with this setup keep it.</p>
+          <button type="button" class="secondary-button button-small danger-button" id="photoRemoveYes">Yes, remove it</button>
+          <button type="button" class="secondary-button button-small" id="photoRemoveNo">Keep it</button>
+        </div>
+        <button type="button" class="gear-photo-add hidden" id="photoAddBtn">📷 Add a photo of this setup</button>
+        <p class="gear-photo-status hidden" id="photoStatus" role="status"></p>
+        <input type="file" id="photoInput" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" hidden />
+      </div>
+
       <dl class="gear-parts" id="tipParts"></dl>
       <p class="gear-notes hidden" id="tipNotes"></p>
 
@@ -59,6 +78,13 @@
         <a href="#" class="view-catches-link" id="viewCatchesLink">🎣 View Catches</a>
       </div>
     </div>
+  </div>
+
+  <!-- Full-size photo -->
+  <div class="gear-photo-lightbox hidden" id="photoLightbox" role="dialog" aria-modal="true" aria-label="Setup photo">
+    <button type="button" class="gear-photo-close" id="photoClose" aria-label="Close">✕</button>
+    <img id="photoLightboxImg" alt="This tip-up's setup, full size" />
+    <a class="gear-photo-original" id="photoOriginal" href="#" download>Download original</a>
   </div>
 
   <script src="./assets/config.js"></script>

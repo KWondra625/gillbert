@@ -1,5 +1,6 @@
 -- Gear (stage 1): the database functions behind the three gear endpoints. Safe to re-run
--- (CREATE OR REPLACE). Run after 01_gear_tables.sql, as the database admin.
+-- (CREATE OR REPLACE). Run after 01_gear_tables.sql, as the database admin. Since stage 3 it
+-- needs 11_gear_photos.sql first (the photo_viewing_url column).
 --
 -- Each endpoint is a single call, so each save is one transaction that either fully happens or
 -- doesn't. The n8n workflows only check the API key and pass the request body as a bound
@@ -103,7 +104,10 @@ tip AS (
       'hook', oh.name,
       'beads', coalesce(pb.names, '[]'::jsonb),
       'flash', coalesce(pf.names, '[]'::jsonb),
-      'photoUrl', cur.photo_read_url,
+      -- Stage 3: the current version's photo (its 3 files), or null
+      'photo', CASE WHEN cur.photo_blob_path IS NULL THEN NULL ELSE jsonb_build_object(
+                 'thumbnailUrl', cur.photo_thumbnail_url, 'viewingUrl', cur.photo_viewing_url,
+                 'originalUrl', cur.photo_read_url) END,
       'since', cur.created_at) END
   ) AS j
   FROM gear g
@@ -323,10 +327,12 @@ BEGIN
   IF v_new THEN
     v_version := coalesce(cur.version_no, 0) + 1;
     INSERT INTO gear_setups (gear_id, version_no, line_option_id, leader_option_id, hook_option_id,
-                             photo_blob_path, photo_read_url, photo_thumbnail_url, photo_uploaded_at,
-                             created_by_angler_id, updated_by_angler_id)
+                             photo_blob_path, photo_read_url, photo_thumbnail_url, photo_viewing_url,
+                             photo_uploaded_at, created_by_angler_id, updated_by_angler_id)
+    -- The photo carries over to the new version (stage 3) until someone replaces it
     VALUES (v_gear, v_version, v_line, v_leader, v_hook,
-            cur.photo_blob_path, cur.photo_read_url, cur.photo_thumbnail_url, cur.photo_uploaded_at,
+            cur.photo_blob_path, cur.photo_read_url, cur.photo_thumbnail_url, cur.photo_viewing_url,
+            cur.photo_uploaded_at,
             v_by, v_by)
     RETURNING id INTO v_setup;
   ELSE

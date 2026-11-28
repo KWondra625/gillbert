@@ -1,4 +1,5 @@
-// One tip-up: its model, color and current setup, the ways to change it, and its history.
+// One tip-up: its model, color and current setup (with its photo), the ways to change it, and
+// its history.
 const STATE_IDS = ['loadingState', 'errorState', 'viewState'];
 const tipId = new URLSearchParams(location.search).get('id');
 
@@ -13,6 +14,18 @@ const el = {
   historyList: document.getElementById('historyList'),
   viewCatches: document.getElementById('viewCatchesLink'),
   errorMsg:    document.getElementById('errorMsg'),
+  photoView:   document.getElementById('photoView'),
+  photoImg:    document.getElementById('photoImg'),
+  photoActions: document.getElementById('photoActions'),
+  photoAdd:    document.getElementById('photoAddBtn'),
+  photoReplace: document.getElementById('photoReplaceBtn'),
+  photoRemove: document.getElementById('photoRemoveBtn'),
+  photoConfirm: document.getElementById('photoRemoveConfirm'),
+  photoStatus: document.getElementById('photoStatus'),
+  photoInput:  document.getElementById('photoInput'),
+  lightbox:    document.getElementById('photoLightbox'),
+  lightboxImg: document.getElementById('photoLightboxImg'),
+  original:    document.getElementById('photoOriginal'),
   retryBtn:    document.getElementById('retryBtn'),
 };
 
@@ -52,6 +65,8 @@ function render(t, history) {
     part('Beads', s.beads), part('Flash', s.flash),
   ].join('');
 
+  renderPhoto(t);
+
   el.tipNotes.textContent = t.notes || '';
   el.tipNotes.classList.toggle('hidden', !t.notes);
 
@@ -68,8 +83,131 @@ function render(t, history) {
     </li>`).join('');
 }
 
-async function load() {
-  showState('loadingState');
+// ── Setup photo (stage 3) ──────────────────────────────────────────────────────────────────
+// The current setup's photo: the thumbnail here, the viewing copy full size, and the original
+// to download. Adding, replacing or removing one saves straight away and never makes a new
+// setup version; catches keep the photo of the setup they were caught on.
+const PHOTO_MAX_BYTES = 25 * 1024 * 1024;   // same limits as the upload slot (gear/photo-sas)
+const PHOTO_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'];
+let myAnglerId = null;
+let busy = false;
+
+function renderPhoto(t) {
+  const photo = t.setup && t.setup.photo;
+  const retired = t.status === 'Retired';
+  el.photoView.classList.toggle('hidden', !photo);
+  if (photo) el.photoImg.src = photo.thumbnailUrl;
+  el.photoActions.classList.toggle('hidden', !photo || retired);
+  el.photoAdd.classList.toggle('hidden', !!photo || retired);
+  el.photoConfirm.classList.add('hidden');
+}
+
+function photoStatus(text, isError) {
+  el.photoStatus.textContent = text || '';
+  el.photoStatus.classList.toggle('hidden', !text);
+  el.photoStatus.classList.toggle('form-error', !!isError);
+}
+
+function photoRejectReason(file) {
+  const ext = (file.name || '').includes('.') ? file.name.split('.').pop().toLowerCase() : '';
+  if (!PHOTO_EXTENSIONS.includes(ext)) return "That file type isn't supported. Choose a JPG, PNG, WebP or HEIC photo.";
+  if (file.size <= 0) return 'That file is empty.';
+  if (file.size > PHOTO_MAX_BYTES) return `That photo is too large (${Math.round(file.size / (1024 * 1024))} MB); the limit is 25 MB.`;
+  return null;
+}
+
+async function postJson(url, body) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = gearUnwrap(await res.json().catch(() => ({})));
+  if (!res.ok || data.success === false) throw Object.assign(new Error(data.message || `HTTP ${res.status}`), { shown: !!data.message });
+  return data;
+}
+
+function setBusy(on) {
+  busy = on;
+  [el.photoAdd, el.photoReplace, el.photoRemove].forEach(b => { b.disabled = on; });
+}
+
+// The original goes straight to storage; the server then makes the thumbnail and viewing copy
+// (like catch photos) and puts the photo on the current setup.
+async function uploadPhoto(file) {
+  const why = photoRejectReason(file);
+  if (why) return photoStatus(why, true);
+  if (!shown || busy) return;
+  setBusy(true);
+  try {
+    photoStatus('Uploading…');
+    const slot = await postJson(GEAR_PHOTO_SAS_URL, { gearId: shown.id, file: { name: file.name, size: file.size, type: file.type } });
+    const put = await fetch(slot.uploadUrl, {
+      method: 'PUT',
+      headers: { 'x-ms-blob-type': 'BlockBlob', 'Content-Type': slot.contentType || file.type || 'application/octet-stream' },
+      body: file,
+    });
+    if (!put.ok) throw new Error(`Upload failed: ${put.status}`);
+    photoStatus('Making copies…');
+    await postJson(GEAR_PHOTO_SAVE_URL, { gearId: shown.id, blobPath: slot.blobPath, originalName: file.name, byAnglerId: myAnglerId });
+    photoStatus('');
+    await load({ quiet: true });
+  } catch (err) {
+    if (!err.shown) console.error('Setup photo upload failed:', err);   // a refusal is said on the page
+    photoStatus(err.shown ? err.message : "The photo didn't save. Please check your connection and try again.", true);
+  } finally {
+    setBusy(false);
+    el.photoInput.value = '';
+  }
+}
+
+async function removePhoto() {
+  setBusy(true);
+  el.photoConfirm.classList.add('hidden');
+  try {
+    photoStatus('Removing…');
+    await postJson(GEAR_PHOTO_REMOVE_URL, { gearId: shown.id, byAnglerId: myAnglerId });
+    photoStatus('');
+    await load({ quiet: true });
+  } catch (err) {
+    if (!err.shown) console.error('Setup photo remove failed:', err);
+    photoStatus(err.shown ? err.message : "The photo wasn't removed. Please try again.", true);
+  } finally {
+    setBusy(false);
+  }
+}
+
+function openLightbox() {
+  const photo = shown && shown.setup && shown.setup.photo;
+  if (!photo) return;
+  el.lightboxImg.src = photo.viewingUrl || photo.thumbnailUrl;
+  el.original.href = photo.originalUrl;
+  el.lightbox.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+  el.lightbox.classList.add('hidden');
+  el.lightboxImg.removeAttribute('src');
+  document.body.style.overflow = '';
+}
+
+el.photoAdd.addEventListener('click', () => { if (!busy) el.photoInput.click(); });
+el.photoReplace.addEventListener('click', () => { if (!busy) el.photoInput.click(); });
+el.photoInput.addEventListener('change', () => { if (el.photoInput.files[0]) uploadPhoto(el.photoInput.files[0]); });
+el.photoRemove.addEventListener('click', () => { if (!busy) el.photoConfirm.classList.remove('hidden'); });
+document.getElementById('photoRemoveNo').addEventListener('click', () => el.photoConfirm.classList.add('hidden'));
+document.getElementById('photoRemoveYes').addEventListener('click', removePhoto);
+el.photoView.addEventListener('click', openLightbox);
+document.getElementById('photoClose').addEventListener('click', closeLightbox);
+el.lightbox.addEventListener('click', e => { if (e.target === el.lightbox) closeLightbox(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !el.lightbox.classList.contains('hidden')) closeLightbox(); });
+
+// Who's adding the photo, for the history (null when unknown, like the setup page)
+gearLoadAnglers().then(p => { myAnglerId = p.myAnglerId; }).catch(() => {});
+
+async function load({ quiet = false } = {}) {
+  if (!quiet) showState('loadingState');
   if (!/^\d+$/.test(tipId || '')) {
     el.errorMsg.textContent = "This link doesn't say which tip-up to show.";
     el.retryBtn.classList.add('hidden');
@@ -99,5 +237,5 @@ el.viewCatches.addEventListener('click', e => {
   if (!shown || !(Number(shown.catchCount) > 0)) return;
   goToGearCatches(shown.id, shown.name, { href: `./gear-tipup.html?id=${encodeURIComponent(shown.id)}`, label: shown.name });
 });
-el.retryBtn.addEventListener('click', load);
-window.addEventListener('DOMContentLoaded', load);
+el.retryBtn.addEventListener('click', () => load());
+window.addEventListener('DOMContentLoaded', () => load());

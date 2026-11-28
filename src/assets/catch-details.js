@@ -157,11 +157,17 @@ function buildCaughtOnRow(c) {
   const link = Number.isInteger(id) && id > 0 ? `<a href="./gear-tipup.html?id=${id}" class="caught-on-link">${name}</a>` : name;
   const parts = [c.line, c.leader, c.hook, (c.beads || []).join(', '), (c.flash || []).join(', ')].filter(Boolean);
   const setup = parts.length ? escapeHtml(parts.join(' · ')) : 'Setup not entered';
+  // The photo of the setup as it was (gear stage 3): its thumbnail, opening the viewing copy
+  const p = c.photo;
+  const photo = p && /^https:\/\//.test(p.thumbnailUrl || '')
+    ? `<a class="caught-on-photo" href="${escapeHtml(p.viewingUrl || p.thumbnailUrl)}" target="_blank" rel="noopener">
+         <img src="${escapeHtml(p.thumbnailUrl)}" alt="The setup it was caught on" loading="lazy" /></a>`
+    : '';
   return `
     <div class="detail-row">
       <span class="detail-label">${meta.icon} ${escapeHtml(meta.label)}</span>
       <span class="detail-value">${link}${c.status === 'Retired' ? ' <span class="caught-on-retired">(retired)</span>' : ''}
-        <span class="caught-on-setup">${setup}</span></span>
+        <span class="caught-on-setup">${setup}</span>${photo}</span>
     </div>`;
 }
 

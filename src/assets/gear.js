@@ -28,7 +28,8 @@ function card(t) {
   const meta = retired ? (t.retiredNote || 'Retired') : gearSetupSummary(t.setup);
   return `
     <a class="gear-card${retired ? ' gear-card--retired' : ''}" href="./gear-tipup.html?id=${encodeURIComponent(t.id)}" data-id="${t.id}">
-      <span class="gear-card-photo" aria-hidden="true"><img class="tipup-ico" src="./assets/tipup-icon.svg" alt="" /></span>
+      <span class="gear-card-photo" aria-hidden="true"><img class="tipup-ico" src="./assets/tipup-icon.svg" alt="" />${
+        t.setup && t.setup.photo ? '<span class="gear-card-photo-badge" title="Has a setup photo">📷</span>' : ''}</span>
       <span class="gear-card-body">
         <span class="gear-card-name">${gearEsc(t.name)}</span>
         <span class="gear-card-owner">${gearEsc(t.ownerName || '')}</span>
