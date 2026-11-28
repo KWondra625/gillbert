@@ -4,7 +4,7 @@
 // AI calls per run is enough. Each question uses a test chat session, which leaves
 // chat-memory rows on Staging for `npm run cleanup` to remove.
 const { test, expect } = require('../support/fixtures');
-const { getCatches } = require('../support/staging-api');
+const { getCatches, apiGet } = require('../support/staging-api');
 const { useTestChatSession } = require('../support/test-data');
 
 test.skip(!!process.env.SKIP_AI, 'SKIP_AI is set');
@@ -49,4 +49,23 @@ test('knows the longest catch of the most-caught species', async ({ page }) => {
   const longest = Math.max(...list.map(c => c.length || 0));
   const reply = await ask(page, `What is the longest ${species} in the record book, in inches? Answer with just the length.`);
   expect(numbersIn(reply), reply).toContain(longest);
+});
+
+// Gear (stage 5, second half): the Gear Stats and Tip-ups tools, checked against the app's own
+// answers. Skipped when Staging has no tip-up catches yet.
+test('names the tip-up with the most fish, as Gear Stats does', async ({ page }) => {
+  const stats = await apiGet('gear/stats');
+  const tips = ((Array.isArray(stats) ? stats[0] : stats).sections || {}).tipUp || [];
+  test.skip(tips.length < 2 || tips[0].fish === tips[1].fish, 'no clear top tip-up on Staging');
+  const reply = await ask(page, 'Which tip-up has caught the most fish, and how many? Just the name and the number.');
+  expect(reply, reply).toContain(tips[0].name);
+  expect(numbersIn(reply), reply).toContain(tips[0].fish);
+});
+
+test('knows the hook on a tip-up\'s current setup', async ({ page }) => {
+  const raw = await apiGet('gear/get');
+  const tip = (Array.isArray(raw) ? raw[0] : raw).tipUps.find(t => t.status === 'Active' && t.setup && t.setup.hook);
+  test.skip(!tip, 'no tip-up with a hook on Staging');
+  const reply = await ask(page, `What hook is on ${tip.name} right now? Just the hook.`);
+  expect(reply.toLowerCase(), reply).toContain(tip.setup.hook.toLowerCase());
 });

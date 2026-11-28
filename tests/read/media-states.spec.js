@@ -919,6 +919,35 @@ test.describe('media page', () => {
     await expect(rows.nth(2).locator('[data-action="attach"]')).toHaveCount(1);
   });
 
+  test('storage check lists tip-up setup photo files too: delete only, and a missing one links to its tip-up', async ({ page }) => {
+    await unlockAdmin(page);
+    await mockMediaList(page, { items: [mediaItem(30)] });
+    let deleted = null;
+    const old = 'Tue, 27 Oct 2026 01:00:00 GMT';
+    await page.route(url => url.pathname.endsWith('/catch-media/admin'), route => {
+      const body = route.request().postDataJSON();
+      if (body.action === 'delete-orphan') { deleted = body; return route.fulfill({ json: { success: true } }); }
+      return route.fulfill({ json: { ...cleanScan, orphanFiles: deleted ? [] : [
+        { container: 'gear-media', blobPath: 'gear/12/ABCDEFGH12.heic', sizeBytes: 2048, lastModified: old, gearId: 12 },
+        { container: 'gear-media', blobPath: 'gear/12/ABCDEFGH12-thumb.jpg', sizeBytes: 1024, lastModified: old, gearId: 12 }],
+        missingFiles: [{ container: 'gear-media', gearId: 9, blobPath: 'gear/9/ZYXWVUTS98.jpg' }] } });
+    });
+    await page.goto('media.html');
+    await page.locator('#storageTab').click();
+
+    const rows = page.locator('#scanResult .media-row');
+    await expect(rows.nth(0)).toContainText('Tip-up #12 setup photo');
+    await expect(rows.nth(1)).toContainText('Tip-up #12 setup photo copy');
+    await expect(page.locator('#scanResult [data-action="attach"]')).toHaveCount(0);
+    await expect(page.locator('#scanResult')).toContainText("Tip-up #9's setup photo points at a file that isn't in storage");
+    await expect(page.locator('#scanResult a[href="./gear-tipup.html?id=9"]')).toHaveCount(1);
+
+    const del = rows.nth(0).locator('[data-action="delete-orphan"]');
+    await del.click();
+    await del.click();
+    await expect.poll(() => deleted).toEqual({ action: 'delete-orphan', container: 'gear-media', blobPath: 'gear/12/ABCDEFGH12.heic' });
+  });
+
   test('files with no record can be previewed and opened, when the scan gives a link', async ({ page }) => {
     await unlockAdmin(page);
     await mockMediaList(page, { items: [mediaItem(30)] });

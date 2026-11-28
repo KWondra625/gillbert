@@ -296,14 +296,17 @@ function renderScan() {
   // Catch media can be attached back to its catch; a profile photo file nothing points at
   // (e.g. from an interrupted save) can only be deleted: re-upload it from the angler page.
   // A leftover thumbnail or viewing copy (#38) can only be deleted too: attaching it would
-  // show the same photo twice on its catch.
+  // show the same photo twice on its catch. So can a tip-up setup photo's file (gear stage 3):
+  // add the photo again from the tip-up's page.
   const orphanRows = orphans.map((f, i) => {
     const isPhoto = f.container === 'angler-media';
+    const isGear = f.container === 'gear-media';
     const isCopy = /-(thumb|view)\.jpg$/i.test(f.blobPath || '');
     const owner = isPhoto ? (f.anglerId ? `Angler #${f.anglerId} profile photo` : 'Profile photo')
+      : isGear ? `${f.gearId ? `Tip-up #${f.gearId}` : 'Tip-up'} setup photo${isCopy ? ' copy' : ''}`
       : isCopy ? `${f.catchNumber || 'Catch'} thumbnail copy` : f.catchNumber;
     const recent = isRecent(f);
-    const attach = (isPhoto || isCopy) ? '' : `
+    const attach = (isPhoto || isGear || isCopy) ? '' : `
         <button class="row-action" data-orphan="${i}" data-action="attach" data-label="📎 Attach to ${escapeHtml(f.catchNumber || 'catch')}">📎 Attach to ${escapeHtml(f.catchNumber || 'catch')}</button>`;
     return `
     <li class="media-row ${recent ? 'media-row--recent' : 'media-row--failed'}">
@@ -322,6 +325,8 @@ function renderScan() {
       <div class="row-file">${escapeHtml(m.blobPath)}</div>
       <div class="row-meta">${m.container === 'angler-media'
         ? `Angler #${escapeHtml(m.anglerId)}'s profile photo points at a file that isn't in storage. Remove or replace it on the angler's page.`
+        : m.container === 'gear-media'
+        ? `<a href="./gear-tipup.html?id=${encodeURIComponent(m.gearId)}">Tip-up #${escapeHtml(m.gearId)}</a>'s setup photo points at a file that isn't in storage. Replace or remove it on the tip-up's page.`
         : `Media record #${escapeHtml(m.id)} points at a file that isn't in storage. Delete it from its catch page.`}</div>
     </li>`).join('');
 

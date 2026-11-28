@@ -139,7 +139,8 @@ $$;
 
 -- ── gear/save ──────────────────────────────────────────────────────────────────────────────
 -- Body: { id (none = add), name, ownerAnglerId, model, color, notes, status, retiredNote, byAnglerId }
---   or  { id, delete: true, byAnglerId }  (only while no catch uses the tip-up)
+--   or  { id, delete: true, byAnglerId }  (only while no catch uses the tip-up; the answer's
+--       removePaths = its setup photos' files, for the workflow to delete)
 CREATE OR REPLACE FUNCTION gear_save(p jsonb) RETURNS jsonb
 LANGUAGE plpgsql AS $$
 DECLARE
@@ -154,6 +155,7 @@ DECLARE
   v_color  int;
   v_taken  text;
   v_old    gear%ROWTYPE;
+  v_files  jsonb;
 BEGIN
   IF v_by IS NOT NULL AND NOT EXISTS (SELECT 1 FROM anglers WHERE id = v_by) THEN
     v_by := NULL;  -- an unknown "who" is recorded as unknown, not refused
@@ -166,8 +168,12 @@ BEGIN
     IF EXISTS (SELECT 1 FROM catches c JOIN gear_setups s ON s.id = c.gear_setup_id WHERE s.gear_id = v_id) THEN
       PERFORM gear_fail(format('%s has caught fish, so it can only be retired, not deleted.', v_old.display_name));
     END IF;
+    -- Its setup photos' files (stage 3), for the workflow to delete once the rows are gone
+    SELECT coalesce(jsonb_agg(f), '[]'::jsonb) INTO v_files
+      FROM (SELECT DISTINCT photo_blob_path FROM gear_setups WHERE gear_id = v_id AND photo_blob_path IS NOT NULL) ph,
+           jsonb_array_elements_text(gear_photo_paths(ph.photo_blob_path)) f;
     DELETE FROM gear WHERE id = v_id;  -- its versions, beads/flash and history go with it
-    RETURN jsonb_build_object('success', true, 'id', v_id, 'deleted', true);
+    RETURN jsonb_build_object('success', true, 'id', v_id, 'deleted', true, 'removePaths', v_files);
   END IF;
 
   IF v_name IS NULL THEN PERFORM gear_fail('Please enter a name.'); END IF;

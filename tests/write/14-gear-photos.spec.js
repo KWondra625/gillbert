@@ -2,6 +2,7 @@
 // files in Staging's gear-media storage. A test tip-up gets a photo (JPEG), a catch on that setup,
 // a setup change (the photo carries over to v2), a replacement (HEIC-free PNG; v1 and the catch
 // keep the first photo, so its files stay), and a remove (the second photo's files go).
+// Last, a second test tip-up with a photo is deleted, and its files go with it.
 // Everything is "E2E Test …"; run `npm run cleanup` afterwards: it removes the test tip-up's
 // remaining photo files through the app, then the rows.
 // Needs scripts/gear/11 (+ 02 and vw_catch_details re-run), the gear-media container and the
@@ -110,4 +111,28 @@ test('remove: the second photo\'s files go; the first stays with v1', async ({ p
   expect((await tip()).setup.photo).toBeNull();
   await expectFiles(second, 404);
   await expectFiles(first, 200);
+});
+
+test('deleting a tip-up with no catches deletes its photo files too', async ({ page }) => {
+  test.setTimeout(120_000);
+  const name = testName('Photo Tip-up Delete');
+  await page.goto('gear-edit.html');
+  await page.locator('#name').fill(name);
+  await page.locator('#owner').selectOption({ index: 1 });
+  await page.locator('#saveBtn').click();
+  await expect(page).toHaveURL(/gear-setup\.html\?id=\d+&new=1/);
+  const id = new URL(page.url()).searchParams.get('id');
+  await page.goto(`gear-tipup.html?id=${id}`);
+  await expect(page.locator('#photoAddBtn')).toBeVisible();
+  await page.locator('#photoInput').setInputFiles(path.join(MEDIA, 'photo.jpg'));
+  await expect(page.locator('#photoView')).toBeVisible({ timeout: 90_000 });
+  const raw = await apiGet(`gear/get?id=${id}`);
+  const photo = (Array.isArray(raw) ? raw[0] : raw).tipUps[0].setup.photo;
+  await expectFiles(photo, 200);
+
+  await page.goto(`gear-edit.html?id=${id}`);
+  await page.locator('#deleteBtn').click();
+  await page.locator('#deleteYes').click();
+  await expect(page).toHaveURL(/gear\.html/);
+  await expectFiles(photo, 404);
 });

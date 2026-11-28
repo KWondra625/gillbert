@@ -1,8 +1,11 @@
 # Gear: tip-ups and their setups
 
-Status: **stage 1 built on `feature/gear-tip-ups`, not yet on Staging** (2026-11-24). Design agreed
-2026-11-18; data model reviewed 2026-11-23 (Model + Color added from the crew's feedback, the change
-log renamed `gear_history`, three rules added below). Mockup v2 (6 phone screens) was reviewed alongside this.
+Status (2026-11-28): **all six stages built and live on Staging** on `feature/gear-tip-ups`
+(not yet merged; the PR into `develop` waits until January). Three follow-ups built on the same
+branch (Ask Gillbert answers gear questions, a deleted tip-up's photo files, gear photos in the
+Media page's Storage Check; see "Follow-ups" below). Design agreed 2026-11-18; data model reviewed 2026-11-23
+(Model + Color added from the crew's feedback, the change log renamed `gear_history`, three rules
+added below). Mockup v2 (6 phone screens) was reviewed alongside this.
 
 ## Why
 
@@ -175,7 +178,7 @@ Pieces: `scripts/gear/07_gear_tags_admin.sql` (`gear_tags_get`, `gear_tag_save`)
 `tools/n8n-migration/gear/deploy_gear_endpoints.py` (`gear/tags`, `gear/tag-save`; the script now
 creates only what's missing), `gear-tags.html`, `gear-tag-edit.html`, `tests/read/gear-tags.spec.js`.
 
-## Stage 3: setup photos (built 2026-11-27)
+## Stage 3: setup photos (built and on Staging 2026-11-28)
 
 Agreed with Kurt from a mockup:
 - One photo per **setup version**. The tip-up page shows and changes the current version's photo,
@@ -189,8 +192,7 @@ Agreed with Kurt from a mockup:
 - Like catch photos (Kurt: keep the originals, be consistent): the original is kept, and the server
   makes `<ID>-thumb.jpg` (1200 px) and `<ID>-view.jpg` (2048 px) with the same `magick` settings.
   iPhone HEIC is read by magick directly (the copies are JPEG). 25 MB limit; JPG, PNG, WebP, HEIC.
-- Files: the `gear-media` container, `gear/<gearId>/<ID>.<ext>` (its own container so the Media
-  page's Storage Check doesn't flag them).
+- Files: the `gear-media` container (public read: Blob), `gear/<gearId>/<ID>.<ext>`.
 
 n8n (Kurt: reuse rather than copy): the copy-making code moved out of Make Thumbnails into a shared
 sub-workflow **Make Photo Copies** (`tools/n8n-migration/gear/make_photo_copies.js`), used by Make
@@ -206,7 +208,10 @@ re-run, then `12_check_gear_photos.sql`. Tests: `tests/read/gear-photos.spec.js`
 `tests/write/14-gear-photos.spec.js`; `npm run cleanup` removes test tip-ups' photo files
 through gear/photo-remove.
 
-Known gap: deleting a tip-up that has no catches (gear/save) leaves its photo files in storage.
+On Staging 2026-11-28: the four workflows created, Make Thumbnails switched (read-back OK),
+write/14 passed, and write/03 (catch photo uploads, thumbnails, deletes) still passes on the shared step.
+
+Deleting a tip-up that has no catches deletes its photo files too (see "Follow-ups").
 
 ## Stage 4: Gear Stats (built and on Staging 2026-11-27)
 
@@ -220,8 +225,9 @@ Agreed with Kurt from a mockup (version B: count plus biggest fish):
   without can be compared. A tip-up with no setup entered doesn't count as none. Ranked by count,
   in italics, no medal. A fish on two beads counts for both (noted on the page).
 - Species and Water chips copied from the Catches page; remembered for the visit.
-- This Season / All Time toggle built but **hidden** (2026-27 is the only gear season); showing it
-  next season makes This Season the season's dates (Nov-Mar or Apr-Oct).
+- This Season / All Time toggle, shown since 2026-11-28 (Kurt: don't leave it for later). All Time is
+  the default, since off-season This Season would be empty for tip-ups. This Season = the season
+  we're in (Nov-Mar or Apr-Oct).
 
 Built: `scripts/gear/09_gear_stats.sql` (`gear_stats_get(p jsonb)`, read-only; filters waterId,
 speciesId, from, to, anything malformed ignored), `10_check_gear_stats.sql` (rolled back),
@@ -236,20 +242,42 @@ which counted as No beads / No flash; "not entered" now isn't "none".
 
 ## Stages
 
-| # | Stage | Touches existing things? | Size |
-|---|---|---|---|
-| 1 | **Gear pages:** list, add, rename / retire, change setup (type-ahead + tags), history | No: new tables, pages and endpoints, plus one shack menu link | M |
-| 2 | **Caught on + Bait** on Log a Catch and Edit Catch; a "Caught on" section on Catch Details | Yes: Save Catch, Edit Catch, `vw_catch_details`, two catch pages | M |
-| 3 | **Setup photos** | A little: storage folder + thumbnail step | S |
-| 4 | **Stats page:** fish by setup part, bait, lake and species | No | M |
-| 5 | **Catch Chat / Ask Gillbert** know about gear ("got him on KW 24-02 with a sucker") | Yes: the AI workflows | M |
-| 6 | **Admin merge** for near-duplicate tags ("30lb dacron" into "Dacron 30 lb") | No | S |
+| # | Stage | Touches existing things? | Size | Status |
+|---|---|---|---|---|
+| 1 | **Gear pages:** list, add, rename / retire, change setup (type-ahead + tags), history | No: new tables, pages and endpoints, plus one shack menu link | M | On Staging |
+| 2 | **Caught on + Bait** on Log a Catch and Edit Catch; a "Caught on" section on Catch Details | Yes: Save Catch, Edit Catch, `vw_catch_details`, two catch pages | M | On Staging |
+| 3 | **Setup photos** | A little: storage folder + thumbnail step | S | On Staging |
+| 4 | **Stats page:** fish by setup part, bait, lake and species | No | M | On Staging |
+| 5 | **Catch Chat / Ask Gillbert** know about gear ("got him on KW 24-02 with a sucker") | Yes: the AI workflows | M | Catch Chat on Staging; Ask Gillbert built |
+| 6 | **Admin Gear Tags** (rename, hide, merge near-duplicates, delete) | No | S | On Staging |
 
-Stages 1 and 2 are the winter-useful core. Stage 1 alone lets the crew enter their tip-ups
-before anything else in the app changes. Later: outings and flag counts, then rods.
+Stages 1 and 2 are the winter-useful core. Later, separate projects: outings and flag counts, then
+rods.
 
-**Timing:** after the November Follow-ups release. Each stage follows the usual path: a
-feature branch, Staging, release runbook.
+**Timing:** all on one branch, `feature/gear-tip-ups`, on Staging since 2026-11-26/28. One PR into
+`develop` in January, then the usual release runbook for production.
+
+## Follow-ups (agreed 2026-11-28, built, waiting for Staging)
+
+- **Ask Gillbert answers gear questions** (stage 5's second half). It already gets every catch with
+  its `caught_on` and `bait_name`; for exact counts and the tip-ups themselves it gets two more
+  Postgres tools, **Gear Stats** and **Tip-ups**, on its read-only login. That login still reads
+  only `vw_catch_details`: the tools call two functions that run with their owner's rights
+  (`scripts/gear/13_gear_ask_gillbert.sql`: `gear_ai_stats(water, species, from, to)`, which calls
+  `gear_stats_get` so the numbers match the page, and `gear_ai_tipups(name)`), checked by
+  `14_check_gear_ask_gillbert.sql`. Workflow: `deploy_ask_gillbert_gear.py`. Tests: two gear
+  questions in `tests/read/ask-gillbert.spec.js` (they call Claude).
+- **A deleted tip-up's photo files go too:** `gear_save` answers `removePaths` when it deletes a
+  tip-up (02), and POST Save Gear deletes them with Remove Setup Photo's steps. Checked in 12 and
+  by the last test in `write/14-gear-photos.spec.js`.
+- **Media page Storage Check covers `gear-media`:** setup photo files nothing points at (delete
+  only; add the photo again from the tip-up) and setups pointing at a missing file (linked to the
+  tip-up). Upload History, Thumbnail Generation and Apple Formats leave gear out on purpose: a
+  setup photo's copies are made during its save (a failure fails the save), so there's nothing
+  to backfill or retry, and the original is kept beside JPEG copies, so nothing to convert.
+  Workflow: `deploy_gear_photo_cleanup.py` (POST Save Gear and POST Media Admin, backed up).
+
+Still open, Inbox: limit tip-up edits to the owner (and admin)?
 
 ## Testing
 

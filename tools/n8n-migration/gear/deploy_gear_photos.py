@@ -36,8 +36,6 @@ APPLY = "--apply" in sys.argv
 HOST = "bridge01" if "--prod" in sys.argv else "pi"
 PART = sys.argv[sys.argv.index("--part") + 1] if "--part" in sys.argv else None
 RESTORE = sys.argv[sys.argv.index("--restore") + 1] if "--restore" in sys.argv else None
-if PART not in ("gear", "thumbnails"):
-    sys.exit("Say which part: --part gear or --part thumbnails")
 STAMP = time.strftime("%Y%m%d-%H%M%S")
 IDS_FILE = os.path.join(HERE, f"deployed_ids_{HOST}.json")
 DRAFTS = os.path.join(HERE, "drafts")
@@ -394,6 +392,8 @@ def summary(wf):
 
 
 if __name__ == "__main__":
+    if PART not in ("gear", "thumbnails"):
+        sys.exit("Say which part: --part gear or --part thumbnails")
     by_name = {w["name"]: w for w in get("/workflows?limit=250")["data"]}
     for need in (TEMPLATE_POST, SHARED_SAS, THUMBS):
         if need not in by_name:

@@ -10,7 +10,7 @@ DO $$
 DECLARE
   a1 int; sp int; bw int;
   seq_last bigint; seq_called boolean;
-  r jsonb; g int; c int;
+  r jsonb; g int; g2 int; c int;
   acct text := 'https://zzcheck.blob.core.windows.net/gear-media/';
   photo1 jsonb; photo2 jsonb; photo3 jsonb;
 BEGIN
@@ -87,6 +87,20 @@ BEGIN
   r := gear_photo_save(photo1);
   IF (r->>'success')::boolean OR jsonb_array_length(r->'removePaths') IS DISTINCT FROM 3 THEN RAISE EXCEPTION 'retired: %', r; END IF;
   RAISE NOTICE 'ok: retired tip-up refused';
+
+  -- Deleting a tip-up with no catches lists its photo's files, for the workflow to delete
+  r := gear_save(jsonb_build_object('name', 'ZZ Photo-02', 'ownerAnglerId', a1, 'byAnglerId', a1));
+  g2 := (r->>'id')::int;
+  r := gear_photo_save(jsonb_build_object('gearId', g2, 'byAnglerId', a1, 'blobPath', format('gear/%s/DDDDDDDD4.jpg', g2),
+    'readUrl', acct || format('gear/%s/DDDDDDDD4.jpg', g2), 'thumbnailUrl', acct || format('gear/%s/DDDDDDDD4-thumb.jpg', g2),
+    'viewingUrl', acct || format('gear/%s/DDDDDDDD4-view.jpg', g2)));
+  IF NOT (r->>'success')::boolean THEN RAISE EXCEPTION 'photo on ZZ Photo-02: %', r; END IF;
+  r := gear_save(jsonb_build_object('id', g2, 'delete', true, 'byAnglerId', a1));
+  IF NOT (r->>'success')::boolean OR r->'removePaths' IS DISTINCT FROM gear_photo_paths(format('gear/%s/DDDDDDDD4.jpg', g2))
+    THEN RAISE EXCEPTION 'delete should list the photo files: %', r; END IF;
+  r := gear_save(jsonb_build_object('id', g, 'delete', true, 'byAnglerId', a1));
+  IF (r->>'success')::boolean OR r ? 'removePaths' THEN RAISE EXCEPTION 'a tip-up with a catch must not delete: %', r; END IF;
+  RAISE NOTICE 'ok: delete lists its photo files; refused delete lists none';
 
   EXCEPTION WHEN OTHERS THEN
     PERFORM setval('catches_id_seq', seq_last, seq_called);

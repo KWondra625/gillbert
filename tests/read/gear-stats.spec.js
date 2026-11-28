@@ -44,7 +44,7 @@ test('ranks each section by fish, with the biggest fish, and skips empty section
   await page.goto('gear-stats.html');
   await expect(page.locator('#statsSummary')).toHaveText('All time · 9 fish logged on 3 tip-ups');
   expect(calls[0]).toEqual({});                                   // no filters, all time
-  await expect(page.locator('#seasonFilter')).toBeHidden();        // one season so far
+  await expect(page.locator('#seasonFilter [data-season="all"]')).toHaveClass(/active/);
 
   await expect(page.locator('.stats-section')).toHaveCount(4);     // tip-ups, bait, hooks, beads
   const tips = page.locator('.stats-section[data-section="tipUp"] .rank-row');
@@ -115,4 +115,17 @@ test.describe('when the server fails', () => {
     await page.goto('gear-stats.html');
     await expect(page.locator('#errorState')).toBeVisible();
   });
+});
+
+test('This Season asks for the current season, and says so', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2027-01-15T12:00:00'));
+  const calls = await mockStats(page);
+  await page.goto('gear-stats.html');
+  await expect(page.locator('#statsSummary')).toContainText('All time');
+  await page.locator('#seasonFilter [data-season="this"]').click();
+  await expect(page.locator('#statsSummary')).toContainText('Hard water 2026–27');
+  expect(calls.at(-1)).toEqual({ from: '2026-11-01', to: '2027-03-31' });
+  await page.locator('#seasonFilter [data-season="all"]').click();
+  await expect(page.locator('#statsSummary')).toContainText('All time');
+  expect(calls.at(-1)).toEqual({});
 });
